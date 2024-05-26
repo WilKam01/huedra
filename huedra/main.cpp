@@ -1,11 +1,13 @@
-#include <bit>
-#include <cstdint>
-#include <iostream>
-
-#include "types.hpp"
+#include "platform/win32/window.hpp"
 
 int main()
 {
-    huedra::u64 num = 64;
-    std::cout << "Hello World! " << std::byteswap(num) << "\n";
+    huedra::Win32Window window;
+    window.init("Hello Windows!", huedra::Vector2i(600, 400), GetModuleHandle(NULL));
+
+    while (window.update())
+    {
+    }
+
+    return 0;
 }

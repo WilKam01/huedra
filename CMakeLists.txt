@@ -4,15 +4,14 @@ project(huedra)
 
 set(CMAKE_CXX_STANDARD 23)
 
-file(GLOB SOURCES 
+file(GLOB_RECURSE SOURCES 
     ${PROJECT_SOURCE_DIR}/huedra/*.cpp 
-    ${PROJECT_SOURCE_DIR}/huedra/**/*.cpp 
 )
 
 add_executable(huedra ${SOURCES})
 
 target_include_directories(huedra PRIVATE
-  ${PROJECT_SOURCE_DIR}/core
+  ${PROJECT_SOURCE_DIR}/huedra
 )
 
 # Define compiler flags and macros for different build types
