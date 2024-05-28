@@ -12,12 +12,14 @@ public:
     Win32Window() = default;
     ~Win32Window() = default;
 
-    bool init(const std::string& title, Vector2i rect, HINSTANCE instance);
+    bool init(const std::string& title, WindowInput input, HINSTANCE instance);
     void cleanup() override;
     bool update() override;
 
 private:
-    HWND m_window;
+    static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+    HWND m_handle;
 };
 
 } // namespace huedra

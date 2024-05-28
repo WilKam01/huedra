@@ -4,13 +4,28 @@
 
 namespace huedra {
 
-struct Vector2i // Temp here before real vector impl
+struct WindowInput
 {
-    u32 x{0};
-    u32 y{0};
+    u32 width{0};
+    u32 height{0};
+    std::optional<i32> xPos{};
+    std::optional<i32> yPos{};
 
-    Vector2i() = default;
-    Vector2i(u32 x, u32 y) : x(x), y(y) {}
+    WindowInput() = default;
+    WindowInput(u32 width, u32 height) : width(width), height(height) {}
+    WindowInput(u32 width, u32 height, i32 xPos, i32 yPos) : width(width), height(height), xPos(xPos), yPos(yPos) {}
+};
+
+struct WindowRect
+{
+    u32 width{0};
+    u32 height{0};
+    u32 screenWidth{0};
+    u32 screenHeight{0};
+    i32 xPos{0};
+    i32 yPos{0};
+    i32 xScreenPos{0};
+    i32 yScreenPos{0};
 };
 
 class Window
@@ -19,12 +34,23 @@ public:
     Window() = default;
     virtual ~Window() = default;
 
-    void init(const std::string& title, Vector2i rect);
+    void init(const std::string& title, WindowRect rect);
     virtual void cleanup();
     virtual bool update() = 0;
 
+    inline std::string getTitle() const { return m_title; }
+    inline WindowRect getRect() const { return m_rect; }
+
+    // Changing the actual window (To be implemented)
+    void setResolution(u32 width, u32 height) {};
+    void setPos(i32 x, i32 y) {};
+
+protected:
+    // Internal use (values updated by externally by platform)
+    void updateRect(WindowRect rect);
+
 private:
     std::string m_title{""};
-    Vector2i m_rect;
+    WindowRect m_rect;
 };
 } // namespace huedra

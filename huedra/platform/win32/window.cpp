@@ -1,28 +1,71 @@
 #include "window.hpp"
+#include <iostream>
 
 namespace huedra {
 
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK Win32Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    switch (uMsg)
+    Win32Window* self = nullptr;
+    if (uMsg == WM_NCCREATE)
     {
-    case WM_DESTROY:
-        PostQuitMessage(0);
-        return 0;
-    case WM_PAINT: {
-        PAINTSTRUCT ps;
-        HDC hdc = BeginPaint(hwnd, &ps);
-        FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW + 1));
-        EndPaint(hwnd, &ps);
+        LPCREATESTRUCT lpcs = reinterpret_cast<LPCREATESTRUCT>(lParam);
+        self = static_cast<Win32Window*>(lpcs->lpCreateParams);
+        SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
     }
-        return 0;
+    else
+    {
+        self = reinterpret_cast<Win32Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+    }
+
+    if (self)
+    {
+        WindowRect rect = self->getRect();
+        RECT winRect;
+        switch (uMsg)
+        {
+        case WM_DESTROY:
+            PostQuitMessage(0);
+            return 0;
+        case WM_SIZE:
+            rect.screenWidth = LOWORD(lParam);
+            rect.screenHeight = HIWORD(lParam);
+
+            if (GetWindowRect(self->m_handle, &winRect))
+            {
+                rect.width = winRect.right - winRect.left;
+                rect.height = winRect.bottom - winRect.top;
+            }
+            break;
+        case WM_MOVING:
+            winRect = *reinterpret_cast<RECT*>(lParam);
+            rect.xScreenPos = winRect.left;
+            rect.yScreenPos = winRect.top;
+            // std::cout << "Moving\n";
+
+            if (GetWindowRect(self->m_handle, &winRect))
+            {
+                rect.xPos = winRect.left;
+                rect.yPos = winRect.top;
+            }
+            break;
+        case WM_PAINT: {
+            PAINTSTRUCT ps;
+            HDC hdc = BeginPaint(hwnd, &ps);
+            FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW + 1));
+            EndPaint(hwnd, &ps);
+            break;
+        }
+        }
+        self->updateRect(rect);
+        rect = self->getRect();
+        // std::cout << "Rect: (" << rect.xScreenPos << ", " << rect.yScreenPos << ")\n";
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
-bool Win32Window::init(const std::string& title, Vector2i rect, HINSTANCE instance)
+bool Win32Window::init(const std::string& title, WindowInput input, HINSTANCE instance)
 {
-    Window::init(title, rect);
+    Window::init(title, {});
 
     const char CLASS_NAME[] = "Window Class";
 
@@ -33,36 +76,45 @@ bool Win32Window::init(const std::string& title, Vector2i rect, HINSTANCE instan
 
     RegisterClass(&wc);
 
+    RECT rect;
+    rect.left = 0;
+    rect.top = 0;
+    rect.right = input.width;
+    rect.bottom = input.height;
+
+    AdjustWindowRectEx(&rect, WS_OVERLAPPEDWINDOW, 0, 0);
+
     // clang-format off
-    m_window = CreateWindowEx(
+    m_handle = CreateWindowEx(
         0,
         CLASS_NAME,
         title.c_str(),
         WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        rect.x,
-        rect.y,
+        input.xPos.value_or(CW_USEDEFAULT),
+        input.yPos.value_or(CW_USEDEFAULT),
+        rect.right - rect.left,
+        rect.bottom - rect.top,
         NULL,
         NULL,
         instance,
-        NULL
+        this
     );
     // clang-format on
 
-    if (m_window == NULL)
+    if (m_handle == NULL)
     {
         // Log Error
         return false;
     }
 
-    ShowWindow(m_window, 1);
+    ShowWindow(m_handle, 1);
 
     return true;
 }
 
 void Win32Window::cleanup() { Window::cleanup(); }
 
+// TODO: Run on another thread since resizing and moving window will halt execution in DispatchMessage
 bool Win32Window::update()
 {
     MSG msg{};
