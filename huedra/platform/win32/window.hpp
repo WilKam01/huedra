@@ -12,7 +12,7 @@ public:
     Win32Window() = default;
     ~Win32Window() = default;
 
-    bool init(const std::string& title, WindowInput input, HINSTANCE instance);
+    bool init(const std::string& title, const WindowInput& input, HINSTANCE instance);
     void cleanup() override;
     bool update() override;
 

@@ -1,20 +1,23 @@
-#include "platform/win32/window.hpp"
-
+#include "core/global.hpp"
 #include <iostream>
+
+using namespace huedra::global;
 
 int main()
 {
-    huedra::Win32Window window;
-    window.init("Hello Windows!", huedra::WindowInput(600, 400), GetModuleHandle(NULL));
+    windowManager.init();
+    huedra::Window* window = windowManager.createWindow("Hello Windows1!", huedra::WindowInput(600, 400));
+    windowManager.createWindow(
+        "Hello Windows1!", huedra::WindowInput(200, 100, window->getRect().xScreenPos, window->getRect().yScreenPos));
 
-    while (window.update())
+    while (windowManager.update())
     {
-        huedra::WindowRect rect = window.getRect();
-        std::cout << " | Width: " << rect.width << " | Height: " << rect.height << " | xPos: " << rect.xPos
-                  << " | yPos: " << rect.yPos << " | Screen Width: " << rect.screenWidth
-                  << " | Screen Height: " << rect.screenHeight << " | xScrenPos: " << rect.xScreenPos
-                  << " | yScreenPos: " << rect.yScreenPos << " |\n";
+        huedra::WindowRect rect = window->getRect();
+        std::cout << "Pos: (" << rect.xScreenPos << ", " << rect.yScreenPos << ") | Size: (" << rect.width << ", "
+                  << rect.height << ")\n";
     }
+
+    windowManager.cleanup();
 
     return 0;
 }

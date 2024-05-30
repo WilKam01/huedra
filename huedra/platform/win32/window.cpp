@@ -1,5 +1,4 @@
 #include "window.hpp"
-#include <iostream>
 
 namespace huedra {
 
@@ -36,11 +35,20 @@ LRESULT CALLBACK Win32Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
                 rect.height = winRect.bottom - winRect.top;
             }
             break;
+        case WM_MOVE:
+            rect.xScreenPos = static_cast<i32>(static_cast<i16>(LOWORD(lParam)));
+            rect.yScreenPos = static_cast<i32>(static_cast<i16>(HIWORD(lParam)));
+
+            if (GetWindowRect(self->m_handle, &winRect))
+            {
+                rect.xPos = winRect.left;
+                rect.yPos = winRect.top;
+            }
+            break;
         case WM_MOVING:
             winRect = *reinterpret_cast<RECT*>(lParam);
             rect.xScreenPos = winRect.left;
             rect.yScreenPos = winRect.top;
-            // std::cout << "Moving\n";
 
             if (GetWindowRect(self->m_handle, &winRect))
             {
@@ -58,12 +66,11 @@ LRESULT CALLBACK Win32Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
         }
         self->updateRect(rect);
         rect = self->getRect();
-        // std::cout << "Rect: (" << rect.xScreenPos << ", " << rect.yScreenPos << ")\n";
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 
-bool Win32Window::init(const std::string& title, WindowInput input, HINSTANCE instance)
+bool Win32Window::init(const std::string& title, const WindowInput& input, HINSTANCE instance)
 {
     Window::init(title, {});
 
