@@ -40,17 +40,24 @@ public:
 
     inline std::string getTitle() const { return m_title; }
     inline WindowRect getRect() const { return m_rect; }
+    inline Window* getParent() const { return m_parent; }
+    inline bool shouldClose() const { return m_close; }
 
-    // Changing the actual window (To be implemented)
-    void setResolution(u32 width, u32 height) {};
-    void setPos(i32 x, i32 y) {};
+    void setParent(Window* parent);
+    virtual void setTitle(const std::string& title) = 0;
+    virtual void setResolution(u32 width, u32 height) = 0;
+    virtual void setPos(i32 x, i32 y) = 0;
 
 protected:
-    // Internal use (values updated by externally by platform)
+    // Internal use (values updated externally by platform and/or implementation)
+    void updateTitle(const std::string& title);
     void updateRect(WindowRect rect);
 
 private:
     std::string m_title{""};
     WindowRect m_rect;
+    Window* m_parent{nullptr};
+    bool m_close{false};
+    std::vector<Window*> m_children;
 };
 } // namespace huedra

@@ -76,13 +76,6 @@ bool Win32Window::init(const std::string& title, const WindowInput& input, HINST
 
     const char CLASS_NAME[] = "Window Class";
 
-    WNDCLASS wc = {};
-    wc.lpfnWndProc = WindowProc;
-    wc.hInstance = instance;
-    wc.lpszClassName = CLASS_NAME;
-
-    RegisterClass(&wc);
-
     RECT rect;
     rect.left = 0;
     rect.top = 0;
@@ -119,24 +112,41 @@ bool Win32Window::init(const std::string& title, const WindowInput& input, HINST
     return true;
 }
 
-void Win32Window::cleanup() { Window::cleanup(); }
+void Win32Window::cleanup()
+{
+    Window::cleanup();
+    if (IsWindow(m_handle))
+    {
+        DestroyWindow(m_handle);
+    }
+}
 
 // TODO: Run on another thread since resizing and moving window will halt execution in DispatchMessage
 bool Win32Window::update()
 {
     MSG msg{};
-    while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+    while (PeekMessage(&msg, m_handle, 0, 0, PM_REMOVE))
     {
         TranslateMessage(&msg);
         DispatchMessage(&msg);
-
-        if (msg.message == WM_QUIT)
-        {
-            return false;
-        }
     }
 
-    return true;
+    return IsWindow(m_handle);
 }
+
+void Win32Window::setTitle(const std::string& title)
+{
+    if (SetWindowTextA(m_handle, title.c_str()))
+    {
+        updateTitle(title);
+    }
+}
+
+void Win32Window::setResolution(u32 width, u32 height)
+{
+    SetWindowPos(m_handle, NULL, 0, 0, width, height, SWP_NOMOVE);
+}
+
+void Win32Window::setPos(i32 x, i32 y) { SetWindowPos(m_handle, NULL, x, y, 0, 0, SWP_NOSIZE); }
 
 } // namespace huedra

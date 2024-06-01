@@ -7,17 +7,30 @@
 
 namespace huedra {
 
-void WindowManager::init() {}
+void WindowManager::init()
+{
+#ifdef WIN32
+    const char CLASS_NAME[] = "Window Class";
+
+    WNDCLASS wc = {};
+    wc.lpfnWndProc = Win32Window::WindowProc;
+    wc.hInstance = GetModuleHandle(NULL);
+    wc.lpszClassName = CLASS_NAME;
+
+    RegisterClass(&wc);
+#endif
+}
 
 bool WindowManager::update()
 {
     for (auto it = m_windows.begin(); it != m_windows.end();)
     {
-        if (!(*it)->update())
+        if ((*it)->shouldClose() || !(*it)->update())
         {
             Window* window = *it;
-            delete window;
             it = m_windows.erase(it);
+            window->cleanup();
+            delete window;
         }
         else
         {
@@ -32,6 +45,7 @@ void WindowManager::cleanup()
 {
     for (auto& window : m_windows)
     {
+        window->cleanup();
         delete window;
     }
 }

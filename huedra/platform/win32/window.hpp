@@ -16,9 +16,13 @@ public:
     void cleanup() override;
     bool update() override;
 
-private:
+    void setTitle(const std::string& title) override;
+    void setResolution(u32 width, u32 height) override;
+    void setPos(i32 x, i32 y) override;
+
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
+private:
     HWND m_handle;
 };
 
