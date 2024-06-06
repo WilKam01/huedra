@@ -1,5 +1,6 @@
 #include "instance.hpp"
 
+#include "core/log.hpp"
 #include <string.h>
 
 namespace huedra {
@@ -9,7 +10,27 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityF
                                                     const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                                                     void* pUserData)
 {
-    // TODO: Log message
+    LogLevel level;
+    switch (messageSeverity)
+    {
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+        level = LogLevel::INFO;
+        break;
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+        level = LogLevel::INFO;
+        break;
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+        level = LogLevel::WARNING;
+        break;
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+        level = LogLevel::ERROR;
+        break;
+    default:
+        level = LogLevel::INFO;
+        break;
+    }
+
+    log(level, pCallbackData->pMessage);
     return VK_FALSE;
 }
 
@@ -17,7 +38,7 @@ void Instance::init()
 {
     if (c_enableValidationLayers && !checkValidationLayerSupport())
     {
-        // TODO: Log runtime error
+        log(LogLevel::ERROR, "Requested validation layers not available!");
     }
 
     VkApplicationInfo appInfo{VK_STRUCTURE_TYPE_APPLICATION_INFO};
@@ -48,7 +69,7 @@ void Instance::init()
 
     if (vkCreateInstance(&createInfo, nullptr, &m_instance) != VK_SUCCESS)
     {
-        // TODO: Log runtime error
+        log(LogLevel::ERROR, "Failed to create vulkan instance!");
     }
 
 #ifdef DEBUG
@@ -58,7 +79,11 @@ void Instance::init()
     std::vector<VkExtensionProperties> extensions(extensionCount);
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
-    // TODO: Log available extensions
+    log(LogLevel::INFO, "available extensions:");
+    for (const auto& extension : extensions)
+    {
+        log(LogLevel::INFO, "    %s", extension.extensionName);
+    }
 #endif
 
     if (c_enableValidationLayers)
@@ -68,7 +93,7 @@ void Instance::init()
 
         if (createDebugUtilsMessengerEXT(&debugCreateInfo, nullptr, &m_debugMessenger) != VK_SUCCESS)
         {
-            // TODO: Log runtime error
+            log(LogLevel::ERROR, "Failed to set up vulkan debug messenger!");
         }
     }
 }

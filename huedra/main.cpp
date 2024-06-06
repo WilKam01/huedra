@@ -1,5 +1,4 @@
 #include "core/global.hpp"
-#include <iostream>
 
 using namespace huedra::global;
 
@@ -12,9 +11,6 @@ int main()
 
     while (windowManager.update())
     {
-        huedra::WindowRect rect = window->getRect();
-        std::cout << "Pos: (" << rect.xScreenPos << ", " << rect.yScreenPos << ") | Size: (" << rect.screenWidth << ", "
-                  << rect.screenHeight << ")\n";
     }
 
     graphicsManager.cleanup();
