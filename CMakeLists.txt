@@ -10,6 +10,14 @@ file(GLOB_RECURSE SOURCES
 
 add_executable(huedra ${SOURCES})
 
+find_package(Vulkan REQUIRED)
+
+if(VULKAN_FOUND)
+  include_directories(huedra {Vulkan_INCLUDE_DIRS})
+  target_link_libraries(huedra PRIVATE Vulkan::Vulkan)
+  target_compile_definitions(huedra PRIVATE -DVULKAN)
+endif(VULKAN_FOUND)
+
 target_include_directories(huedra PRIVATE
   ${PROJECT_SOURCE_DIR}/huedra
 )
