@@ -1,8 +1,6 @@
 #pragma once
 
-#include "core/types.hpp"
-
-#include <vulkan/vulkan.h>
+#include "platform/vulkan/config.hpp"
 
 namespace huedra {
 
@@ -15,8 +13,8 @@ public:
     void init();
     void cleanup();
 
-    inline VkInstance get() { return m_instance; }
-    inline bool validationLayersEnabled() { return c_enableValidationLayers; }
+    VkInstance get() { return m_instance; }
+    bool validationLayersEnabled() { return c_enableValidationLayers; }
 
 private:
 #ifdef DEBUG

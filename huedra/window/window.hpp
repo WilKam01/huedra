@@ -38,10 +38,10 @@ public:
     virtual void cleanup();
     virtual bool update() = 0;
 
-    inline std::string getTitle() const { return m_title; }
-    inline WindowRect getRect() const { return m_rect; }
-    inline Window* getParent() const { return m_parent; }
-    inline bool shouldClose() const { return m_close; }
+    std::string getTitle() const { return m_title; }
+    WindowRect getRect() const { return m_rect; }
+    Window* getParent() const { return m_parent; }
+    bool shouldClose() const { return m_close; }
 
     void setParent(Window* parent);
     virtual void setTitle(const std::string& title) = 0;

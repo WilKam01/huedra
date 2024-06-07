@@ -1,6 +1,7 @@
 #pragma once
 
 #include "graphics/context.hpp"
+#include "platform/vulkan/device.hpp"
 #include "platform/vulkan/instance.hpp"
 
 namespace huedra {
@@ -16,6 +17,7 @@ public:
 
 private:
     Instance m_instance;
+    Device m_device;
 };
 
 } // namespace huedra
