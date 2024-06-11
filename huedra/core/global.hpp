@@ -3,9 +3,12 @@
 #include "graphics/graphics_manager.hpp"
 #include "window/window_manager.hpp"
 
-namespace huedra::global {
+namespace huedra {
 
-static WindowManager windowManager;
-static GraphicsManager graphicsManager;
+struct Global
+{
+    static WindowManager windowManager;
+    static GraphicsManager graphicsManager;
+};
 
-} // namespace huedra::global
+} // namespace huedra

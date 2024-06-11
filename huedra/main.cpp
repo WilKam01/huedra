@@ -1,18 +1,18 @@
 #include "core/global.hpp"
 
-using namespace huedra::global;
+using namespace huedra;
 
 int main()
 {
-    windowManager.init();
-    huedra::Window* window = windowManager.createWindow("Hello Windows!", huedra::WindowInput(1278, 1360, -7, 0));
+    Global::windowManager.init();
+    Global::graphicsManager.init();
 
-    graphicsManager.init();
+    huedra::Window* window = Global::windowManager.addWindow("Hello Windows!", huedra::WindowInput(1278, 1360, -7, 0));
 
-    while (windowManager.update())
+    while (Global::windowManager.update())
     {
     }
 
-    graphicsManager.cleanup();
-    windowManager.cleanup();
+    Global::graphicsManager.cleanup();
+    Global::windowManager.cleanup();
 }

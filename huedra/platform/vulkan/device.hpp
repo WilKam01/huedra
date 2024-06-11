@@ -13,17 +13,25 @@ struct QueueFamilyIndices
     bool isComplete() { return graphicsFamily.has_value() && presentFamily.has_value() && computeFamily.has_value(); }
 };
 
+struct VulkanSurfaceSupport
+{
+    VkSurfaceCapabilitiesKHR capabilities;
+    std::vector<VkSurfaceFormatKHR> formats;
+    std::vector<VkPresentModeKHR> presentModes;
+};
+
 class Device
 {
 public:
     Device() = default;
     ~Device() = default;
 
-    void init(Instance& instance);
+    void init(Instance& instance, VkSurfaceKHR surface);
     void cleanup();
 
     void waitIdle();
     u32 findMemoryType(u32 typeBits, VkMemoryPropertyFlags properties);
+    VulkanSurfaceSupport querySurfaceSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
 
     VkDevice getLogical() { return m_device; }
     VkPhysicalDevice getPhysical() { return m_physicalDevice; }
@@ -34,11 +42,11 @@ public:
     VkSampleCountFlagBits getMsaaSamples() { return m_msaaSamples; }
 
 private:
-    void pickPhysicalDevice(Instance& instance);
-    bool isDeviceSuitable(VkPhysicalDevice device);
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+    void pickPhysicalDevice(Instance& instance, VkSurfaceKHR surface);
+    bool isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface);
+    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-    void createLogicalDevice();
+    void createLogicalDevice(VkSurfaceKHR surface);
     VkSampleCountFlagBits getMaxUsableSampleCount();
 
     VkDevice m_device;

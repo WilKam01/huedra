@@ -7,6 +7,9 @@ namespace huedra {
 
 class WindowManager
 {
+#ifdef VULKAN
+    friend class VulkanContext;
+#endif
 public:
     WindowManager() = default;
     ~WindowManager() = default;
@@ -15,9 +18,12 @@ public:
     bool update();
     void cleanup();
 
-    Window* createWindow(const std::string& title, const WindowInput& input);
+    Window* addWindow(const std::string& title, const WindowInput& input);
 
 private:
+    // Create platform specific window
+    Window* createWindow(const std::string& title, const WindowInput& input);
+
     std::vector<Window*> m_windows;
 };
 

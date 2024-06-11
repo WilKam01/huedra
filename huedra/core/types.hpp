@@ -1,6 +1,9 @@
 #pragma once
 
+#include <algorithm>
+#include <array>
 #include <cstdint>
+#include <limits>
 #include <optional>
 #include <string>
 #include <vector>

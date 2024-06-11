@@ -6,10 +6,10 @@
 
 namespace huedra {
 
-void Device::init(Instance& instance)
+void Device::init(Instance& instance, VkSurfaceKHR surface)
 {
-    pickPhysicalDevice(instance);
-    createLogicalDevice();
+    pickPhysicalDevice(instance, surface);
+    createLogicalDevice(surface);
 }
 
 void Device::cleanup() { vkDestroyDevice(m_device, nullptr); }
@@ -27,11 +27,38 @@ u32 Device::findMemoryType(u32 typeBits, VkMemoryPropertyFlags properties)
             return i;
     }
 
-    log(LogLevel::ERROR, "Failed to find suitable memory type!");
+    log(LogLevel::ERR, "Failed to find suitable memory type!");
     return 0;
 }
 
-void Device::pickPhysicalDevice(Instance& instance)
+VulkanSurfaceSupport Device::querySurfaceSupport(VkPhysicalDevice device, VkSurfaceKHR surface)
+{
+    VulkanSurfaceSupport details;
+
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+
+    uint32_t formatCount;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
+
+    if (formatCount != 0)
+    {
+        details.formats.resize(formatCount);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
+    }
+
+    uint32_t presentModeCount;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
+
+    if (presentModeCount != 0)
+    {
+        details.presentModes.resize(presentModeCount);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, details.presentModes.data());
+    }
+
+    return details;
+}
+
+void Device::pickPhysicalDevice(Instance& instance, VkSurfaceKHR surface)
 {
     m_physicalDevice = VK_NULL_HANDLE;
 
@@ -42,7 +69,7 @@ void Device::pickPhysicalDevice(Instance& instance)
 
     for (const auto& device : devices)
     {
-        if (isDeviceSuitable(device))
+        if (isDeviceSuitable(device, surface))
         {
             m_physicalDevice = device;
             m_msaaSamples = getMaxUsableSampleCount();
@@ -52,31 +79,30 @@ void Device::pickPhysicalDevice(Instance& instance)
 
     if (m_physicalDevice == VK_NULL_HANDLE)
     {
-        log(LogLevel::ERROR, "Failed to find suitable GPU!");
+        log(LogLevel::ERR, "Failed to find suitable GPU!");
     }
 }
 
-bool Device::isDeviceSuitable(VkPhysicalDevice device)
+bool Device::isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
-    QueueFamilyIndices indices = findQueueFamilies(device);
+    QueueFamilyIndices indices = findQueueFamilies(device, surface);
 
     bool extensionsSupported = checkDeviceExtensionSupport(device);
-    // TODO: Check swapchain support
-    bool swapChainAdequate = true; /*false;
+    bool swapchainAdequate = false;
     if (extensionsSupported)
     {
-        SwapChainSupportDetails swapChainSupport = SwapChain::querySupport(device, *p_surface);
-        swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
-    }*/
+        VulkanSurfaceSupport surfaceSupport = querySurfaceSupport(device, surface);
+        swapchainAdequate = !surfaceSupport.formats.empty() && !surfaceSupport.presentModes.empty();
+    }
 
     VkPhysicalDeviceFeatures supportedFeatures;
     vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
 
-    return indices.isComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy &&
+    return indices.isComplete() && extensionsSupported && swapchainAdequate && supportedFeatures.samplerAnisotropy &&
            supportedFeatures.fillModeNonSolid;
 }
 
-QueueFamilyIndices Device::findQueueFamilies(VkPhysicalDevice device)
+QueueFamilyIndices Device::findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
     QueueFamilyIndices indices;
 
@@ -86,7 +112,6 @@ QueueFamilyIndices Device::findQueueFamilies(VkPhysicalDevice device)
     vkGetPhysicalDeviceQueueFamilyProperties(device, &count, queueFamilies.data());
 
     int i = 0;
-    indices.presentFamily = 0; // TODO: Check present support on window
     for (const auto& queueFamily : queueFamilies)
     {
         if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
@@ -94,11 +119,10 @@ QueueFamilyIndices Device::findQueueFamilies(VkPhysicalDevice device)
         if (queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT)
             indices.computeFamily = i;
 
-        // TODO: Check present support on window
-        /*VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, *p_surface, &presentSupport);
+        VkBool32 presentSupport = false;
+        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
         if (presentSupport)
-            indices.presentFamily = i;*/
+            indices.presentFamily = i;
 
         if (indices.isComplete())
             break;
@@ -125,9 +149,9 @@ bool Device::checkDeviceExtensionSupport(VkPhysicalDevice device)
     return requiredExtensions.empty();
 }
 
-void Device::createLogicalDevice()
+void Device::createLogicalDevice(VkSurfaceKHR surface)
 {
-    m_indices = findQueueFamilies(m_physicalDevice);
+    m_indices = findQueueFamilies(m_physicalDevice, surface);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<u32> uniqueQueueFamilies = {m_indices.graphicsFamily.value(), m_indices.presentFamily.value()};
@@ -162,13 +186,13 @@ void Device::createLogicalDevice()
     createInfo.enabledLayerCount = 0;
     if (vulkan_config::enableValidationLayers)
     {
-        createInfo.enabledLayerCount = static_cast<uint32_t>(vulkan_config::validationLayers.size());
+        createInfo.enabledLayerCount = static_cast<u32>(vulkan_config::validationLayers.size());
         createInfo.ppEnabledLayerNames = vulkan_config::validationLayers.data();
     }
 
     if (vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device) != VK_SUCCESS)
     {
-        log(LogLevel::ERROR, "Failed to create logical device!");
+        log(LogLevel::ERR, "Failed to create logical device!");
     }
 
     vkGetDeviceQueue(m_device, m_indices.graphicsFamily.value(), 0, &m_graphicsQueue);

@@ -6,7 +6,7 @@ enum class LogLevel
 {
     INFO,
     WARNING,
-    ERROR
+    ERR
 };
 
 void log(LogLevel level, const char* format, ...);

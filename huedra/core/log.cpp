@@ -17,7 +17,7 @@ void log(LogLevel level, const char* format, ...)
     case LogLevel::WARNING:
         levelStr = "WARNING";
         break;
-    case LogLevel::ERROR:
+    case LogLevel::ERR:
         levelStr = "ERROR";
         break;
     default:
@@ -34,7 +34,7 @@ void log(LogLevel level, const char* format, ...)
 
     std::cout << std::endl;
 
-    if (level == LogLevel::ERROR)
+    if (level == LogLevel::ERR)
     {
         exit(1);
     }

@@ -56,8 +56,9 @@ protected:
 private:
     std::string m_title{""};
     WindowRect m_rect;
-    Window* m_parent{nullptr};
     bool m_close{false};
+
+    Window* m_parent{nullptr};
     std::vector<Window*> m_children;
 };
 } // namespace huedra

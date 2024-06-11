@@ -1,5 +1,6 @@
 #include "window_manager.hpp"
-#include <iostream>
+#include "core/global.hpp"
+#include "core/log.hpp"
 
 #ifdef WIN32
 #include "platform/win32/window.hpp"
@@ -23,18 +24,19 @@ void WindowManager::init()
 
 bool WindowManager::update()
 {
-    for (auto it = m_windows.begin(); it != m_windows.end();)
+    for (size_t i = 0; i < m_windows.size();)
     {
-        if ((*it)->shouldClose() || !(*it)->update())
+        Window* window = m_windows[i];
+        if (window->shouldClose() || !window->update())
         {
-            Window* window = *it;
-            it = m_windows.erase(it);
+            m_windows.erase(m_windows.begin() + i);
+            Global::graphicsManager.removeSwapchain(i);
             window->cleanup();
             delete window;
         }
         else
         {
-            ++it;
+            ++i;
         }
     }
 
@@ -50,27 +52,38 @@ void WindowManager::cleanup()
     }
 }
 
+Window* WindowManager::addWindow(const std::string& title, const WindowInput& input)
+{
+    Window* window = createWindow(title, input);
+
+    if (window)
+    {
+        m_windows.push_back(window);
+        Global::graphicsManager.createSwapchain(window);
+    }
+    else
+    {
+        log(LogLevel::WARNING, "Failed to create window!");
+    }
+
+    return window;
+}
+
 Window* WindowManager::createWindow(const std::string& title, const WindowInput& input)
 {
-    bool success = false;
     Window* ret = nullptr;
+    bool success = false;
 #ifdef WIN32
     Win32Window* window = new Win32Window();
     success = window->init(title, input, GetModuleHandle(NULL));
+#endif
     if (success)
     {
-        m_windows.push_back(window);
         ret = window;
     }
     else
     {
         delete window;
-    }
-#endif
-
-    if (!success)
-    {
-        std::cout << "Failed to create window!\n";
     }
 
     return ret;

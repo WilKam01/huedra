@@ -23,7 +23,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityF
         level = LogLevel::WARNING;
         break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-        level = LogLevel::ERROR;
+        level = LogLevel::ERR;
         break;
     default:
         level = LogLevel::INFO;
@@ -38,7 +38,7 @@ void Instance::init()
 {
     if (vulkan_config::enableValidationLayers && !checkValidationLayerSupport())
     {
-        log(LogLevel::ERROR, "Requested validation layers not available!");
+        log(LogLevel::ERR, "Requested validation layers not available!");
     }
 
     VkApplicationInfo appInfo{VK_STRUCTURE_TYPE_APPLICATION_INFO};
@@ -51,8 +51,8 @@ void Instance::init()
 
     VkInstanceCreateInfo createInfo{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
     createInfo.pApplicationInfo = &appInfo;
-    createInfo.enabledExtensionCount = static_cast<u32>(vulkan_config::windowExtensions.size());
-    createInfo.ppEnabledExtensionNames = vulkan_config::windowExtensions.data();
+    createInfo.enabledExtensionCount = static_cast<u32>(vulkan_config::instanceExtensions.size());
+    createInfo.ppEnabledExtensionNames = vulkan_config::instanceExtensions.data();
     createInfo.enabledLayerCount = 0;
     createInfo.pNext = nullptr;
 
@@ -69,11 +69,11 @@ void Instance::init()
 
     if (vkCreateInstance(&createInfo, nullptr, &m_instance) != VK_SUCCESS)
     {
-        log(LogLevel::ERROR, "Failed to create vulkan instance!");
+        log(LogLevel::ERR, "Failed to create vulkan instance!");
     }
 
 #ifdef DEBUG
-    uint32_t extensionCount = 0;
+    u32 extensionCount = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
 
     std::vector<VkExtensionProperties> extensions(extensionCount);
@@ -93,7 +93,7 @@ void Instance::init()
 
         if (createDebugUtilsMessengerEXT(&debugCreateInfo, nullptr, &m_debugMessenger) != VK_SUCCESS)
         {
-            log(LogLevel::ERROR, "Failed to set up vulkan debug messenger!");
+            log(LogLevel::ERR, "Failed to set up vulkan debug messenger!");
         }
     }
 }
