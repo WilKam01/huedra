@@ -40,7 +40,7 @@ public:
 
     std::string getTitle() const { return m_title; }
     WindowRect getRect() const { return m_rect; }
-    Window* getParent() const { return m_parent; }
+    Window* getParent() const { return p_parent; }
     bool shouldClose() const { return m_close; }
 
     void setParent(Window* parent);
@@ -58,7 +58,7 @@ private:
     WindowRect m_rect;
     bool m_close{false};
 
-    Window* m_parent{nullptr};
+    Window* p_parent{nullptr};
     std::vector<Window*> m_children;
 };
 } // namespace huedra

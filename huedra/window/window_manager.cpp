@@ -52,7 +52,7 @@ void WindowManager::cleanup()
     }
 }
 
-Window* WindowManager::addWindow(const std::string& title, const WindowInput& input)
+Window* WindowManager::addWindow(const std::string& title, const WindowInput& input, Window* parent)
 {
     Window* window = createWindow(title, input);
 
@@ -60,6 +60,10 @@ Window* WindowManager::addWindow(const std::string& title, const WindowInput& in
     {
         m_windows.push_back(window);
         Global::graphicsManager.createSwapchain(window);
+        if (parent)
+        {
+            window->setParent(parent);
+        }
     }
     else
     {

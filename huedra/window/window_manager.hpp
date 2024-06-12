@@ -18,7 +18,7 @@ public:
     bool update();
     void cleanup();
 
-    Window* addWindow(const std::string& title, const WindowInput& input);
+    Window* addWindow(const std::string& title, const WindowInput& input, Window* parent = nullptr);
 
 private:
     // Create platform specific window
