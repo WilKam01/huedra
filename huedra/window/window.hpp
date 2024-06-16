@@ -42,6 +42,7 @@ public:
     WindowRect getRect() const { return m_rect; }
     Window* getParent() const { return p_parent; }
     bool shouldClose() const { return m_close; }
+    bool isMinimized() const { return m_rect.screenWidth == 0 || m_rect.screenHeight == 0; }
 
     void setParent(Window* parent);
     virtual void setTitle(const std::string& title) = 0;

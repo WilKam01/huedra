@@ -20,6 +20,8 @@ void VulkanSwapchain::init(Window* window, Device& device, CommandPool& commandP
 
 void VulkanSwapchain::cleanup()
 {
+    p_device->waitIdle();
+
     VkDevice device = p_device->getLogical();
 
     m_commandBuffer.cleanup();
@@ -36,6 +38,11 @@ void VulkanSwapchain::cleanup()
 
 bool VulkanSwapchain::graphicsReady()
 {
+    if (getWindow()->isMinimized())
+    {
+        return false;
+    }
+
     // TODO: blocking/non-blocking?
     vkWaitForFences(p_device->getLogical(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
     return true;
