@@ -12,6 +12,7 @@ int main()
 
     while (Global::windowManager.update())
     {
+        Global::graphicsManager.render();
     }
 
     Global::graphicsManager.cleanup();

@@ -57,7 +57,7 @@ private:
     VkQueue m_computeQueue;
     QueueFamilyIndices m_indices;
 
-    VkSampleCountFlagBits m_msaaSamples = VK_SAMPLE_COUNT_1_BIT;
+    VkSampleCountFlagBits m_msaaSamples{VK_SAMPLE_COUNT_1_BIT};
 };
 
 } // namespace huedra

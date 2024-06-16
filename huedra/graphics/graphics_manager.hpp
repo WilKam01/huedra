@@ -15,6 +15,7 @@ public:
 
     void init();
     void cleanup();
+    void render();
 
 private:
     void createSwapchain(Window* window);

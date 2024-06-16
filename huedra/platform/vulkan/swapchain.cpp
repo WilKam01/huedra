@@ -3,15 +3,18 @@
 
 namespace huedra {
 
-void VulkanSwapchain::init(Window* window, Device& device, VkSurfaceKHR surface)
+void VulkanSwapchain::init(Window* window, Device& device, CommandPool& commandPool, VkSurfaceKHR surface)
 {
     Swapchain::init(window);
     p_device = &device;
     m_surface = surface;
 
+    m_commandBuffer.init(device, commandPool, MAX_FRAMES_IN_FLIGHT);
+    createSyncObjects();
+
     create();
     createImageViews();
-    createRenderPass();
+    m_renderPass = createRenderPass(*p_device, m_format);
     createFramebuffers();
 }
 
@@ -19,29 +22,100 @@ void VulkanSwapchain::cleanup()
 {
     VkDevice device = p_device->getLogical();
 
-    for (auto framebuffer : m_framebuffers)
+    m_commandBuffer.cleanup();
+
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        vkDestroyFramebuffer(device, framebuffer, nullptr);
+        vkDestroyFence(device, m_inFlightFences[i], nullptr);
+        vkDestroySemaphore(device, m_renderFinishedSemaphores[i], nullptr);
+        vkDestroySemaphore(device, m_imageAvailableSemaphores[i], nullptr);
     }
-    vkDestroyRenderPass(device, m_renderPass, nullptr);
-    for (auto imageView : m_imageViews)
-    {
-        vkDestroyImageView(device, imageView, nullptr);
-    }
-    vkDestroySwapchainKHR(device, m_swapchain, nullptr);
+
+    partialCleanup();
 }
 
-void VulkanSwapchain::recreate()
+bool VulkanSwapchain::graphicsReady()
 {
-    // TODO: Wait for window events?
+    // TODO: blocking/non-blocking?
+    vkWaitForFences(p_device->getLogical(), 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
+    return true;
+}
 
-    p_device->waitIdle();
-    cleanup();
+std::optional<u32> VulkanSwapchain::acquireNextImage()
+{
+    u32 imageIndex;
+    VkResult result = vkAcquireNextImageKHR(p_device->getLogical(), m_swapchain, UINT64_MAX,
+                                            m_imageAvailableSemaphores[m_currentFrame], VK_NULL_HANDLE, &imageIndex);
 
-    create();
-    createImageViews();
-    createRenderPass();
-    createFramebuffers();
+    if (result == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        recreate();
+        return std::nullopt;
+    }
+    else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+    {
+        log(LogLevel::ERR, "Failed to acquire swap chain image!");
+    }
+
+    vkResetFences(p_device->getLogical(), 1, &m_inFlightFences[m_currentFrame]);
+
+    return imageIndex;
+}
+
+void VulkanSwapchain::submitGraphicsQueue(u32 imageIndex)
+{
+    VkSemaphore waitSemaphores[] = {m_imageAvailableSemaphores[m_currentFrame]};
+    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+                                         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores = waitSemaphores;
+    submitInfo.pWaitDstStageMask = waitStages;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &m_commandBuffer.get(m_currentFrame);
+
+    VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphores[m_currentFrame]};
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = signalSemaphores;
+
+    if (vkQueueSubmit(p_device->getGraphicsQueue(), 1, &submitInfo, m_inFlightFences[m_currentFrame]) != VK_SUCCESS)
+    {
+        log(LogLevel::ERR, "Failed to submit draw command buffer!");
+    }
+}
+
+bool VulkanSwapchain::present(u32 imageIndex)
+{
+    // TODO: blocking/non-blocking?
+    VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphores[m_currentFrame]};
+
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = signalSemaphores;
+
+    VkSwapchainKHR swapChains[] = {m_swapchain};
+    presentInfo.swapchainCount = 1;
+    presentInfo.pSwapchains = swapChains;
+    presentInfo.pImageIndices = &imageIndex;
+    presentInfo.pResults = nullptr;
+
+    VkResult result = vkQueuePresentKHR(p_device->getPresentQueue(), &presentInfo);
+
+    // TDOD: Window minimized?
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR /*|| m_swapChain.needsRecreation()*/)
+    {
+        recreate();
+    }
+    else if (result != VK_SUCCESS)
+    {
+        log(LogLevel::ERR, "Failed to present swap chain image!");
+    }
+
+    m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    return true;
 }
 
 VkSurfaceFormatKHR VulkanSwapchain::chooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
@@ -55,6 +129,59 @@ VkSurfaceFormatKHR VulkanSwapchain::chooseSurfaceFormat(const std::vector<VkSurf
     }
 
     return availableFormats[0];
+}
+
+VkRenderPass VulkanSwapchain::createRenderPass(Device& device, VkFormat format)
+{
+    VkRenderPass renderPass;
+
+    VkAttachmentDescription colorAttachment{};
+    colorAttachment.format = format;
+    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT; // TODO: Msaa
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    VkAttachmentReference colorAttachmentRef{};
+    colorAttachmentRef.attachment = 0;
+    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorAttachmentRef;
+    subpass.pDepthStencilAttachment = nullptr;
+    subpass.pResolveAttachments = nullptr;
+
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask =
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    dependency.dstStageMask =
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependency.srcAccessMask = 0;
+
+    std::array<VkAttachmentDescription, 1> attachments = {colorAttachment};
+    VkRenderPassCreateInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    renderPassInfo.attachmentCount = static_cast<u32>(attachments.size());
+    renderPassInfo.pAttachments = attachments.data();
+    renderPassInfo.subpassCount = 1;
+    renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
+
+    if (vkCreateRenderPass(device.getLogical(), &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS)
+    {
+        log(LogLevel::ERR, "Failed to create render pass!");
+    }
+
+    return renderPass;
 }
 
 VkPresentModeKHR VulkanSwapchain::choosePresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
@@ -85,6 +212,61 @@ VkExtent2D VulkanSwapchain::chooseExtent(const VkSurfaceCapabilitiesKHR& capabil
             std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 
         return actualExtent;
+    }
+}
+
+void VulkanSwapchain::recreate()
+{
+    // TODO: Wait for window events?
+
+    p_device->waitIdle();
+    partialCleanup();
+
+    create();
+    createImageViews();
+    m_renderPass = createRenderPass(*p_device, m_format);
+    createFramebuffers();
+}
+
+void VulkanSwapchain::partialCleanup()
+{
+    VkDevice device = p_device->getLogical();
+
+    for (auto framebuffer : m_framebuffers)
+    {
+        vkDestroyFramebuffer(device, framebuffer, nullptr);
+    }
+    vkDestroyRenderPass(device, m_renderPass, nullptr);
+    for (auto imageView : m_imageViews)
+    {
+        vkDestroyImageView(device, imageView, nullptr);
+    }
+    vkDestroySwapchainKHR(device, m_swapchain, nullptr);
+}
+
+void VulkanSwapchain::createSyncObjects()
+{
+    m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+    m_inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+
+    VkSemaphoreCreateInfo semaphoreInfo{};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        if (vkCreateSemaphore(p_device->getLogical(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) !=
+                VK_SUCCESS ||
+            vkCreateSemaphore(p_device->getLogical(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) !=
+                VK_SUCCESS ||
+            vkCreateFence(p_device->getLogical(), &fenceInfo, nullptr, &m_inFlightFences[i]) != VK_SUCCESS)
+        {
+            log(LogLevel::ERR, "Failed to create graphics synchronization objects!");
+        }
     }
 }
 
@@ -168,55 +350,6 @@ void VulkanSwapchain::createImageViews()
         {
             log(LogLevel::ERR, "Failed to create swapchain image view!");
         }
-    }
-}
-
-void VulkanSwapchain::createRenderPass()
-{
-    VkAttachmentDescription colorAttachment{};
-    colorAttachment.format = m_format;
-    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT; // TODO: Msaa
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    VkAttachmentReference colorAttachmentRef{};
-    colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    VkSubpassDescription subpass{};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
-    subpass.pDepthStencilAttachment = nullptr;
-    subpass.pResolveAttachments = nullptr;
-
-    VkSubpassDependency dependency{};
-    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependency.dstSubpass = 0;
-    dependency.srcStageMask =
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    dependency.dstStageMask =
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    dependency.srcAccessMask = 0;
-
-    std::array<VkAttachmentDescription, 1> attachments = {colorAttachment};
-    VkRenderPassCreateInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = static_cast<u32>(attachments.size());
-    renderPassInfo.pAttachments = attachments.data();
-    renderPassInfo.subpassCount = 1;
-    renderPassInfo.pSubpasses = &subpass;
-    renderPassInfo.dependencyCount = 1;
-    renderPassInfo.pDependencies = &dependency;
-
-    if (vkCreateRenderPass(p_device->getLogical(), &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS)
-    {
-        log(LogLevel::ERR, "Failed to create render pass!");
     }
 }
 

@@ -27,6 +27,28 @@ void GraphicsManager::cleanup()
     delete m_context;
 }
 
+void GraphicsManager::render()
+{
+    for (size_t i = 0; i < m_swapchains.size(); i++)
+    {
+        if (!m_swapchains[i]->graphicsReady())
+        {
+            continue;
+        }
+
+        std::optional<u32> imageIndex = m_swapchains[i]->acquireNextImage();
+        if (!imageIndex.has_value())
+        {
+            continue;
+        }
+
+        m_context->recordGraphicsCommands(i, imageIndex.value());
+
+        m_swapchains[i]->submitGraphicsQueue(imageIndex.value());
+        m_swapchains[i]->present(imageIndex.value());
+    }
+}
+
 void GraphicsManager::createSwapchain(Window* window)
 {
     Swapchain* swapchain = m_context->createSwapchain(window);
