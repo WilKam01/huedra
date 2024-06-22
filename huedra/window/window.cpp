@@ -11,29 +11,32 @@ void Window::init(const std::string& title, WindowRect rect)
 void Window::cleanup()
 {
     m_close = true;
-    if (p_parent)
+    if (m_parent.valid())
     {
-        for (auto it = p_parent->m_children.begin(); it != p_parent->m_children.end(); it++)
+        for (auto it = m_parent.get()->m_children.begin(); it != m_parent.get()->m_children.end(); it++)
         {
-            if ((*it) == this)
+            if (it->get() == this)
             {
-                p_parent->m_children.erase(it);
+                m_parent.get()->m_children.erase(it);
                 break;
             }
         }
     }
     for (auto& window : m_children)
     {
-        window->cleanup();
+        if (window.valid())
+        {
+            window.get()->cleanup();
+        }
     }
 }
 
-void Window::setParent(Window* parent)
+void Window::setParent(Ref<Window> parent)
 {
-    if (parent)
+    if (parent.valid())
     {
-        p_parent = parent;
-        p_parent->m_children.push_back(this);
+        m_parent = parent;
+        m_parent.get()->m_children.push_back(Ref<Window>(this));
     }
 }
 

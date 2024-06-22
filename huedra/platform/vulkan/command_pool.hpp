@@ -7,6 +7,9 @@ namespace huedra {
 class CommandPool
 {
 public:
+    CommandPool() = default;
+    ~CommandPool() = default;
+
     void init(Device& device, VkPipelineBindPoint pipeline);
     void cleanup();
 

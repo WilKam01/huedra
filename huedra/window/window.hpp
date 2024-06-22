@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/references/ref.hpp"
 #include "core/types.hpp"
 
 namespace huedra {
@@ -40,11 +41,11 @@ public:
 
     std::string getTitle() const { return m_title; }
     WindowRect getRect() const { return m_rect; }
-    Window* getParent() const { return p_parent; }
+    Ref<Window> getParent() const { return m_parent; }
     bool shouldClose() const { return m_close; }
     bool isMinimized() const { return m_rect.screenWidth == 0 || m_rect.screenHeight == 0; }
 
-    void setParent(Window* parent);
+    void setParent(Ref<Window> parent);
     virtual void setTitle(const std::string& title) = 0;
     virtual void setResolution(u32 width, u32 height) = 0;
     virtual void setPos(i32 x, i32 y) = 0;
@@ -59,7 +60,7 @@ private:
     WindowRect m_rect;
     bool m_close{false};
 
-    Window* p_parent{nullptr};
-    std::vector<Window*> m_children;
+    Ref<Window> m_parent{nullptr};
+    std::vector<Ref<Window>> m_children;
 };
 } // namespace huedra

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/references/reference_counter.hpp"
 #include "core/types.hpp"
 #include "window/window.hpp"
 
@@ -18,7 +19,7 @@ public:
     bool update();
     void cleanup();
 
-    Window* addWindow(const std::string& title, const WindowInput& input, Window* parent = nullptr);
+    Ref<Window> addWindow(const std::string& title, const WindowInput& input, Ref<Window> parent = nullptr);
 
 private:
     // Create platform specific window

@@ -31,7 +31,9 @@ bool WindowManager::update()
         {
             m_windows.erase(m_windows.begin() + i);
             Global::graphicsManager.removeSwapchain(i);
+
             window->cleanup();
+            ReferenceCounter::removeResource(static_cast<void*>(window));
             delete window;
         }
         else
@@ -52,15 +54,16 @@ void WindowManager::cleanup()
     }
 }
 
-Window* WindowManager::addWindow(const std::string& title, const WindowInput& input, Window* parent)
+Ref<Window> WindowManager::addWindow(const std::string& title, const WindowInput& input, Ref<Window> parent)
 {
     Window* window = createWindow(title, input);
 
     if (window)
     {
+        ReferenceCounter::addResource(static_cast<void*>(window));
         m_windows.push_back(window);
         Global::graphicsManager.createSwapchain(window);
-        if (parent)
+        if (parent.valid())
         {
             window->setParent(parent);
         }
@@ -70,7 +73,7 @@ Window* WindowManager::addWindow(const std::string& title, const WindowInput& in
         log(LogLevel::WARNING, "Failed to create window!");
     }
 
-    return window;
+    return Ref<Window>(window);
 }
 
 Window* WindowManager::createWindow(const std::string& title, const WindowInput& input)

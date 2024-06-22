@@ -7,6 +7,9 @@ namespace huedra {
 class CommandBuffer
 {
 public:
+    CommandBuffer() = default;
+    ~CommandBuffer() = default;
+
     void init(Device& device, CommandPool& commandPool, u32 size);
     void cleanup();
 
