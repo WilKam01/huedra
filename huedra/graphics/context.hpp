@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/types.hpp"
+#include "graphics/render_pass.hpp"
 #include "window/window.hpp"
 
 namespace huedra {
@@ -19,7 +20,7 @@ public:
     virtual void removeSwapchain(size_t index) = 0;
 
     virtual void prepareRendering() = 0;
-    virtual void recordGraphicsCommands(RenderTarget& renderTarget) = 0;
+    virtual void recordGraphicsCommands(RenderPass& renderPass) = 0;
     virtual void submitGraphicsQueue() = 0;
     virtual void presentSwapchains() = 0;
 

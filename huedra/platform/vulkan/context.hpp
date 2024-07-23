@@ -21,7 +21,7 @@ public:
     void removeSwapchain(size_t index) override;
 
     void prepareRendering() override;
-    void recordGraphicsCommands(RenderTarget& renderTarget) override;
+    void recordGraphicsCommands(RenderPass& renderPass) override;
     void submitGraphicsQueue() override;
     void presentSwapchains() override;
 
@@ -31,7 +31,7 @@ private:
     VkSurfaceKHR createSurface(Window* window);
     VkRenderPass createRenderPass(VkFormat format);
 
-    void recordCommandBuffer(VkCommandBuffer commandBuffer, VulkanRenderTarget& renderTarget);
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, RenderPass& renderPass);
     // TODO: Move byte reading to asset/io manager
     VkShaderModule loadShader(const std::string& path);
 

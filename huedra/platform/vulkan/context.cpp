@@ -332,15 +332,15 @@ void VulkanContext::prepareRendering()
     m_recordedCommands = false;
 }
 
-void VulkanContext::recordGraphicsCommands(RenderTarget& renderTarget)
+void VulkanContext::recordGraphicsCommands(RenderPass& renderPass)
 {
-    if (!m_recordedCommands)
+    if (!m_recordedCommands && renderPass.getRenderTarget().valid())
     {
         vkResetFences(m_device.getLogical(), 1, &m_renderingInFlightFences[m_currentFrame]);
         m_commandBuffer.begin(m_currentFrame);
         m_recordedCommands = true;
     }
-    recordCommandBuffer(m_commandBuffer.get(m_currentFrame), dynamic_cast<VulkanRenderTarget&>(renderTarget));
+    recordCommandBuffer(m_commandBuffer.get(m_currentFrame), renderPass);
 }
 
 VkSurfaceKHR VulkanContext::createSurface(Window* window)
@@ -416,14 +416,16 @@ VkRenderPass VulkanContext::createRenderPass(VkFormat format)
     return renderPass;
 }
 
-void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, VulkanRenderTarget& renderTarget)
+void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, RenderPass& renderPass)
 {
+    VulkanRenderTarget* renderTarget = dynamic_cast<VulkanRenderTarget*>(renderPass.getRenderTarget().get());
+
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = m_renderPass;
-    renderPassInfo.framebuffer = renderTarget.getFramebuffer();
+    renderPassInfo.framebuffer = renderTarget->getFramebuffer();
     renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = renderTarget.getExtent();
+    renderPassInfo.renderArea.extent = renderTarget->getExtent();
 
     std::array<VkClearValue, 1> clearValues{};
     clearValues[0].color = {0.1f, 0.1f, 0.1f, 1.0f};
@@ -431,7 +433,7 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, VulkanRen
     renderPassInfo.clearValueCount = static_cast<u32>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();
 
-    VkExtent2D extent = renderTarget.getExtent();
+    VkExtent2D extent = renderTarget->getExtent();
     m_viewport.x = 0.0f;
     m_viewport.y = 0.0f;
     m_viewport.width = static_cast<float>(extent.width);

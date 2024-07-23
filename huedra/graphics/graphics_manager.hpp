@@ -2,7 +2,7 @@
 
 #include "core/references/ref.hpp"
 #include "graphics/context.hpp"
-#include "graphics/render_target.hpp"
+#include "graphics/render_pass.hpp"
 #include "window/window.hpp"
 
 namespace huedra {
@@ -21,14 +21,14 @@ public:
     void cleanup();
     void render();
 
-    void addRenderTarget(Ref<RenderTarget> renderTarget);
+    void addRenderPass(RenderPass renderPass);
 
 private:
     void createSwapchain(Window* window);
     void removeSwapchain(size_t index);
 
     GraphicalContext* m_context;
-    std::vector<Ref<RenderTarget>> m_renderTargets;
+    std::vector<RenderPass> m_renderPasses;
 };
 
 } // namespace huedra

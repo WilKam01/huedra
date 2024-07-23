@@ -23,10 +23,10 @@ void GraphicsManager::cleanup()
 
 void GraphicsManager::render()
 {
-    bool shouldRender = !m_renderTargets.empty();
-    for (auto& renderTarget : m_renderTargets)
+    bool shouldRender = !m_renderPasses.empty();
+    for (auto& renderPass : m_renderPasses)
     {
-        shouldRender = renderTarget.valid();
+        shouldRender = renderPass.getRenderTarget().valid();
         if (shouldRender)
         {
             break;
@@ -40,17 +40,18 @@ void GraphicsManager::render()
 
     m_context->prepareRendering();
 
-    for (auto& renderTarget : m_renderTargets)
+    for (auto& renderPass : m_renderPasses)
     {
-        if (!renderTarget.valid())
+        if (!renderPass.getRenderTarget().valid())
         {
             continue;
         }
 
-        renderTarget.get()->prepareNextFrame(m_context->getFrameIndex());
-        if (renderTarget.get()->isAvailable())
+        RenderTarget* renderTarget = renderPass.getRenderTarget().get();
+        renderTarget->prepareNextFrame(m_context->getFrameIndex());
+        if (renderTarget->isAvailable())
         {
-            m_context->recordGraphicsCommands(*renderTarget.get());
+            m_context->recordGraphicsCommands(renderPass);
         }
     }
 
@@ -58,7 +59,7 @@ void GraphicsManager::render()
     m_context->presentSwapchains();
 }
 
-void GraphicsManager::addRenderTarget(Ref<RenderTarget> renderTarget) { m_renderTargets.push_back(renderTarget); }
+void GraphicsManager::addRenderPass(RenderPass renderPass) { m_renderPasses.push_back(renderPass); }
 
 void GraphicsManager::createSwapchain(Window* window) { m_context->createSwapchain(window); }
 
