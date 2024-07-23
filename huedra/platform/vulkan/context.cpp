@@ -21,6 +21,27 @@ void VulkanContext::init()
     m_device.init(m_instance, surface);
 
     m_commandPool.init(m_device, VK_PIPELINE_BIND_POINT_GRAPHICS);
+    m_commandBuffer.init(m_device, m_commandPool, GraphicsManager::MAX_FRAMES_IN_FLIGHT);
+
+    m_renderingInFlightFences.resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
+    m_renderFinishedSemaphores.resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
+
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    VkSemaphoreCreateInfo semaphoreInfo{};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    for (size_t i = 0; i < GraphicsManager::MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        if (vkCreateFence(m_device.getLogical(), &fenceInfo, nullptr, &m_renderingInFlightFences[i]) != VK_SUCCESS ||
+            vkCreateSemaphore(m_device.getLogical(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) !=
+                VK_SUCCESS)
+        {
+            log(LogLevel::ERR, "Failed to create render fences and semaphores!");
+        }
+    }
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -36,7 +57,7 @@ void VulkanContext::init()
 
     VulkanSurfaceSupport surfaceSupport = m_device.querySurfaceSupport(m_device.getPhysical(), surface);
     VkSurfaceFormatKHR surfaceFormat = VulkanSwapchain::chooseSurfaceFormat(surfaceSupport.formats);
-    VkRenderPass renderPass = VulkanSwapchain::createRenderPass(m_device, surfaceFormat.format);
+    m_renderPass = createRenderPass(surfaceFormat.format);
 
     VkShaderModule vertShaderModule = loadShader("shaders/vert.spv");
     VkShaderModule fragShaderModule = loadShader("shaders/frag.spv");
@@ -140,7 +161,7 @@ void VulkanContext::init()
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.layout = m_pipelineLayout;
-    pipelineInfo.renderPass = renderPass;
+    pipelineInfo.renderPass = m_renderPass;
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
@@ -154,7 +175,6 @@ void VulkanContext::init()
     vkDestroyShaderModule(m_device.getLogical(), fragShaderModule, nullptr);
     vkDestroyShaderModule(m_device.getLogical(), vertShaderModule, nullptr);
 
-    vkDestroyRenderPass(m_device.getLogical(), renderPass, nullptr);
     vkDestroySurfaceKHR(m_instance.get(), surface, nullptr);
     tempWindow->cleanup();
     delete tempWindow;
@@ -162,41 +182,139 @@ void VulkanContext::init()
 
 void VulkanContext::cleanup()
 {
+    for (auto& swapchain : m_swapchains)
+    {
+        swapchain->cleanup();
+        delete swapchain;
+    }
+
     vkDestroyPipeline(m_device.getLogical(), m_pipeline, nullptr);
     vkDestroyPipelineLayout(m_device.getLogical(), m_pipelineLayout, nullptr);
+    vkDestroyRenderPass(m_device.getLogical(), m_renderPass, nullptr);
 
+    for (u32 i = 0; i < GraphicsManager::MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        vkDestroySemaphore(m_device.getLogical(), m_renderFinishedSemaphores[i], nullptr);
+        vkDestroyFence(m_device.getLogical(), m_renderingInFlightFences[i], nullptr);
+    }
+    m_commandBuffer.cleanup();
     m_commandPool.cleanup();
     m_device.cleanup();
     m_instance.cleanup();
 }
 
-Swapchain* VulkanContext::createSwapchain(Window* window)
+void VulkanContext::createSwapchain(Window* window)
 {
     VulkanSwapchain* swapchain = new VulkanSwapchain();
     VkSurfaceKHR surface = createSurface(window);
-    swapchain->init(window, m_device, m_commandPool, surface);
+    swapchain->init(window, m_device, m_commandPool, surface, m_renderPass);
 
     m_swapchains.push_back(swapchain);
     m_surfaces.push_back(surface);
-    return swapchain;
 }
 
 void VulkanContext::removeSwapchain(size_t index)
 {
-    vkDestroySurfaceKHR(m_instance.get(), m_surfaces[index], nullptr);
-
+    VulkanSwapchain* swapchain = m_swapchains[index];
     m_swapchains.erase(m_swapchains.begin() + index);
+
+    swapchain->cleanup();
+    delete swapchain;
+
+    vkDestroySurfaceKHR(m_instance.get(), m_surfaces[index], nullptr);
     m_surfaces.erase(m_surfaces.begin() + index);
 }
 
-void VulkanContext::recordGraphicsCommands(u32 swapchainIndex, u32 imageIndex)
+void VulkanContext::submitGraphicsQueue()
 {
-    VulkanSwapchain* swapchain = m_swapchains[swapchainIndex];
-    CommandBuffer& commandBuffer = swapchain->getCommandBuffer();
+    m_commandBuffer.end(m_currentFrame);
 
-    commandBuffer.begin(swapchain->getCurrentFrame());
-    recordCommandBuffer(commandBuffer.get(swapchain->getCurrentFrame()), swapchain, imageIndex);
-    commandBuffer.end(swapchain->getCurrentFrame());
+    std::vector<VkSemaphore> waitSemaphores;
+    for (auto& swapchain : m_swapchains)
+    {
+        if (swapchain->canPresent())
+        {
+            waitSemaphores.push_back(swapchain->getImageAvailableSemaphore(m_currentFrame));
+        }
+    }
+    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+                                         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.waitSemaphoreCount = static_cast<u32>(waitSemaphores.size());
+    submitInfo.pWaitSemaphores = waitSemaphores.data();
+    submitInfo.pWaitDstStageMask = waitStages;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &m_commandBuffer.get(m_currentFrame);
+
+    VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphores[m_currentFrame]};
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = signalSemaphores;
+
+    if (vkQueueSubmit(m_device.getGraphicsQueue(), 1, &submitInfo, m_renderingInFlightFences[m_currentFrame]) !=
+        VK_SUCCESS)
+    {
+        log(LogLevel::ERR, "Failed to submit draw command buffer!");
+    }
+}
+
+void VulkanContext::presentSwapchains()
+{
+    VkSemaphore waitSemaphores[] = {m_renderFinishedSemaphores[m_currentFrame]};
+
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = waitSemaphores;
+
+    std::vector<VkSwapchainKHR> swapchains;
+    std::vector<u32> imageIndices;
+    std::vector<VkResult> results;
+    for (auto& swapchain : m_swapchains)
+    {
+        if (swapchain->canPresent())
+        {
+            swapchains.push_back(swapchain->get());
+            imageIndices.push_back(swapchain->getRenderTarget().getImageIndex());
+            results.push_back(VK_SUCCESS);
+        }
+    }
+
+    presentInfo.swapchainCount = static_cast<u32>(swapchains.size());
+    presentInfo.pSwapchains = swapchains.data();
+    presentInfo.pImageIndices = imageIndices.data();
+    presentInfo.pResults = results.data();
+
+    VkResult result = vkQueuePresentKHR(m_device.getPresentQueue(), &presentInfo);
+
+    if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR && result != VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        log(LogLevel::ERR, "Failed to present swap chain images!");
+    }
+
+    u32 index = 0;
+    for (auto& swapchain : m_swapchains)
+    {
+        if (swapchain->canPresent())
+        {
+            swapchain->handlePresentResult(results[index++]);
+        }
+    }
+
+    m_currentFrame = (m_currentFrame + 1) % GraphicsManager::MAX_FRAMES_IN_FLIGHT;
+}
+
+void VulkanContext::prepareRendering()
+{
+    vkWaitForFences(m_device.getLogical(), 1, &m_renderingInFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
+    vkResetFences(m_device.getLogical(), 1, &m_renderingInFlightFences[m_currentFrame]);
+    m_commandBuffer.begin(m_currentFrame);
+}
+
+void VulkanContext::recordGraphicsCommands(RenderTarget& renderTarget)
+{
+    recordCommandBuffer(m_commandBuffer.get(m_currentFrame), dynamic_cast<VulkanRenderTarget&>(renderTarget));
 }
 
 VkSurfaceKHR VulkanContext::createSurface(Window* window)
@@ -219,14 +337,67 @@ VkSurfaceKHR VulkanContext::createSurface(Window* window)
     return surface;
 }
 
-void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, VulkanSwapchain* swapchain, u32 imageIndex)
+VkRenderPass VulkanContext::createRenderPass(VkFormat format)
+{
+    VkRenderPass renderPass;
+
+    VkAttachmentDescription colorAttachment{};
+    colorAttachment.format = format;
+    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT; // TODO: Msaa
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    VkAttachmentReference colorAttachmentRef{};
+    colorAttachmentRef.attachment = 0;
+    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorAttachmentRef;
+    subpass.pDepthStencilAttachment = nullptr;
+    subpass.pResolveAttachments = nullptr;
+
+    VkSubpassDependency dependency{};
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+    dependency.dstSubpass = 0;
+    dependency.srcStageMask =
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    dependency.dstStageMask =
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    dependency.srcAccessMask = 0;
+
+    std::array<VkAttachmentDescription, 1> attachments = {colorAttachment};
+    VkRenderPassCreateInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    renderPassInfo.attachmentCount = static_cast<u32>(attachments.size());
+    renderPassInfo.pAttachments = attachments.data();
+    renderPassInfo.subpassCount = 1;
+    renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
+
+    if (vkCreateRenderPass(m_device.getLogical(), &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS)
+    {
+        log(LogLevel::ERR, "Failed to create render pass!");
+    }
+
+    return renderPass;
+}
+
+void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, VulkanRenderTarget& renderTarget)
 {
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = swapchain->getRenderPass();
-    renderPassInfo.framebuffer = swapchain->getFramebuffer(imageIndex);
+    renderPassInfo.renderPass = m_renderPass;
+    renderPassInfo.framebuffer = renderTarget.getFramebuffer();
     renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = swapchain->getExtent();
+    renderPassInfo.renderArea.extent = renderTarget.getExtent();
 
     std::array<VkClearValue, 1> clearValues{};
     clearValues[0].color = {0.1f, 0.1f, 0.1f, 1.0f};
@@ -234,7 +405,7 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, VulkanSwa
     renderPassInfo.clearValueCount = static_cast<u32>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();
 
-    VkExtent2D extent = swapchain->getExtent();
+    VkExtent2D extent = renderTarget.getExtent();
     m_viewport.x = 0.0f;
     m_viewport.y = 0.0f;
     m_viewport.width = static_cast<float>(extent.width);

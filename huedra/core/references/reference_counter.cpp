@@ -49,6 +49,9 @@ void ReferenceCounter::addRef(void* resource, RefBase* ref)
     if (!m_references.count(resource))
     {
         ref->setInvalid();
+#ifdef DEBUG
+        log(LogLevel::WARNING, "ReferenceCounter: addref() failed to find resource");
+#endif
         return;
     }
 

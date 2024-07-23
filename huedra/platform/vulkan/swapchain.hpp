@@ -1,38 +1,31 @@
 #pragma once
 
-#include "graphics/swapchain.hpp"
 #include "platform/vulkan/command_buffer.hpp"
 #include "platform/vulkan/device.hpp"
+#include "platform/vulkan/render_target.hpp"
+#include "window/window.hpp"
 
 namespace huedra {
 
-class VulkanSwapchain : public Swapchain
+class VulkanSwapchain
 {
 public:
     VulkanSwapchain() = default;
     ~VulkanSwapchain() = default;
 
-    void init(Window* window, Device& device, CommandPool& commandPool, VkSurfaceKHR surface);
-    void cleanup() override;
+    void init(Window* window, Device& device, CommandPool& commandPool, VkSurfaceKHR surface, VkRenderPass renderPass);
+    void cleanup();
 
-    bool graphicsReady() override;
-    std::optional<u32> acquireNextImage() override;
-    void submitGraphicsQueue(u32 imageIndex) override;
-    bool present(u32 imageIndex) override;
+    std::optional<u32> aquireNextImage(u32 frameIndex);
+    void handlePresentResult(VkResult result);
 
     static VkSurfaceFormatKHR chooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-    static VkRenderPass createRenderPass(Device& device, VkFormat format);
 
     VkSwapchainKHR get() { return m_swapchain; }
     VkSurfaceKHR getSurface() { return m_surface; }
-    VkFormat getFormat() { return m_format; }
-    VkExtent2D getExtent() { return m_extent; }
-    VkRenderPass getRenderPass() { return m_renderPass; }
-
-    u32 getCurrentFrame() const { return m_currentFrame; }
-    CommandBuffer& getCommandBuffer() { return m_commandBuffer; }
-    VkImageView getImageView(size_t index) { return m_imageViews[index]; }
-    VkFramebuffer getFramebuffer(size_t index) { return m_framebuffers[index]; }
+    VulkanRenderTarget& getRenderTarget() { return m_renderTarget; }
+    VkSemaphore getImageAvailableSemaphore(size_t i) { return m_imageAvailableSemaphores[i]; }
+    bool canPresent() { return m_canPresent; }
 
 private:
     VkPresentModeKHR choosePresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
@@ -43,26 +36,17 @@ private:
     void createSyncObjects();
 
     void create();
-    void createImageViews();
-    void createFramebuffers();
 
+    Window* p_window;
     Device* p_device;
 
     VkSwapchainKHR m_swapchain;
-    CommandBuffer m_commandBuffer;
     VkSurfaceKHR m_surface;
-    std::vector<VkImage> m_images;
-    std::vector<VkImageView> m_imageViews;
-    std::vector<VkFramebuffer> m_framebuffers;
-
-    VkFormat m_format;
-    VkExtent2D m_extent;
     VkRenderPass m_renderPass;
+    VulkanRenderTarget m_renderTarget;
 
-    u32 m_currentFrame{0};
     std::vector<VkSemaphore> m_imageAvailableSemaphores;
-    std::vector<VkSemaphore> m_renderFinishedSemaphores;
-    std::vector<VkFence> m_inFlightFences;
+    bool m_canPresent{false};
 };
 
 } // namespace huedra

@@ -25,11 +25,23 @@ public:
     Ref(T* ptr);
     ~Ref();
 
+    Ref(const Ref<T>& ref);
+    Ref(Ref<T>& ref);
+    Ref(const Ref<T>&& ref);
+    Ref(Ref<T>&& ref);
+    Ref<T>& operator=(const Ref<T>& rhs);
+    Ref<T>& operator=(Ref<T>& rhs);
+    Ref<T>& operator=(const Ref<T>&& rhs);
+    Ref<T>& operator=(Ref<T>&& rhs);
+
     T* get();
     bool valid() override;
 
 private:
     void setInvalid() override;
+
+    void init(T* ptr);
+    void cleanup();
 
     T* m_ptr{nullptr};
     bool m_valid{false};
@@ -38,21 +50,85 @@ private:
 template <typename T>
 inline Ref<T>::Ref(T* ptr)
 {
-    if (ptr)
-    {
-        m_ptr = ptr;
-        m_valid = true;
-        ReferenceCounter::addRef(static_cast<void*>(m_ptr), this);
-    }
+    init(ptr);
 }
 
 template <typename T>
 inline Ref<T>::~Ref()
 {
-    if (m_ptr)
+    cleanup();
+}
+
+template <typename T>
+inline Ref<T>::Ref(const Ref<T>& ref)
+{
+    init(ref.m_ptr);
+}
+
+template <typename T>
+inline Ref<T>::Ref(Ref<T>& ref)
+{
+    init(ref.m_ptr);
+}
+
+template <typename T>
+inline Ref<T>::Ref(const Ref<T>&& ref)
+{
+    if (this != &ref)
     {
-        ReferenceCounter::removeRef(static_cast<void*>(m_ptr), this);
+        init(ref.m_ptr);
     }
+}
+
+template <typename T>
+inline Ref<T>::Ref(Ref<T>&& ref)
+{
+    if (this != &ref)
+    {
+        init(ref.m_ptr);
+    }
+}
+
+template <typename T>
+inline Ref<T>& Ref<T>::operator=(const Ref<T>& rhs)
+{
+    if (this != &rhs)
+    {
+        init(rhs.m_ptr);
+    }
+    return *this;
+}
+
+template <typename T>
+inline Ref<T>& Ref<T>::operator=(Ref<T>& rhs)
+{
+    if (this != &rhs)
+    {
+        init(rhs.m_ptr);
+    }
+    return *this;
+}
+
+template <typename T>
+inline Ref<T>& Ref<T>::operator=(const Ref<T>&& rhs)
+{
+    if (this != &rhs)
+    {
+        cleanup();
+        init(rhs.m_ptr);
+    }
+    return *this;
+}
+
+template <typename T>
+inline Ref<T>& Ref<T>::operator=(Ref<T>&& rhs)
+{
+    if (this != &rhs)
+    {
+        cleanup();
+        init(rhs.m_ptr);
+    }
+    return *this;
 }
 
 template <typename T>
@@ -71,6 +147,26 @@ template <typename T>
 inline void Ref<T>::setInvalid()
 {
     m_valid = false;
+}
+
+template <typename T>
+inline void Ref<T>::init(T* ptr)
+{
+    if (ptr)
+    {
+        m_ptr = ptr;
+        m_valid = true;
+        ReferenceCounter::addRef(static_cast<void*>(m_ptr), this);
+    }
+}
+
+template <typename T>
+inline void Ref<T>::cleanup()
+{
+    if (m_ptr)
+    {
+        ReferenceCounter::removeRef(static_cast<void*>(m_ptr), this);
+    }
 }
 
 } // namespace huedra

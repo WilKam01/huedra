@@ -44,4 +44,6 @@ void Window::updateTitle(const std::string& title) { m_title = title; }
 
 void Window::updateRect(WindowRect rect) { m_rect = rect; }
 
+void Window::setRenderTarget(Ref<RenderTarget> renderTarget) { m_renderTarget = renderTarget; }
+
 } // namespace huedra

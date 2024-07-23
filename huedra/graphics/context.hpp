@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/types.hpp"
-#include "graphics/swapchain.hpp"
+#include "window/window.hpp"
 
 namespace huedra {
 
@@ -15,9 +15,15 @@ public:
     virtual void init() = 0;
     virtual void cleanup() = 0;
 
-    virtual Swapchain* createSwapchain(Window* window) = 0;
+    virtual void createSwapchain(Window* window) = 0;
     virtual void removeSwapchain(size_t index) = 0;
-    virtual void recordGraphicsCommands(u32 swapchainIndex, u32 imageIndex) = 0;
+
+    virtual void prepareRendering() = 0;
+    virtual void recordGraphicsCommands(RenderTarget& renderTarget) = 0;
+    virtual void submitGraphicsQueue() = 0;
+    virtual void presentSwapchains() = 0;
+
+    virtual u32 getFrameIndex() = 0;
 
 private:
 };

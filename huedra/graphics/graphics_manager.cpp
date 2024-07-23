@@ -17,51 +17,51 @@ void GraphicsManager::init()
 
 void GraphicsManager::cleanup()
 {
-    for (auto swapchain : m_swapchains)
-    {
-        swapchain->cleanup();
-        delete swapchain;
-    }
-
     m_context->cleanup();
     delete m_context;
 }
 
 void GraphicsManager::render()
 {
-    for (size_t i = 0; i < m_swapchains.size(); i++)
+    bool shouldRender = !m_renderTargets.empty();
+    for (auto& renderTarget : m_renderTargets)
     {
-        if (!m_swapchains[i]->graphicsReady())
+        shouldRender = renderTarget.valid();
+        if (shouldRender)
         {
-            continue;
+            break;
         }
-
-        std::optional<u32> imageIndex = m_swapchains[i]->acquireNextImage();
-        if (!imageIndex.has_value())
-        {
-            continue;
-        }
-
-        m_context->recordGraphicsCommands(i, imageIndex.value());
-
-        m_swapchains[i]->submitGraphicsQueue(imageIndex.value());
-        m_swapchains[i]->present(imageIndex.value());
     }
+
+    if (!shouldRender)
+    {
+        return;
+    }
+
+    m_context->prepareRendering();
+
+    for (auto& renderTarget : m_renderTargets)
+    {
+        if (!renderTarget.valid())
+        {
+            continue;
+        }
+
+        renderTarget.get()->prepareNextFrame(m_context->getFrameIndex());
+        if (renderTarget.get()->isAvailable())
+        {
+            m_context->recordGraphicsCommands(*renderTarget.get());
+        }
+    }
+
+    m_context->submitGraphicsQueue();
+    m_context->presentSwapchains();
 }
 
-void GraphicsManager::createSwapchain(Window* window)
-{
-    Swapchain* swapchain = m_context->createSwapchain(window);
-    m_swapchains.push_back(swapchain);
-}
+void GraphicsManager::addRenderTarget(Ref<RenderTarget> renderTarget) { m_renderTargets.push_back(renderTarget); }
 
-void GraphicsManager::removeSwapchain(size_t index)
-{
-    Swapchain* swapchain = m_swapchains[index];
-    swapchain->cleanup();
-    m_context->removeSwapchain(index);
-    m_swapchains.erase(m_swapchains.begin() + index);
-    delete swapchain;
-}
+void GraphicsManager::createSwapchain(Window* window) { m_context->createSwapchain(window); }
+
+void GraphicsManager::removeSwapchain(size_t index) { m_context->removeSwapchain(index); }
 
 }; // namespace huedra

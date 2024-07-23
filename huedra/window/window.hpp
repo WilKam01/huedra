@@ -2,6 +2,7 @@
 
 #include "core/references/ref.hpp"
 #include "core/types.hpp"
+#include "graphics/render_target.hpp"
 
 namespace huedra {
 
@@ -31,6 +32,8 @@ struct WindowRect
 
 class Window
 {
+    friend class VulkanSwapchain;
+
 public:
     Window() = default;
     virtual ~Window() = default;
@@ -41,6 +44,7 @@ public:
 
     std::string getTitle() const { return m_title; }
     WindowRect getRect() const { return m_rect; }
+    Ref<RenderTarget> getRenderTarget() { return m_renderTarget; }
     Ref<Window> getParent() const { return m_parent; }
     bool shouldClose() const { return m_close; }
     bool isMinimized() const { return m_rect.screenWidth == 0 || m_rect.screenHeight == 0; }
@@ -56,9 +60,13 @@ protected:
     void updateRect(WindowRect rect);
 
 private:
+    void setRenderTarget(Ref<RenderTarget> renderTarget);
+
     std::string m_title{""};
     WindowRect m_rect;
     bool m_close{false};
+
+    Ref<RenderTarget> m_renderTarget{nullptr};
 
     Ref<Window> m_parent{nullptr};
     std::vector<Ref<Window>> m_children;

@@ -8,7 +8,10 @@ int main()
     Global::graphicsManager.init();
 
     Ref<Window> window = Global::windowManager.addWindow("Hello Windows!", huedra::WindowInput(1278, 1360, -7, 0));
-    Global::windowManager.addWindow("Hello", huedra::WindowInput(300, 300, 100, 100), window);
+    Ref<Window> window1 = Global::windowManager.addWindow("Hello", huedra::WindowInput(300, 300, 100, 100), window);
+
+    Global::graphicsManager.addRenderTarget(window.get()->getRenderTarget());
+    Global::graphicsManager.addRenderTarget(window1.get()->getRenderTarget());
 
     while (Global::windowManager.update())
     {
