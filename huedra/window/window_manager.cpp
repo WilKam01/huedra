@@ -33,7 +33,6 @@ bool WindowManager::update()
             Global::graphicsManager.removeSwapchain(i);
 
             window->cleanup();
-            ReferenceCounter::removeResource(static_cast<void*>(window));
             delete window;
         }
         else
@@ -60,7 +59,6 @@ Ref<Window> WindowManager::addWindow(const std::string& title, const WindowInput
 
     if (window)
     {
-        ReferenceCounter::addResource(static_cast<void*>(window));
         m_windows.push_back(window);
         Global::graphicsManager.createSwapchain(window);
         if (parent.valid())

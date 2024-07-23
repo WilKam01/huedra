@@ -67,19 +67,6 @@ void VulkanSwapchain::handlePresentResult(VkResult result)
     }
 }
 
-VkSurfaceFormatKHR VulkanSwapchain::chooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
-{
-    for (const auto& availableFormat : availableFormats)
-    {
-        if ((availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM ||
-             availableFormat.format == VK_FORMAT_R8G8B8A8_UNORM) &&
-            availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-            return availableFormat;
-    }
-
-    return availableFormats[0];
-}
-
 VkPresentModeKHR VulkanSwapchain::choosePresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
 {
     for (const auto& availablePresentMode : availablePresentModes)
@@ -147,7 +134,7 @@ void VulkanSwapchain::createSyncObjects()
 void VulkanSwapchain::create()
 {
     VulkanSurfaceSupport surfaceSupport = p_device->querySurfaceSupport(p_device->getPhysical(), m_surface);
-    VkSurfaceFormatKHR surfaceFormat = chooseSurfaceFormat(surfaceSupport.formats);
+    VkSurfaceFormatKHR surfaceFormat = p_device->chooseSurfaceFormat(surfaceSupport.formats);
     VkPresentModeKHR presentMode = choosePresentMode(surfaceSupport.presentModes);
     VkExtent2D extent = chooseExtent(surfaceSupport.capabilities);
 

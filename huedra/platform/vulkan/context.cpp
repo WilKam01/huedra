@@ -56,7 +56,7 @@ void VulkanContext::init()
     }
 
     VulkanSurfaceSupport surfaceSupport = m_device.querySurfaceSupport(m_device.getPhysical(), surface);
-    VkSurfaceFormatKHR surfaceFormat = VulkanSwapchain::chooseSurfaceFormat(surfaceSupport.formats);
+    VkSurfaceFormatKHR surfaceFormat = m_device.chooseSurfaceFormat(surfaceSupport.formats);
     m_renderPass = createRenderPass(surfaceFormat.format);
 
     VkShaderModule vertShaderModule = loadShader("shaders/vert.spv");
@@ -227,6 +227,11 @@ void VulkanContext::removeSwapchain(size_t index)
 
 void VulkanContext::submitGraphicsQueue()
 {
+    if (!m_recordedCommands)
+    {
+        return;
+    }
+
     m_commandBuffer.end(m_currentFrame);
 
     std::vector<VkSemaphore> waitSemaphores;
@@ -237,6 +242,12 @@ void VulkanContext::submitGraphicsQueue()
             waitSemaphores.push_back(swapchain->getImageAvailableSemaphore(m_currentFrame));
         }
     }
+
+    if (waitSemaphores.empty())
+    {
+        return;
+    }
+
     VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
                                          VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
@@ -261,6 +272,11 @@ void VulkanContext::submitGraphicsQueue()
 
 void VulkanContext::presentSwapchains()
 {
+    if (!m_recordedCommands)
+    {
+        return;
+    }
+
     VkSemaphore waitSemaphores[] = {m_renderFinishedSemaphores[m_currentFrame]};
 
     VkPresentInfoKHR presentInfo{};
@@ -279,6 +295,11 @@ void VulkanContext::presentSwapchains()
             imageIndices.push_back(swapchain->getRenderTarget().getImageIndex());
             results.push_back(VK_SUCCESS);
         }
+    }
+
+    if (swapchains.empty())
+    {
+        return;
     }
 
     presentInfo.swapchainCount = static_cast<u32>(swapchains.size());
@@ -308,12 +329,17 @@ void VulkanContext::presentSwapchains()
 void VulkanContext::prepareRendering()
 {
     vkWaitForFences(m_device.getLogical(), 1, &m_renderingInFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
-    vkResetFences(m_device.getLogical(), 1, &m_renderingInFlightFences[m_currentFrame]);
-    m_commandBuffer.begin(m_currentFrame);
+    m_recordedCommands = false;
 }
 
 void VulkanContext::recordGraphicsCommands(RenderTarget& renderTarget)
 {
+    if (!m_recordedCommands)
+    {
+        vkResetFences(m_device.getLogical(), 1, &m_renderingInFlightFences[m_currentFrame]);
+        m_commandBuffer.begin(m_currentFrame);
+        m_recordedCommands = true;
+    }
     recordCommandBuffer(m_commandBuffer.get(m_currentFrame), dynamic_cast<VulkanRenderTarget&>(renderTarget));
 }
 

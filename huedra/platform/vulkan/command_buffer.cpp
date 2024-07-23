@@ -46,7 +46,7 @@ void CommandBuffer::end(size_t index)
 {
     if (vkEndCommandBuffer(m_commandBuffers[index]) != VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to record command buffer!");
+        log(LogLevel::ERR, "Failed to end command buffer!");
     }
 }
 

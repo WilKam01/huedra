@@ -155,8 +155,7 @@ inline void Ref<T>::init(T* ptr)
     if (ptr)
     {
         m_ptr = ptr;
-        m_valid = true;
-        ReferenceCounter::addRef(static_cast<void*>(m_ptr), this);
+        m_valid = ReferenceCounter::addRef(static_cast<void*>(m_ptr), this);
     }
 }
 

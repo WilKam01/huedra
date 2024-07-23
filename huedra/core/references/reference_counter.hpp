@@ -23,7 +23,7 @@ public:
     static void reportState();
 
 private:
-    static void addRef(void* resource, RefBase* ref);
+    static bool addRef(void* resource, RefBase* ref);
     static void removeRef(void* resource, RefBase* ref);
 
     static std::map<void*, std::vector<RefBase*>> m_references;

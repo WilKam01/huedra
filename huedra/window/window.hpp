@@ -35,8 +35,8 @@ class Window
     friend class VulkanSwapchain;
 
 public:
-    Window() = default;
-    virtual ~Window() = default;
+    Window();
+    virtual ~Window();
 
     void init(const std::string& title, WindowRect rect);
     virtual void cleanup();

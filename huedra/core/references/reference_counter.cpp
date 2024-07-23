@@ -39,23 +39,19 @@ void ReferenceCounter::reportState()
     }
 }
 
-void ReferenceCounter::addRef(void* resource, RefBase* ref)
+bool ReferenceCounter::addRef(void* resource, RefBase* ref)
 {
-    if (!ref->valid())
-    {
-        return;
-    }
-
     if (!m_references.count(resource))
     {
         ref->setInvalid();
 #ifdef DEBUG
         log(LogLevel::WARNING, "ReferenceCounter: addref() failed to find resource");
 #endif
-        return;
+        return false;
     }
 
     m_references[resource].push_back(ref);
+    return true;
 }
 
 void ReferenceCounter::removeRef(void* resource, RefBase* ref)

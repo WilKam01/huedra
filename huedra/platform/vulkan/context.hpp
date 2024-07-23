@@ -41,6 +41,7 @@ private:
     CommandBuffer m_commandBuffer;
 
     u32 m_currentFrame{0};
+    bool m_recordedCommands{false};
 
     std::vector<VulkanSwapchain*> m_swapchains;
     std::vector<VkSurfaceKHR> m_surfaces;

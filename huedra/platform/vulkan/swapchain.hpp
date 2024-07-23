@@ -19,8 +19,6 @@ public:
     std::optional<u32> aquireNextImage(u32 frameIndex);
     void handlePresentResult(VkResult result);
 
-    static VkSurfaceFormatKHR chooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-
     VkSwapchainKHR get() { return m_swapchain; }
     VkSurfaceKHR getSurface() { return m_surface; }
     VulkanRenderTarget& getRenderTarget() { return m_renderTarget; }
