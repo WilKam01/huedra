@@ -21,6 +21,7 @@ public:
     void cleanup();
     void render();
 
+    Ref<Pipeline> createPipeline(const PipelineBuilder& pipelineBuilder);
     void addRenderPass(RenderPass renderPass);
 
 private:

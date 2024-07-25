@@ -40,7 +40,7 @@ public:
 private:
     void setInvalid() override;
 
-    void init(T* ptr);
+    void init(T* ptr, bool valid = true);
     void cleanup();
 
     T* m_ptr{nullptr};
@@ -62,13 +62,13 @@ inline Ref<T>::~Ref()
 template <typename T>
 inline Ref<T>::Ref(const Ref<T>& ref)
 {
-    init(ref.m_ptr);
+    init(ref.m_ptr, ref.m_valid);
 }
 
 template <typename T>
 inline Ref<T>::Ref(Ref<T>& ref)
 {
-    init(ref.m_ptr);
+    init(ref.m_ptr, ref.m_valid);
 }
 
 template <typename T>
@@ -76,7 +76,9 @@ inline Ref<T>::Ref(const Ref<T>&& ref)
 {
     if (this != &ref)
     {
-        init(ref.m_ptr);
+        bool valid = ref.m_valid;
+        cleanup();
+        init(ref.m_ptr, valid);
     }
 }
 
@@ -85,7 +87,9 @@ inline Ref<T>::Ref(Ref<T>&& ref)
 {
     if (this != &ref)
     {
-        init(ref.m_ptr);
+        bool valid = ref.m_valid;
+        cleanup();
+        init(ref.m_ptr, valid);
     }
 }
 
@@ -94,7 +98,7 @@ inline Ref<T>& Ref<T>::operator=(const Ref<T>& rhs)
 {
     if (this != &rhs)
     {
-        init(rhs.m_ptr);
+        init(rhs.m_ptr, rhs.m_valid);
     }
     return *this;
 }
@@ -104,7 +108,7 @@ inline Ref<T>& Ref<T>::operator=(Ref<T>& rhs)
 {
     if (this != &rhs)
     {
-        init(rhs.m_ptr);
+        init(rhs.m_ptr, rhs.m_valid);
     }
     return *this;
 }
@@ -114,8 +118,9 @@ inline Ref<T>& Ref<T>::operator=(const Ref<T>&& rhs)
 {
     if (this != &rhs)
     {
+        bool valid = rhs.m_valid;
         cleanup();
-        init(rhs.m_ptr);
+        init(rhs.m_ptr, valid);
     }
     return *this;
 }
@@ -125,8 +130,9 @@ inline Ref<T>& Ref<T>::operator=(Ref<T>&& rhs)
 {
     if (this != &rhs)
     {
+        bool valid = rhs.m_valid;
         cleanup();
-        init(rhs.m_ptr);
+        init(rhs.m_ptr, valid);
     }
     return *this;
 }
@@ -140,7 +146,7 @@ inline T* Ref<T>::get()
 template <typename T>
 inline bool Ref<T>::valid()
 {
-    return m_valid;
+    return m_valid && m_ptr;
 }
 
 template <typename T>
@@ -150,9 +156,9 @@ inline void Ref<T>::setInvalid()
 }
 
 template <typename T>
-inline void Ref<T>::init(T* ptr)
+inline void Ref<T>::init(T* ptr, bool valid)
 {
-    if (ptr)
+    if (ptr && valid)
     {
         m_ptr = ptr;
         m_valid = ReferenceCounter::addRef(static_cast<void*>(m_ptr), this);

@@ -18,6 +18,7 @@ public:
 
     virtual void createSwapchain(Window* window) = 0;
     virtual void removeSwapchain(size_t index) = 0;
+    virtual Pipeline* createPipeline(const PipelineBuilder& pipelineBuilder) = 0;
 
     virtual void prepareRendering() = 0;
     virtual void recordGraphicsCommands(RenderPass& renderPass) = 0;

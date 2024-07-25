@@ -42,7 +42,7 @@ void GraphicsManager::render()
 
     for (auto& renderPass : m_renderPasses)
     {
-        if (!renderPass.getRenderTarget().valid())
+        if (!renderPass.getRenderTarget().valid() || !renderPass.getPipeline().valid())
         {
             continue;
         }
@@ -57,6 +57,11 @@ void GraphicsManager::render()
 
     m_context->submitGraphicsQueue();
     m_context->presentSwapchains();
+}
+
+Ref<Pipeline> GraphicsManager::createPipeline(const PipelineBuilder& pipelineBuilder)
+{
+    return Ref<Pipeline>(m_context->createPipeline(pipelineBuilder));
 }
 
 void GraphicsManager::addRenderPass(RenderPass renderPass) { m_renderPasses.push_back(renderPass); }

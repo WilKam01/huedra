@@ -10,11 +10,22 @@ int main()
     Ref<Window> window = Global::windowManager.addWindow("Hello Windows!", huedra::WindowInput(1278, 1360, -7, 0));
     Ref<Window> window1 = Global::windowManager.addWindow("Hello", huedra::WindowInput(300, 300, 100, 100), window);
 
-    RenderPass pass;
-    pass.initGraphics("Pass", window.get()->getRenderTarget());
+    PipelineBuilder builder;
+    builder.init(PipelineType::GRAPHICS)
+        .addShader(ShaderStage::VERTEX, "shaders/shader.vert")
+        .addShader(ShaderStage::FRAGMENT, "shaders/shader.frag");
 
+    Ref<Pipeline> pipeline = Global::graphicsManager.createPipeline(builder);
+    RenderPass pass;
+    pass.initGraphics("Pass", pipeline, window.get()->getRenderTarget());
+
+    builder.init(PipelineType::GRAPHICS)
+        .addShader(ShaderStage::VERTEX, "shaders/shader1.vert")
+        .addShader(ShaderStage::FRAGMENT, "shaders/shader.frag");
+
+    pipeline = Global::graphicsManager.createPipeline(builder);
     RenderPass pass1;
-    pass1.initGraphics("Pass1", window1.get()->getRenderTarget());
+    pass1.initGraphics("Pass1", pipeline, window1.get()->getRenderTarget());
 
     Global::graphicsManager.addRenderPass(pass);
     Global::graphicsManager.addRenderPass(pass1);

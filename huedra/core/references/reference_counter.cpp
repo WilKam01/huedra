@@ -8,7 +8,7 @@ std::map<void*, std::vector<RefBase*>> ReferenceCounter::m_references = {};
 
 void ReferenceCounter::addResource(void* resource)
 {
-    if (!m_references.count(resource))
+    if (!m_references.contains(resource))
     {
         std::vector<RefBase*> vec; // Empty vec
         m_references.insert(std::make_pair(resource, vec));
@@ -17,7 +17,7 @@ void ReferenceCounter::addResource(void* resource)
 
 void ReferenceCounter::removeResource(void* resource)
 {
-    if (m_references.count(resource))
+    if (m_references.contains(resource))
     {
         for (auto& ref : m_references[resource])
         {
@@ -41,7 +41,7 @@ void ReferenceCounter::reportState()
 
 bool ReferenceCounter::addRef(void* resource, RefBase* ref)
 {
-    if (!m_references.count(resource))
+    if (!m_references.contains(resource))
     {
         ref->setInvalid();
 #ifdef DEBUG
@@ -61,7 +61,7 @@ void ReferenceCounter::removeRef(void* resource, RefBase* ref)
         return;
     }
 
-    if (m_references.count(resource))
+    if (m_references.contains(resource))
     {
         std::vector<RefBase*>& refs = m_references[resource];
         for (auto it = refs.begin(); it != refs.end(); ++it)

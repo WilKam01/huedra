@@ -3,6 +3,7 @@
 #include "graphics/context.hpp"
 #include "platform/vulkan/device.hpp"
 #include "platform/vulkan/instance.hpp"
+#include "platform/vulkan/pipeline.hpp"
 #include "platform/vulkan/swapchain.hpp"
 #include "window/window.hpp"
 
@@ -19,6 +20,7 @@ public:
 
     void createSwapchain(Window* window) override;
     void removeSwapchain(size_t index) override;
+    Pipeline* createPipeline(const PipelineBuilder& pipelineBuilder) override;
 
     void prepareRendering() override;
     void recordGraphicsCommands(RenderPass& renderPass) override;
@@ -32,8 +34,6 @@ private:
     VkRenderPass createRenderPass(VkFormat format);
 
     void recordCommandBuffer(VkCommandBuffer commandBuffer, RenderPass& renderPass);
-    // TODO: Move byte reading to asset/io manager
-    VkShaderModule loadShader(const std::string& path);
 
     Instance m_instance;
     Device m_device;
@@ -45,6 +45,7 @@ private:
 
     std::vector<VulkanSwapchain*> m_swapchains;
     std::vector<VkSurfaceKHR> m_surfaces;
+    std::vector<VulkanPipeline*> m_pipelines;
 
     VkViewport m_viewport;
     VkRect2D m_scissor;
@@ -53,8 +54,6 @@ private:
     std::vector<VkSemaphore> m_renderFinishedSemaphores;
 
     VkRenderPass m_renderPass;
-    VkPipelineLayout m_pipelineLayout;
-    VkPipeline m_pipeline;
 };
 
 } // namespace huedra

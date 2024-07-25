@@ -32,3 +32,15 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
 elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
   target_compile_definitions(huedra PRIVATE -DDEBUG)
 endif()
+
+# Copy assets
+set(source_assets ${PROJECT_SOURCE_DIR}/shaders)
+set(dest_assets ${PROJECT_BINARY_DIR}/shaders)
+
+add_custom_target(copy_assets ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+    ${source_assets} ${dest_assets}
+    COMMENT "Copying assets to build folder"
+)
+
+add_dependencies(huedra copy_assets)
