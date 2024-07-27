@@ -121,7 +121,7 @@ void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device
     pipelineInfo.pDepthStencilState = nullptr;
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicState;
-    pipelineInfo.layout = m_layout;
+    pipelineInfo.layout = m_pipelineLayout;
     pipelineInfo.renderPass = renderPass;
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
@@ -142,11 +142,50 @@ void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device
 void VulkanPipeline::cleanup()
 {
     vkDestroyPipeline(p_device->getLogical(), m_pipeline, nullptr);
-    vkDestroyPipelineLayout(p_device->getLogical(), m_layout, nullptr);
+    vkDestroyPipelineLayout(p_device->getLogical(), m_pipelineLayout, nullptr);
+
+    for (auto& descriptorLayout : m_descriptorLayout)
+    {
+        vkDestroyDescriptorSetLayout(p_device->getLogical(), descriptorLayout, nullptr);
+    }
 }
 
 void VulkanPipeline::initLayout()
 {
+    PipelineBuilder& builder = getBuilder();
+
+    std::vector<std::vector<ResourceBinding>> resources = builder.getResources();
+    std::vector<std::vector<VkDescriptorSetLayoutBinding>> bindings(resources.size());
+    m_descriptorLayout.resize(resources.size());
+
+    for (size_t i = 0; i < resources.size(); ++i)
+    {
+        bindings[i].resize(resources[i].size());
+        for (size_t j = 0; j < resources[i].size(); ++j)
+        {
+            bindings[i][j].binding = j;
+            bindings[i][j].descriptorType = convertResourceType(resources[i][j].resource);
+            bindings[i][j].stageFlags = convertShaderStage(resources[i][j].shaderStage);
+            bindings[i][j].descriptorCount = 1;
+        }
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = static_cast<u32>(bindings[i].size());
+        layoutInfo.pBindings = bindings[i].data();
+
+        if (vkCreateDescriptorSetLayout(p_device->getLogical(), &layoutInfo, nullptr, &m_descriptorLayout[i]) !=
+            VK_SUCCESS)
+        {
+            log(LogLevel::ERR, "Failed to create descriptor set layout!");
+        }
+    }
+
+    VkPushConstantRange pushConstantRange = {};
+    pushConstantRange.stageFlags = convertShaderStage(builder.getPushConstantShaderStage());
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = builder.getPushConstantRange();
+
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 0;
@@ -154,10 +193,64 @@ void VulkanPipeline::initLayout()
     pipelineLayoutInfo.pushConstantRangeCount = 0;
     pipelineLayoutInfo.pPushConstantRanges = nullptr;
 
-    if (vkCreatePipelineLayout(p_device->getLogical(), &pipelineLayoutInfo, nullptr, &m_layout) != VK_SUCCESS)
+    if (!m_descriptorLayout.empty())
+    {
+        pipelineLayoutInfo.setLayoutCount = static_cast<u32>(m_descriptorLayout.size());
+        pipelineLayoutInfo.pSetLayouts = m_descriptorLayout.data();
+    }
+
+    if (pushConstantRange.size && pushConstantRange.stageFlags)
+    {
+        pipelineLayoutInfo.pushConstantRangeCount = 1;
+        pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+    }
+
+    if (vkCreatePipelineLayout(p_device->getLogical(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS)
     {
         log(LogLevel::ERR, "Failed to create pipeline layout!");
     }
+}
+
+VkShaderStageFlagBits VulkanPipeline::convertShaderStage(ShaderStageFlags shaderStage)
+{
+    PipelineType type = getBuilder().getType();
+    u32 result = 0;
+
+    switch (type)
+    {
+    case PipelineType::GRAPHICS:
+        if (shaderStage & SHADER_STAGE_GRAPHICS_ALL)
+        {
+            return VK_SHADER_STAGE_ALL_GRAPHICS;
+        }
+
+        if (shaderStage & SHADER_STAGE_VERTEX)
+        {
+            result |= VK_SHADER_STAGE_VERTEX_BIT;
+        }
+        if (shaderStage & SHADER_STAGE_FRAGMENT)
+        {
+            result |= VK_SHADER_STAGE_FRAGMENT_BIT;
+        }
+        break;
+    };
+
+    return static_cast<VkShaderStageFlagBits>(result);
+}
+
+VkDescriptorType VulkanPipeline::convertResourceType(ResourceType resource)
+{
+    switch (resource)
+    {
+    case ResourceType::UNIFORM_BUFFER:
+        return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
+    case ResourceType::TEXTURE:
+        return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+
+    default:
+        return VK_DESCRIPTOR_TYPE_MAX_ENUM;
+    };
 }
 
 VkShaderModule VulkanPipeline::loadShader(const std::string& path)

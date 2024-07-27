@@ -15,16 +15,21 @@ public:
     void cleanup() override;
 
     VkPipeline get() { return m_pipeline; };
-    VkPipelineLayout getLayout() { return m_layout; };
+    VkPipelineLayout getLayout() { return m_pipelineLayout; };
 
 private:
     void initLayout();
+    VkShaderStageFlagBits convertShaderStage(ShaderStageFlags shaderStage);
+    VkDescriptorType convertResourceType(ResourceType resource);
+
     // TODO: Move byte reading to asset/io manager
     VkShaderModule loadShader(const std::string& path);
 
     Device* p_device;
+
+    std::vector<VkDescriptorSetLayout> m_descriptorLayout;
+    VkPipelineLayout m_pipelineLayout;
     VkPipeline m_pipeline;
-    VkPipelineLayout m_layout;
 };
 
 } // namespace huedra

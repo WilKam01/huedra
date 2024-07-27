@@ -21,7 +21,14 @@ int main()
 
     builder.init(PipelineType::GRAPHICS)
         .addShader(ShaderStage::VERTEX, "shaders/shader1.vert")
-        .addShader(ShaderStage::FRAGMENT, "shaders/shader.frag");
+        .addShader(ShaderStage::FRAGMENT, "shaders/shader.frag")
+        .addPushConstantRange(SHADER_STAGE_ALL, 128)
+        .addResourceSet()
+        .addResourceBinding(SHADER_STAGE_VERTEX, ResourceType::UNIFORM_BUFFER)
+        .addResourceBinding(SHADER_STAGE_FRAGMENT, ResourceType::TEXTURE)
+        .addResourceBinding(SHADER_STAGE_VERTEX | SHADER_STAGE_FRAGMENT, ResourceType::UNIFORM_BUFFER)
+        .addResourceSet()
+        .addResourceBinding(SHADER_STAGE_GRAPHICS_ALL, ResourceType::UNIFORM_BUFFER);
 
     pipeline = Global::graphicsManager.createPipeline(builder);
     RenderPass pass1;
