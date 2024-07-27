@@ -21,6 +21,8 @@ private:
     void initLayout();
     VkShaderStageFlagBits convertShaderStage(ShaderStageFlags shaderStage);
     VkDescriptorType convertResourceType(ResourceType resource);
+    VkVertexInputRate convertVertexInputRate(VertexInputRate inputRate);
+    VkFormat convertDataFormat(GraphicsDataFormat format);
 
     // TODO: Move byte reading to asset/io manager
     VkShaderModule loadShader(const std::string& path);

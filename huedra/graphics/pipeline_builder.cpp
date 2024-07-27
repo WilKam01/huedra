@@ -8,6 +8,9 @@ PipelineBuilder& PipelineBuilder::init(PipelineType type)
     m_type = type;
     m_shaderStages.clear();
     m_resources.clear();
+    m_vertexStreams.clear();
+    m_pushConstantRanges.clear();
+    m_pushConstantShaderStages.clear();
     return *this;
 }
 
@@ -15,7 +18,7 @@ PipelineBuilder& PipelineBuilder::addShader(ShaderStage stage, std::string shade
 {
     if (m_shaderStages.contains(stage))
     {
-        log(LogLevel::WARNING, "Could not add shader: \"%s\". Shader stage already defined", shader.c_str());
+        m_shaderStages[stage] = shader;
         return *this;
     }
 
@@ -23,10 +26,29 @@ PipelineBuilder& PipelineBuilder::addShader(ShaderStage stage, std::string shade
     return *this;
 }
 
+PipelineBuilder& PipelineBuilder::addVertexInputStream(VertexInputStream inputStream)
+{
+    if (m_type != PipelineType::GRAPHICS)
+    {
+        log(LogLevel::WARNING, "addVertexInputStream() used on non Graphics pipeline");
+        return *this;
+    }
+    m_vertexStreams.push_back(inputStream);
+    return *this;
+}
+
 PipelineBuilder& PipelineBuilder::addPushConstantRange(u32 stage, u32 size)
 {
-    m_pushConstantShaderStage = static_cast<ShaderStageFlags>(stage);
-    m_pushConstantRange = size;
+    for (auto& shaderStage : m_pushConstantShaderStages)
+    {
+        if (stage & shaderStage)
+        {
+            log(LogLevel::ERR, "Could not add push constant range, shader stage was previously defined");
+        }
+    }
+
+    m_pushConstantShaderStages.push_back(static_cast<ShaderStageFlags>(stage));
+    m_pushConstantRanges.push_back(size);
     return *this;
 }
 
