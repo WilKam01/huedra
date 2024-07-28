@@ -14,7 +14,6 @@ public:
     void init(const PipelineBuilder& pipelineBuilder);
     virtual void cleanup() = 0;
 
-protected:
     PipelineBuilder& getBuilder() { return m_builder; }
 
 private:

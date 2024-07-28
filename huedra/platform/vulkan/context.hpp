@@ -5,6 +5,7 @@
 #include "platform/vulkan/device.hpp"
 #include "platform/vulkan/instance.hpp"
 #include "platform/vulkan/pipeline.hpp"
+#include "platform/vulkan/render_context.hpp"
 #include "platform/vulkan/swapchain.hpp"
 #include "window/window.hpp"
 
@@ -49,10 +50,6 @@ private:
     std::vector<VkSurfaceKHR> m_surfaces;
     std::vector<VulkanPipeline*> m_pipelines;
     std::vector<VulkanBuffer*> m_buffers;
-
-    VulkanBuffer* m_vertexPositionsBuffer;
-    VulkanBuffer* m_vertexColorsBuffer;
-    VulkanBuffer* m_indexBuffer;
 
     VkViewport m_viewport;
     VkRect2D m_scissor;

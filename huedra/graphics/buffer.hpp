@@ -14,8 +14,8 @@ public:
     void init(BufferType type, BufferUsageFlags usage, u64 size);
     virtual void cleanup() = 0;
 
-    virtual void write(void* data, u64 size) = 0;
-    virtual void read(void* data, u64 size) = 0;
+    virtual void write(u64 size, void* data) = 0;
+    virtual void read(u64 size, void* datae) = 0;
 
     BufferType getType() { return m_type; }
     BufferUsageFlags getBufferUsage() { return m_usage; }

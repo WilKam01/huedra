@@ -48,20 +48,6 @@ void VulkanContext::init()
     vkDestroySurfaceKHR(m_instance.get(), surface, nullptr);
     tempWindow->cleanup();
     delete tempWindow;
-
-    // Temp vertex and index buffers
-    std::array<std::array<float, 2>, 4> positions = {
-        {{{-0.5f, -0.5f}}, {{0.5f, -0.5f}}, {{0.5f, 0.5f}}, {{-0.5f, 0.5f}}}};
-    std::array<std::array<float, 3>, 4> colors = {
-        {{{0.5f, 0.0f, 0.0f}}, {{0.0f, 0.5f, 0.0f}}, {{0.0f, 0.0f, 0.5f}}, {{0.5f, 0.5f, 0.5f}}}};
-    std::array<u32, 6> indices = {0, 1, 2, 2, 3, 0};
-
-    m_vertexPositionsBuffer = dynamic_cast<VulkanBuffer*>(
-        createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER, sizeof(float) * 2 * 4, positions.data()));
-    m_vertexColorsBuffer = dynamic_cast<VulkanBuffer*>(
-        createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER, sizeof(float) * 3 * 4, colors.data()));
-    m_indexBuffer = dynamic_cast<VulkanBuffer*>(
-        createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_INDEX_BUFFER, sizeof(u32) * 6, indices.data()));
 }
 
 void VulkanContext::cleanup()
@@ -159,7 +145,7 @@ Buffer* VulkanContext::createBuffer(BufferType type, BufferUsageFlags usage, u64
         copyRegion.srcOffset = 0;
         copyRegion.dstOffset = 0;
         copyRegion.size = static_cast<VkDeviceSize>(size);
-        vkCmdCopyBuffer(commandBuffer, m_stagingBuffer.get(0), buffer->get(0), 1, &copyRegion);
+        vkCmdCopyBuffer(commandBuffer, m_stagingBuffer.get(), buffer->get(), 1, &copyRegion);
         m_commandPool.endSingleTimeCommand(commandBuffer);
 
         m_stagingBuffer.cleanup();
@@ -296,7 +282,7 @@ VkSurfaceKHR VulkanContext::createSurface(Window* window)
     VkSurfaceKHR surface;
 
 #ifdef WIN32
-    Win32Window* win = dynamic_cast<Win32Window*>(window);
+    Win32Window* win = static_cast<Win32Window*>(window);
     VkWin32SurfaceCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
     createInfo.hinstance = GetModuleHandle(NULL);
@@ -393,8 +379,8 @@ VkBufferUsageFlagBits VulkanContext::convertBufferUsage(BufferUsageFlags usage)
 
 void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, RenderPass& renderPass)
 {
-    VulkanPipeline* pipeline = dynamic_cast<VulkanPipeline*>(renderPass.getPipeline().get());
-    VulkanRenderTarget* renderTarget = dynamic_cast<VulkanRenderTarget*>(renderPass.getRenderTarget().get());
+    VulkanPipeline* pipeline = static_cast<VulkanPipeline*>(renderPass.getPipeline().get());
+    VulkanRenderTarget* renderTarget = static_cast<VulkanRenderTarget*>(renderPass.getRenderTarget().get());
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -424,15 +410,27 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, RenderPas
     vkCmdSetScissor(commandBuffer, 0, 1, &m_scissor);
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->get());
+    /*vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->get());
 
-    std::array<VkBuffer, 2> vertexBuffers{{m_vertexPositionsBuffer->get(0), m_vertexColorsBuffer->get(0)}};
+    std::array<VkBuffer, 2> vertexBuffers{{m_vertexPositionsBuffer->get(), m_vertexColorsBuffer->get()}};
     std::array<VkDeviceSize, 2> offsets{{0, 0}};
 
     vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers.data(), offsets.data());
-    vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer->get(0), 0, VK_INDEX_TYPE_UINT32);
+    vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer->get(), 0, VK_INDEX_TYPE_UINT32);
 
-    vkCmdDrawIndexed(commandBuffer, 6, 1, 0, 0, 0);
+    vkCmdDrawIndexed(commandBuffer, 6, 1, 0, 0, 0);*/
+
+    std::function<void(RenderContext&)> commands = pipeline->getBuilder().getRenderCommands();
+    if (commands)
+    {
+        VulkanRenderContext renderContext;
+        renderContext.init(commandBuffer, pipeline);
+        commands(renderContext);
+    }
+    else
+    {
+        log(LogLevel::WARNING, "Could not execute render commands, not defined");
+    }
 
     vkCmdEndRenderPass(commandBuffer);
 }

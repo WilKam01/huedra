@@ -111,7 +111,7 @@ void VulkanBuffer::cleanup()
     }
 }
 
-void VulkanBuffer::write(void* data, u64 size)
+void VulkanBuffer::write(u64 size, void* data)
 {
     bool isStatic = getType() == BufferType::STATIC;
     u32 index = isStatic ? 1 : Global::graphicsManager.getCurrentFrame();
@@ -134,7 +134,7 @@ void VulkanBuffer::write(void* data, u64 size)
     }
 }
 
-void VulkanBuffer::read(void* data, u64 size)
+void VulkanBuffer::read(u64 size, void* data)
 {
     bool isStatic = getType() == BufferType::STATIC;
     u32 index = isStatic ? 1 : Global::graphicsManager.getCurrentFrame();
@@ -155,6 +155,11 @@ void VulkanBuffer::read(void* data, u64 size)
     {
         unmap(index);
     }
+}
+
+VkBuffer VulkanBuffer::get()
+{
+    return m_buffers[getType() == BufferType::STATIC ? 0 : Global::graphicsManager.getCurrentFrame()];
 }
 
 bool VulkanBuffer::map(size_t index)

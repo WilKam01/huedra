@@ -15,10 +15,10 @@ public:
               VkMemoryPropertyFlags memoryPropertyFlags, void* data = nullptr);
     void cleanup() override;
 
-    void write(void* data, u64 size) override;
-    void read(void* data, u64 size) override;
+    void write(u64 size, void* data) override;
+    void read(u64 size, void* data) override;
 
-    VkBuffer get(size_t index) { return m_buffers[index]; }
+    VkBuffer get();
 
 private:
     bool map(size_t index);

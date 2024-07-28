@@ -17,9 +17,10 @@ public:
     VkPipeline get() { return m_pipeline; };
     VkPipelineLayout getLayout() { return m_pipelineLayout; };
 
+    VkShaderStageFlagBits convertShaderStage(ShaderStageFlags shaderStage);
+
 private:
     void initLayout();
-    VkShaderStageFlagBits convertShaderStage(ShaderStageFlags shaderStage);
     VkDescriptorType convertResourceType(ResourceType resource);
     VkVertexInputRate convertVertexInputRate(VertexInputRate inputRate);
     VkFormat convertDataFormat(GraphicsDataFormat format);

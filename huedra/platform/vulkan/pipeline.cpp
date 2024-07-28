@@ -172,6 +172,33 @@ void VulkanPipeline::cleanup()
     }
 }
 
+VkShaderStageFlagBits VulkanPipeline::convertShaderStage(ShaderStageFlags shaderStage)
+{
+    PipelineType type = getBuilder().getType();
+    u32 result = 0;
+
+    switch (type)
+    {
+    case PipelineType::GRAPHICS:
+        if ((shaderStage & HU_SHADER_STAGE_GRAPHICS_ALL) == HU_SHADER_STAGE_GRAPHICS_ALL)
+        {
+            return VK_SHADER_STAGE_ALL_GRAPHICS;
+        }
+
+        if (shaderStage & HU_SHADER_STAGE_VERTEX)
+        {
+            result |= VK_SHADER_STAGE_VERTEX_BIT;
+        }
+        if (shaderStage & HU_SHADER_STAGE_FRAGMENT)
+        {
+            result |= VK_SHADER_STAGE_FRAGMENT_BIT;
+        }
+        break;
+    };
+
+    return static_cast<VkShaderStageFlagBits>(result);
+}
+
 void VulkanPipeline::initLayout()
 {
     PipelineBuilder& builder = getBuilder();
@@ -240,33 +267,6 @@ void VulkanPipeline::initLayout()
     {
         log(LogLevel::ERR, "Failed to create pipeline layout!");
     }
-}
-
-VkShaderStageFlagBits VulkanPipeline::convertShaderStage(ShaderStageFlags shaderStage)
-{
-    PipelineType type = getBuilder().getType();
-    u32 result = 0;
-
-    switch (type)
-    {
-    case PipelineType::GRAPHICS:
-        if ((shaderStage & HU_SHADER_STAGE_GRAPHICS_ALL) == HU_SHADER_STAGE_GRAPHICS_ALL)
-        {
-            return VK_SHADER_STAGE_ALL_GRAPHICS;
-        }
-
-        if (shaderStage & HU_SHADER_STAGE_VERTEX)
-        {
-            result |= VK_SHADER_STAGE_VERTEX_BIT;
-        }
-        if (shaderStage & HU_SHADER_STAGE_FRAGMENT)
-        {
-            result |= VK_SHADER_STAGE_FRAGMENT_BIT;
-        }
-        break;
-    };
-
-    return static_cast<VkShaderStageFlagBits>(result);
 }
 
 VkDescriptorType VulkanPipeline::convertResourceType(ResourceType resource)
