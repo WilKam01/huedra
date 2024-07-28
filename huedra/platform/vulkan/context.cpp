@@ -48,6 +48,20 @@ void VulkanContext::init()
     vkDestroySurfaceKHR(m_instance.get(), surface, nullptr);
     tempWindow->cleanup();
     delete tempWindow;
+
+    // Temp vertex and index buffers
+    std::array<std::array<float, 2>, 4> positions = {
+        {{{-0.5f, -0.5f}}, {{0.5f, -0.5f}}, {{0.5f, 0.5f}}, {{-0.5f, 0.5f}}}};
+    std::array<std::array<float, 3>, 4> colors = {
+        {{{0.5f, 0.0f, 0.0f}}, {{0.0f, 0.5f, 0.0f}}, {{0.0f, 0.0f, 0.5f}}, {{0.5f, 0.5f, 0.5f}}}};
+    std::array<u32, 6> indices = {0, 1, 2, 2, 3, 0};
+
+    m_vertexPositionsBuffer = dynamic_cast<VulkanBuffer*>(
+        createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER, sizeof(float) * 2 * 4, positions.data()));
+    m_vertexColorsBuffer = dynamic_cast<VulkanBuffer*>(
+        createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER, sizeof(float) * 3 * 4, colors.data()));
+    m_indexBuffer = dynamic_cast<VulkanBuffer*>(
+        createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_INDEX_BUFFER, sizeof(u32) * 6, indices.data()));
 }
 
 void VulkanContext::cleanup()
@@ -56,6 +70,12 @@ void VulkanContext::cleanup()
     {
         swapchain->cleanup();
         delete swapchain;
+    }
+
+    for (auto& buffer : m_buffers)
+    {
+        buffer->cleanup();
+        delete buffer;
     }
 
     for (auto& pipeline : m_pipelines)
@@ -108,6 +128,52 @@ Pipeline* VulkanContext::createPipeline(const PipelineBuilder& pipelineBuilder)
     return pipeline;
 }
 
+Buffer* VulkanContext::createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data)
+{
+    if (usage == HU_BUFFER_USAGE_UNDEFINED)
+    {
+        log(LogLevel::WARNING, "Could not create buffer, buffer usage is undefined");
+        return nullptr;
+    }
+
+    if (size == 0)
+    {
+        log(LogLevel::WARNING, "Could not create buffer, size is 0");
+        return nullptr;
+    }
+
+    VulkanBuffer* buffer = new VulkanBuffer();
+    VkBufferUsageFlagBits bufferUsage = convertBufferUsage(usage);
+
+    if (type == BufferType::STATIC && data)
+    {
+        m_stagingBuffer.init(m_device, BufferType::STATIC, HU_BUFFER_USAGE_UNDEFINED, size,
+                             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, data);
+
+        buffer->init(m_device, type, usage, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | bufferUsage,
+                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+        VkCommandBuffer commandBuffer = m_commandPool.beginSingleTimeCommand();
+        VkBufferCopy copyRegion{};
+        copyRegion.srcOffset = 0;
+        copyRegion.dstOffset = 0;
+        copyRegion.size = static_cast<VkDeviceSize>(size);
+        vkCmdCopyBuffer(commandBuffer, m_stagingBuffer.get(0), buffer->get(0), 1, &copyRegion);
+        m_commandPool.endSingleTimeCommand(commandBuffer);
+
+        m_stagingBuffer.cleanup();
+    }
+    else
+    {
+        buffer->init(m_device, type, usage, size, bufferUsage,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, data);
+    }
+
+    m_buffers.push_back(buffer);
+    return buffer;
+}
+
 void VulkanContext::submitGraphicsQueue()
 {
     if (!m_recordedCommands)
@@ -115,14 +181,14 @@ void VulkanContext::submitGraphicsQueue()
         return;
     }
 
-    m_commandBuffer.end(m_currentFrame);
+    m_commandBuffer.end(Global::graphicsManager.getCurrentFrame());
 
     std::vector<VkSemaphore> waitSemaphores;
     for (auto& swapchain : m_swapchains)
     {
         if (swapchain->canPresent())
         {
-            waitSemaphores.push_back(swapchain->getImageAvailableSemaphore(m_currentFrame));
+            waitSemaphores.push_back(swapchain->getImageAvailableSemaphore(Global::graphicsManager.getCurrentFrame()));
         }
     }
 
@@ -140,14 +206,14 @@ void VulkanContext::submitGraphicsQueue()
     submitInfo.pWaitSemaphores = waitSemaphores.data();
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &m_commandBuffer.get(m_currentFrame);
+    submitInfo.pCommandBuffers = &m_commandBuffer.get(Global::graphicsManager.getCurrentFrame());
 
-    VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphores[m_currentFrame]};
+    VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphores[Global::graphicsManager.getCurrentFrame()]};
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    if (vkQueueSubmit(m_device.getGraphicsQueue(), 1, &submitInfo, m_renderingInFlightFences[m_currentFrame]) !=
-        VK_SUCCESS)
+    if (vkQueueSubmit(m_device.getGraphicsQueue(), 1, &submitInfo,
+                      m_renderingInFlightFences[Global::graphicsManager.getCurrentFrame()]) != VK_SUCCESS)
     {
         log(LogLevel::ERR, "Failed to submit draw command buffer!");
     }
@@ -160,7 +226,7 @@ void VulkanContext::presentSwapchains()
         return;
     }
 
-    VkSemaphore waitSemaphores[] = {m_renderFinishedSemaphores[m_currentFrame]};
+    VkSemaphore waitSemaphores[] = {m_renderFinishedSemaphores[Global::graphicsManager.getCurrentFrame()]};
 
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -205,13 +271,12 @@ void VulkanContext::presentSwapchains()
             swapchain->handlePresentResult(results[index++]);
         }
     }
-
-    m_currentFrame = (m_currentFrame + 1) % GraphicsManager::MAX_FRAMES_IN_FLIGHT;
 }
 
 void VulkanContext::prepareRendering()
 {
-    vkWaitForFences(m_device.getLogical(), 1, &m_renderingInFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
+    vkWaitForFences(m_device.getLogical(), 1, &m_renderingInFlightFences[Global::graphicsManager.getCurrentFrame()],
+                    VK_TRUE, UINT64_MAX);
     m_recordedCommands = false;
 }
 
@@ -219,11 +284,11 @@ void VulkanContext::recordGraphicsCommands(RenderPass& renderPass)
 {
     if (!m_recordedCommands && renderPass.getRenderTarget().valid())
     {
-        vkResetFences(m_device.getLogical(), 1, &m_renderingInFlightFences[m_currentFrame]);
-        m_commandBuffer.begin(m_currentFrame);
+        vkResetFences(m_device.getLogical(), 1, &m_renderingInFlightFences[Global::graphicsManager.getCurrentFrame()]);
+        m_commandBuffer.begin(Global::graphicsManager.getCurrentFrame());
         m_recordedCommands = true;
     }
-    recordCommandBuffer(m_commandBuffer.get(m_currentFrame), renderPass);
+    recordCommandBuffer(m_commandBuffer.get(Global::graphicsManager.getCurrentFrame()), renderPass);
 }
 
 VkSurfaceKHR VulkanContext::createSurface(Window* window)
@@ -299,6 +364,33 @@ VkRenderPass VulkanContext::createRenderPass(VkFormat format)
     return renderPass;
 }
 
+VkBufferUsageFlagBits VulkanContext::convertBufferUsage(BufferUsageFlags usage)
+{
+    u32 result = 0;
+
+    if (usage & HU_BUFFER_USAGE_VERTEX_BUFFER)
+    {
+        result |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    }
+
+    if (usage & HU_BUFFER_USAGE_INDEX_BUFFER)
+    {
+        result |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    }
+
+    if (usage & HU_BUFFER_USAGE_UNIFORM_BUFFER)
+    {
+        result |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    }
+
+    if (usage & HU_BUFFER_USAGE_STORAGE_BUFFER)
+    {
+        result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    }
+
+    return static_cast<VkBufferUsageFlagBits>(result);
+}
+
 void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, RenderPass& renderPass)
 {
     VulkanPipeline* pipeline = dynamic_cast<VulkanPipeline*>(renderPass.getPipeline().get());
@@ -334,7 +426,13 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, RenderPas
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->get());
 
-    vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+    std::array<VkBuffer, 2> vertexBuffers{{m_vertexPositionsBuffer->get(0), m_vertexColorsBuffer->get(0)}};
+    std::array<VkDeviceSize, 2> offsets{{0, 0}};
+
+    vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers.data(), offsets.data());
+    vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer->get(0), 0, VK_INDEX_TYPE_UINT32);
+
+    vkCmdDrawIndexed(commandBuffer, 6, 1, 0, 0, 0);
 
     vkCmdEndRenderPass(commandBuffer);
 }

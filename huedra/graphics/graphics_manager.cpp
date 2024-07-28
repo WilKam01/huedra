@@ -48,7 +48,7 @@ void GraphicsManager::render()
         }
 
         RenderTarget* renderTarget = renderPass.getRenderTarget().get();
-        renderTarget->prepareNextFrame(m_context->getFrameIndex());
+        renderTarget->prepareNextFrame(m_currentFrame);
         if (renderTarget->isAvailable())
         {
             m_context->recordGraphicsCommands(renderPass);
@@ -57,11 +57,18 @@ void GraphicsManager::render()
 
     m_context->submitGraphicsQueue();
     m_context->presentSwapchains();
+
+    m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
 Ref<Pipeline> GraphicsManager::createPipeline(const PipelineBuilder& pipelineBuilder)
 {
     return Ref<Pipeline>(m_context->createPipeline(pipelineBuilder));
+}
+
+Ref<Buffer> GraphicsManager::createBuffer(BufferType type, u32 usage, u64 size, void* data)
+{
+    return Ref<Buffer>(m_context->createBuffer(type, static_cast<BufferUsageFlags>(usage), size, data));
 }
 
 void GraphicsManager::addRenderPass(RenderPass renderPass) { m_renderPasses.push_back(renderPass); }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "graphics/context.hpp"
+#include "platform/vulkan/buffer.hpp"
 #include "platform/vulkan/device.hpp"
 #include "platform/vulkan/instance.hpp"
 #include "platform/vulkan/pipeline.hpp"
@@ -21,17 +22,18 @@ public:
     void createSwapchain(Window* window) override;
     void removeSwapchain(size_t index) override;
     Pipeline* createPipeline(const PipelineBuilder& pipelineBuilder) override;
+    Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) override;
 
     void prepareRendering() override;
     void recordGraphicsCommands(RenderPass& renderPass) override;
     void submitGraphicsQueue() override;
     void presentSwapchains() override;
 
-    u32 getFrameIndex() override { return m_currentFrame; };
-
 private:
     VkSurfaceKHR createSurface(Window* window);
     VkRenderPass createRenderPass(VkFormat format);
+
+    VkBufferUsageFlagBits convertBufferUsage(BufferUsageFlags usage);
 
     void recordCommandBuffer(VkCommandBuffer commandBuffer, RenderPass& renderPass);
 
@@ -39,13 +41,18 @@ private:
     Device m_device;
     CommandPool m_commandPool;
     CommandBuffer m_commandBuffer;
+    VulkanBuffer m_stagingBuffer;
 
-    u32 m_currentFrame{0};
     bool m_recordedCommands{false};
 
     std::vector<VulkanSwapchain*> m_swapchains;
     std::vector<VkSurfaceKHR> m_surfaces;
     std::vector<VulkanPipeline*> m_pipelines;
+    std::vector<VulkanBuffer*> m_buffers;
+
+    VulkanBuffer* m_vertexPositionsBuffer;
+    VulkanBuffer* m_vertexColorsBuffer;
+    VulkanBuffer* m_indexBuffer;
 
     VkViewport m_viewport;
     VkRect2D m_scissor;

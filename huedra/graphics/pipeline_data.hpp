@@ -17,19 +17,35 @@ enum class ShaderStage
 
 typedef enum ShaderStageFlags
 {
-    SHADER_STAGE_NONE = 0x0000,
+    HU_SHADER_STAGE_NONE = 0x0000,
 
-    SHADER_STAGE_VERTEX = 0x0001,
-    SHADER_STAGE_FRAGMENT = 0x0002,
-    SHADER_STAGE_GRAPHICS_ALL = 0x0003,
+    HU_SHADER_STAGE_VERTEX = 0x0001,
+    HU_SHADER_STAGE_FRAGMENT = 0x0002,
+    HU_SHADER_STAGE_GRAPHICS_ALL = 0x0003,
 
-    SHADER_STAGE_ALL = 0xFFFF
+    HU_SHADER_STAGE_ALL = 0xFFFF
 } ShaderStageFlags;
 
 enum class ResourceType
 {
     UNIFORM_BUFFER,
+    STRUCTURED_BUFFER,
     TEXTURE,
+};
+
+enum class BufferType
+{
+    STATIC,
+    DYNAMIC
+};
+
+enum BufferUsageFlags
+{
+    HU_BUFFER_USAGE_UNDEFINED = 0,
+    HU_BUFFER_USAGE_VERTEX_BUFFER,
+    HU_BUFFER_USAGE_INDEX_BUFFER,
+    HU_BUFFER_USAGE_UNIFORM_BUFFER,
+    HU_BUFFER_USAGE_STORAGE_BUFFER,
 };
 
 struct ResourceBinding
@@ -134,12 +150,17 @@ enum class GraphicsDataFormat
     RGBA_64_FLOAT,
 };
 
+struct VertexInputAttribute
+{
+    GraphicsDataFormat format;
+    u32 offset;
+};
+
 struct VertexInputStream
 {
     u32 size;
     VertexInputRate inputRate;
-    std::vector<GraphicsDataFormat> formats;
-    std::vector<u32> offsets;
+    std::vector<VertexInputAttribute> attributes;
 };
 
 } // namespace huedra

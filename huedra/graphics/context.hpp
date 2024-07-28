@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/types.hpp"
+#include "graphics/buffer.hpp"
 #include "graphics/render_pass.hpp"
 #include "window/window.hpp"
 
@@ -18,14 +19,14 @@ public:
 
     virtual void createSwapchain(Window* window) = 0;
     virtual void removeSwapchain(size_t index) = 0;
+
     virtual Pipeline* createPipeline(const PipelineBuilder& pipelineBuilder) = 0;
+    virtual Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) = 0;
 
     virtual void prepareRendering() = 0;
     virtual void recordGraphicsCommands(RenderPass& renderPass) = 0;
     virtual void submitGraphicsQueue() = 0;
     virtual void presentSwapchains() = 0;
-
-    virtual u32 getFrameIndex() = 0;
 
 private:
 };

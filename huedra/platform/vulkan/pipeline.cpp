@@ -46,19 +46,20 @@ void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device
     for (u32 i = 0; i < static_cast<u32>(inputStreams.size()); ++i)
     {
         vertexInputBindingDescs[i].binding = i;
-        vertexInputBindingDescs[i].inputRate = convertVertexInputRate(inputStreams[i].inputRate);
         vertexInputBindingDescs[i].stride = inputStreams[i].size;
+        vertexInputBindingDescs[i].inputRate = convertVertexInputRate(inputStreams[i].inputRate);
 
-        for (u32 j = 0; j < static_cast<u32>(inputStreams[i].formats.size()); ++j)
+        for (u32 j = 0; j < static_cast<u32>(inputStreams[i].attributes.size()); ++j)
         {
             VkVertexInputAttributeDescription attributeDescription;
-            attributeDescription.binding = i;
-            attributeDescription.format = convertDataFormat(inputStreams[i].formats[j]);
-            attributeDescription.location = locationOffset + j;
-            attributeDescription.offset = inputStreams[i].offsets[j];
+            attributeDescription.location = i;
+            attributeDescription.binding = locationOffset + j;
+            attributeDescription.format = convertDataFormat(inputStreams[i].attributes[j].format);
+            attributeDescription.offset = inputStreams[i].attributes[j].offset;
+            vertexInputAttributeDescs.push_back(attributeDescription);
         }
 
-        locationOffset += static_cast<u32>(inputStreams[i].formats.size());
+        locationOffset += static_cast<u32>(inputStreams[i].attributes.size());
     }
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
@@ -249,16 +250,16 @@ VkShaderStageFlagBits VulkanPipeline::convertShaderStage(ShaderStageFlags shader
     switch (type)
     {
     case PipelineType::GRAPHICS:
-        if ((shaderStage & SHADER_STAGE_GRAPHICS_ALL) == SHADER_STAGE_GRAPHICS_ALL)
+        if ((shaderStage & HU_SHADER_STAGE_GRAPHICS_ALL) == HU_SHADER_STAGE_GRAPHICS_ALL)
         {
             return VK_SHADER_STAGE_ALL_GRAPHICS;
         }
 
-        if (shaderStage & SHADER_STAGE_VERTEX)
+        if (shaderStage & HU_SHADER_STAGE_VERTEX)
         {
             result |= VK_SHADER_STAGE_VERTEX_BIT;
         }
-        if (shaderStage & SHADER_STAGE_FRAGMENT)
+        if (shaderStage & HU_SHADER_STAGE_FRAGMENT)
         {
             result |= VK_SHADER_STAGE_FRAGMENT_BIT;
         }
