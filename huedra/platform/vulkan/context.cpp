@@ -64,6 +64,12 @@ void VulkanContext::cleanup()
         delete buffer;
     }
 
+    for (auto& resourceSet : m_resourceSets)
+    {
+        resourceSet->cleanup();
+        delete resourceSet;
+    }
+
     for (auto& pipeline : m_pipelines)
     {
         pipeline->cleanup();
@@ -116,18 +122,6 @@ Pipeline* VulkanContext::createPipeline(const PipelineBuilder& pipelineBuilder)
 
 Buffer* VulkanContext::createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data)
 {
-    if (usage == HU_BUFFER_USAGE_UNDEFINED)
-    {
-        log(LogLevel::WARNING, "Could not create buffer, buffer usage is undefined");
-        return nullptr;
-    }
-
-    if (size == 0)
-    {
-        log(LogLevel::WARNING, "Could not create buffer, size is 0");
-        return nullptr;
-    }
-
     VulkanBuffer* buffer = new VulkanBuffer();
     VkBufferUsageFlagBits bufferUsage = convertBufferUsage(usage);
 
@@ -158,6 +152,14 @@ Buffer* VulkanContext::createBuffer(BufferType type, BufferUsageFlags usage, u64
 
     m_buffers.push_back(buffer);
     return buffer;
+}
+
+ResourceSet* VulkanContext::createResourceSet(Pipeline* pipeline, u32 setIndex)
+{
+    VulkanResourceSet* resourceSet = new VulkanResourceSet();
+    resourceSet->init(m_device, *static_cast<VulkanPipeline*>(pipeline), setIndex);
+    m_resourceSets.push_back(resourceSet);
+    return resourceSet;
 }
 
 void VulkanContext::submitGraphicsQueue()
@@ -390,7 +392,7 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, RenderPas
     renderPassInfo.renderArea.extent = renderTarget->getExtent();
 
     std::array<VkClearValue, 1> clearValues{};
-    clearValues[0].color = {0.1f, 0.1f, 0.1f, 1.0f};
+    clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
 
     renderPassInfo.clearValueCount = static_cast<u32>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();

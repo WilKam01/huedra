@@ -1,4 +1,5 @@
 #include "graphics_manager.hpp"
+#include "core/log.hpp"
 
 #ifdef VULKAN
 #include "platform/vulkan/context.hpp"
@@ -68,7 +69,30 @@ Ref<Pipeline> GraphicsManager::createPipeline(const PipelineBuilder& pipelineBui
 
 Ref<Buffer> GraphicsManager::createBuffer(BufferType type, u32 usage, u64 size, void* data)
 {
+    if (usage == HU_BUFFER_USAGE_UNDEFINED)
+    {
+        log(LogLevel::WARNING, "Could not create buffer, buffer usage is undefined");
+        return Ref<Buffer>(nullptr);
+    }
+
+    if (size == 0)
+    {
+        log(LogLevel::WARNING, "Could not create buffer, size is 0");
+        return Ref<Buffer>(nullptr);
+    }
+
     return Ref<Buffer>(m_context->createBuffer(type, static_cast<BufferUsageFlags>(usage), size, data));
+}
+
+Ref<ResourceSet> GraphicsManager::createResourceSet(Ref<Pipeline> pipeline, u32 setIndex)
+{
+    if (!pipeline.valid())
+    {
+        log(LogLevel::WARNING, "Could not create resource set, pipeline not valid");
+        return Ref<ResourceSet>(nullptr);
+    }
+
+    return Ref<ResourceSet>(m_context->createResourceSet(pipeline.get(), setIndex));
 }
 
 void GraphicsManager::addRenderPass(RenderPass renderPass) { m_renderPasses.push_back(renderPass); }

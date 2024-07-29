@@ -4,6 +4,7 @@
 #include "graphics/buffer.hpp"
 #include "graphics/context.hpp"
 #include "graphics/render_pass.hpp"
+#include "graphics/resource_set.hpp"
 #include "window/window.hpp"
 
 namespace huedra {
@@ -24,6 +25,7 @@ public:
 
     Ref<Pipeline> createPipeline(const PipelineBuilder& pipelineBuilder);
     Ref<Buffer> createBuffer(BufferType type, u32 usage, u64 size, void* data = nullptr);
+    Ref<ResourceSet> createResourceSet(Ref<Pipeline> pipeline, u32 setIndex);
 
     void addRenderPass(RenderPass renderPass);
 

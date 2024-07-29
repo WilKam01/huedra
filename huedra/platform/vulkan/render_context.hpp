@@ -3,6 +3,7 @@
 #include "graphics/render_context.hpp"
 #include "platform/vulkan/buffer.hpp"
 #include "platform/vulkan/pipeline.hpp"
+#include "platform/vulkan/resource_set.hpp"
 
 namespace huedra {
 
@@ -16,6 +17,8 @@ public:
 
     void bindVertexBuffers(std::vector<Ref<Buffer>> buffers) override;
     void bindIndexBuffer(Ref<Buffer> buffer) override;
+    void bindResourceSets(std::vector<Ref<ResourceSet>> resourceSets) override;
+    void bindResourceSet(Ref<ResourceSet> resourceSet) override;
 
     void pushConstants(ShaderStageFlags shaderStage, u32 size, void* data) override;
 

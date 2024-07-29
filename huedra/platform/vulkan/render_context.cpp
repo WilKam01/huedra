@@ -53,6 +53,62 @@ void VulkanRenderContext::bindIndexBuffer(Ref<Buffer> buffer)
     m_boundIndexBuffer = true;
 }
 
+void VulkanRenderContext::bindResourceSets(std::vector<Ref<ResourceSet>> resourceSets)
+{
+    if (resourceSets.size() > p_pipeline->getBuilder().getResources().size())
+    {
+        log(LogLevel::WARNING, "Could not bind resource sets, pipeline supports %d sets but %d was provided",
+            p_pipeline->getBuilder().getResources().size(), resourceSets.size());
+    }
+
+    for (size_t i = 0; i < resourceSets.size(); ++i)
+    {
+        if (!resourceSets[i].valid() || !resourceSets[i].get()->getPipeline().valid())
+        {
+            log(LogLevel::WARNING, "Could not bind resource set: %d. Not valid", i);
+            return;
+        }
+
+        if (static_cast<Pipeline*>(p_pipeline) != resourceSets[i].get()->getPipeline().get())
+        {
+            log(LogLevel::WARNING, "Could not bind resource set: %d. Using different pipelines", i);
+            return;
+        }
+    }
+
+    u32 setOffset = resourceSets[0].get()->getSetIndex();
+    std::vector<VkDescriptorSet> descriptors(resourceSets.size());
+    for (size_t i = 0; i < resourceSets.size(); ++i)
+    {
+        descriptors[i] = static_cast<VulkanResourceSet*>(resourceSets[i].get())->get();
+    }
+
+    vkCmdBindDescriptorSets(m_commandBuffer, p_pipeline->convertPipelineType(p_pipeline->getBuilder().getType()),
+                            p_pipeline->getLayout(), setOffset, static_cast<u32>(descriptors.size()),
+                            descriptors.data(), 0, nullptr);
+}
+
+void VulkanRenderContext::bindResourceSet(Ref<ResourceSet> resourceSet)
+{
+    if (!resourceSet.valid() || !resourceSet.get()->getPipeline().valid())
+    {
+        log(LogLevel::WARNING, "Could not bind resource set. Not valid");
+        return;
+    }
+
+    if (static_cast<Pipeline*>(p_pipeline) != resourceSet.get()->getPipeline().get())
+    {
+        log(LogLevel::WARNING, "Could not bind resource set. Using different pipelines");
+        return;
+    }
+
+    VulkanResourceSet* set = static_cast<VulkanResourceSet*>(resourceSet.get());
+    VkDescriptorSet descriptorSet = set->get();
+
+    vkCmdBindDescriptorSets(m_commandBuffer, p_pipeline->convertPipelineType(p_pipeline->getBuilder().getType()),
+                            p_pipeline->getLayout(), set->getSetIndex(), 1, &descriptorSet, 0, nullptr);
+}
+
 void VulkanRenderContext::pushConstants(ShaderStageFlags shaderStage, u32 size, void* data)
 {
     vkCmdPushConstants(m_commandBuffer, p_pipeline->getLayout(), p_pipeline->convertShaderStage(shaderStage), 0, size,

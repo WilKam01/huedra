@@ -3,6 +3,7 @@
 #include "core/types.hpp"
 #include "graphics/buffer.hpp"
 #include "graphics/render_pass.hpp"
+#include "graphics/resource_set.hpp"
 #include "window/window.hpp"
 
 namespace huedra {
@@ -22,6 +23,7 @@ public:
 
     virtual Pipeline* createPipeline(const PipelineBuilder& pipelineBuilder) = 0;
     virtual Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) = 0;
+    virtual ResourceSet* createResourceSet(Pipeline* pipeline, u32 setIndex) = 0;
 
     virtual void prepareRendering() = 0;
     virtual void recordGraphicsCommands(RenderPass& renderPass) = 0;

@@ -29,7 +29,7 @@ typedef enum ShaderStageFlags
 enum class ResourceType
 {
     UNIFORM_BUFFER,
-    STRUCTURED_BUFFER,
+    STORAGE_BUFFER,
     TEXTURE,
 };
 

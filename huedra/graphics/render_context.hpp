@@ -5,6 +5,8 @@
 
 namespace huedra {
 
+class ResourceSet;
+
 class RenderContext
 {
 public:
@@ -13,6 +15,8 @@ public:
 
     virtual void bindVertexBuffers(std::vector<Ref<Buffer>> buffers) = 0;
     virtual void bindIndexBuffer(Ref<Buffer> buffer) = 0;
+    virtual void bindResourceSets(std::vector<Ref<ResourceSet>> resourceSets) = 0;
+    virtual void bindResourceSet(Ref<ResourceSet> resourceSet) = 0;
 
     virtual void pushConstants(ShaderStageFlags shaderStage, u32 size, void* data) = 0;
 

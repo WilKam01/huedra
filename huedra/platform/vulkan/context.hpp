@@ -6,6 +6,7 @@
 #include "platform/vulkan/instance.hpp"
 #include "platform/vulkan/pipeline.hpp"
 #include "platform/vulkan/render_context.hpp"
+#include "platform/vulkan/resource_set.hpp"
 #include "platform/vulkan/swapchain.hpp"
 #include "window/window.hpp"
 
@@ -22,8 +23,10 @@ public:
 
     void createSwapchain(Window* window) override;
     void removeSwapchain(size_t index) override;
+
     Pipeline* createPipeline(const PipelineBuilder& pipelineBuilder) override;
     Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) override;
+    ResourceSet* createResourceSet(Pipeline* pipeline, u32 setIndex) override;
 
     void prepareRendering() override;
     void recordGraphicsCommands(RenderPass& renderPass) override;
@@ -48,8 +51,10 @@ private:
 
     std::vector<VulkanSwapchain*> m_swapchains;
     std::vector<VkSurfaceKHR> m_surfaces;
+
     std::vector<VulkanPipeline*> m_pipelines;
     std::vector<VulkanBuffer*> m_buffers;
+    std::vector<VulkanResourceSet*> m_resourceSets;
 
     VkViewport m_viewport;
     VkRect2D m_scissor;

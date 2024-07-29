@@ -172,6 +172,15 @@ void VulkanPipeline::cleanup()
     }
 }
 
+VkPipelineBindPoint VulkanPipeline::convertPipelineType(PipelineType type)
+{
+    switch (type)
+    {
+    case PipelineType::GRAPHICS:
+        return VK_PIPELINE_BIND_POINT_GRAPHICS;
+    };
+}
+
 VkShaderStageFlagBits VulkanPipeline::convertShaderStage(ShaderStageFlags shaderStage)
 {
     PipelineType type = getBuilder().getType();
@@ -197,6 +206,24 @@ VkShaderStageFlagBits VulkanPipeline::convertShaderStage(ShaderStageFlags shader
     };
 
     return static_cast<VkShaderStageFlagBits>(result);
+}
+
+VkDescriptorType VulkanPipeline::convertResourceType(ResourceType resource)
+{
+    switch (resource)
+    {
+    case ResourceType::UNIFORM_BUFFER:
+        return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+
+    case ResourceType::STORAGE_BUFFER:
+        return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+
+    case ResourceType::TEXTURE:
+        return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+
+    default:
+        return VK_DESCRIPTOR_TYPE_MAX_ENUM;
+    };
 }
 
 void VulkanPipeline::initLayout()
@@ -267,21 +294,6 @@ void VulkanPipeline::initLayout()
     {
         log(LogLevel::ERR, "Failed to create pipeline layout!");
     }
-}
-
-VkDescriptorType VulkanPipeline::convertResourceType(ResourceType resource)
-{
-    switch (resource)
-    {
-    case ResourceType::UNIFORM_BUFFER:
-        return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-
-    case ResourceType::TEXTURE:
-        return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-
-    default:
-        return VK_DESCRIPTOR_TYPE_MAX_ENUM;
-    };
 }
 
 VkVertexInputRate VulkanPipeline::convertVertexInputRate(VertexInputRate inputRate)

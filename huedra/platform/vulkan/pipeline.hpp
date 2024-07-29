@@ -16,12 +16,14 @@ public:
 
     VkPipeline get() { return m_pipeline; };
     VkPipelineLayout getLayout() { return m_pipelineLayout; };
+    VkDescriptorSetLayout getDescriptorLayout(size_t index) { return m_descriptorLayout[index]; }
 
+    VkPipelineBindPoint convertPipelineType(PipelineType type);
     VkShaderStageFlagBits convertShaderStage(ShaderStageFlags shaderStage);
+    VkDescriptorType convertResourceType(ResourceType resource);
 
 private:
     void initLayout();
-    VkDescriptorType convertResourceType(ResourceType resource);
     VkVertexInputRate convertVertexInputRate(VertexInputRate inputRate);
     VkFormat convertDataFormat(GraphicsDataFormat format);
 
