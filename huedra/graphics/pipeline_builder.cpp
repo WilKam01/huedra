@@ -11,7 +11,6 @@ PipelineBuilder& PipelineBuilder::init(PipelineType type)
     m_vertexStreams.clear();
     m_pushConstantRanges.clear();
     m_pushConstantShaderStages.clear();
-    m_renderCommands = nullptr;
     return *this;
 }
 
@@ -72,12 +71,6 @@ PipelineBuilder& PipelineBuilder::addResourceBinding(u32 stage, ResourceType res
     }
 
     m_resources.back().push_back({static_cast<ShaderStageFlags>(stage), resource});
-    return *this;
-}
-
-PipelineBuilder& PipelineBuilder::setRenderCommands(std::function<void(RenderContext&)> lambda)
-{
-    m_renderCommands = lambda;
     return *this;
 }
 

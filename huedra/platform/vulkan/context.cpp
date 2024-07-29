@@ -412,17 +412,8 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, RenderPas
     vkCmdSetScissor(commandBuffer, 0, 1, &m_scissor);
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-    /*vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->get());
 
-    std::array<VkBuffer, 2> vertexBuffers{{m_vertexPositionsBuffer->get(), m_vertexColorsBuffer->get()}};
-    std::array<VkDeviceSize, 2> offsets{{0, 0}};
-
-    vkCmdBindVertexBuffers(commandBuffer, 0, 2, vertexBuffers.data(), offsets.data());
-    vkCmdBindIndexBuffer(commandBuffer, m_indexBuffer->get(), 0, VK_INDEX_TYPE_UINT32);
-
-    vkCmdDrawIndexed(commandBuffer, 6, 1, 0, 0, 0);*/
-
-    std::function<void(RenderContext&)> commands = pipeline->getBuilder().getRenderCommands();
+    std::function<void(RenderContext&)> commands = renderPass.getRenderCommands();
     if (commands)
     {
         VulkanRenderContext renderContext;
