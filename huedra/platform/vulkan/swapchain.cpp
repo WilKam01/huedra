@@ -5,12 +5,14 @@
 namespace huedra {
 
 void VulkanSwapchain::init(Window* window, Device& device, CommandPool& commandPool, VkSurfaceKHR surface,
-                           VkRenderPass renderPass)
+                           VkRenderPass renderPass, bool renderDepth)
 {
     p_window = window;
     p_device = &device;
+    p_commandPool = &commandPool;
     m_surface = surface;
     m_renderPass = renderPass;
+    m_renderDepth = renderDepth;
 
     createSyncObjects();
 
@@ -152,7 +154,7 @@ void VulkanSwapchain::create()
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
     createInfo.imageExtent = extent;
     createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
     QueueFamilyIndices indices = p_device->getQueueFamilyIndices();
     u32 queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
@@ -181,7 +183,7 @@ void VulkanSwapchain::create()
         log(LogLevel::ERR, "Failed to create swap chain!");
     }
 
-    m_renderTarget.init(*p_device, surfaceFormat.format, extent, m_renderPass, this);
+    m_renderTarget.init(*p_device, *p_commandPool, *this, surfaceFormat.format, extent, m_renderPass);
 }
 
 } // namespace huedra

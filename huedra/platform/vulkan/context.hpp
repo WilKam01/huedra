@@ -21,7 +21,7 @@ public:
     void init() override;
     void cleanup() override;
 
-    void createSwapchain(Window* window) override;
+    void createSwapchain(Window* window, bool renderDepth) override;
     void removeSwapchain(size_t index) override;
 
     Pipeline* createPipeline(const PipelineBuilder& pipelineBuilder) override;
@@ -35,7 +35,7 @@ public:
 
 private:
     VkSurfaceKHR createSurface(Window* window);
-    VkRenderPass createRenderPass(VkFormat format);
+    VkRenderPass createRenderPass(VkFormat format, VkFormat depthFormat);
 
     VkBufferUsageFlagBits convertBufferUsage(BufferUsageFlags usage);
 

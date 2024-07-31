@@ -18,14 +18,8 @@ public:
     VkPipelineLayout getLayout() { return m_pipelineLayout; };
     VkDescriptorSetLayout getDescriptorLayout(size_t index) { return m_descriptorLayout[index]; }
 
-    VkPipelineBindPoint convertPipelineType(PipelineType type);
-    VkShaderStageFlagBits convertShaderStage(ShaderStageFlags shaderStage);
-    VkDescriptorType convertResourceType(ResourceType resource);
-
 private:
     void initLayout();
-    VkVertexInputRate convertVertexInputRate(VertexInputRate inputRate);
-    VkFormat convertDataFormat(GraphicsDataFormat format);
 
     // TODO: Move byte reading to asset/io manager
     VkShaderModule loadShader(const std::string& path);

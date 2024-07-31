@@ -12,10 +12,17 @@ struct WindowInput
     u32 height{0};
     std::optional<i32> xPos{};
     std::optional<i32> yPos{};
+    bool m_renderDepth{true};
 
     WindowInput() = default;
-    WindowInput(u32 width, u32 height) : width(width), height(height) {}
-    WindowInput(u32 width, u32 height, i32 xPos, i32 yPos) : width(width), height(height), xPos(xPos), yPos(yPos) {}
+    WindowInput(u32 width, u32 height, bool renderDepth = true)
+        : width(width), height(height), m_renderDepth(renderDepth)
+    {
+    }
+    WindowInput(u32 width, u32 height, i32 xPos, i32 yPos, bool renderDepth = true)
+        : width(width), height(height), xPos(xPos), yPos(yPos), m_renderDepth(renderDepth)
+    {
+    }
 };
 
 struct WindowRect

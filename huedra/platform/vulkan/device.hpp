@@ -33,6 +33,7 @@ public:
     u32 findMemoryType(u32 typeBits, VkMemoryPropertyFlags properties);
     VulkanSurfaceSupport querySurfaceSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
     VkSurfaceFormatKHR chooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+    VkFormat findDepthFormat();
 
     VkDevice getLogical() { return m_device; }
     VkPhysicalDevice getPhysical() { return m_physicalDevice; }

@@ -13,7 +13,8 @@ public:
     VulkanSwapchain() = default;
     ~VulkanSwapchain() = default;
 
-    void init(Window* window, Device& device, CommandPool& commandPool, VkSurfaceKHR surface, VkRenderPass renderPass);
+    void init(Window* window, Device& device, CommandPool& commandPool, VkSurfaceKHR surface, VkRenderPass renderPass,
+              bool renderDepth);
     void cleanup();
 
     std::optional<u32> aquireNextImage(u32 frameIndex);
@@ -23,6 +24,7 @@ public:
     VkSurfaceKHR getSurface() { return m_surface; }
     VulkanRenderTarget& getRenderTarget() { return m_renderTarget; }
     VkSemaphore getImageAvailableSemaphore(size_t i) { return m_imageAvailableSemaphores[i]; }
+    bool renderDepth() { return m_renderDepth; }
     bool canPresent() { return m_canPresent; }
 
 private:
@@ -37,11 +39,13 @@ private:
 
     Window* p_window;
     Device* p_device;
+    CommandPool* p_commandPool;
 
     VkSwapchainKHR m_swapchain;
     VkSurfaceKHR m_surface;
     VkRenderPass m_renderPass;
     VulkanRenderTarget m_renderTarget;
+    bool m_renderDepth;
 
     std::vector<VkSemaphore> m_imageAvailableSemaphores;
     bool m_canPresent{false};

@@ -97,7 +97,10 @@ Ref<ResourceSet> GraphicsManager::createResourceSet(Ref<Pipeline> pipeline, u32 
 
 void GraphicsManager::addRenderPass(RenderPass renderPass) { m_renderPasses.push_back(renderPass); }
 
-void GraphicsManager::createSwapchain(Window* window) { m_context->createSwapchain(window); }
+void GraphicsManager::createSwapchain(Window* window, bool renderDepth)
+{
+    m_context->createSwapchain(window, renderDepth);
+}
 
 void GraphicsManager::removeSwapchain(size_t index) { m_context->removeSwapchain(index); }
 

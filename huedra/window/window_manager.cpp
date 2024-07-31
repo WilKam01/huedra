@@ -60,7 +60,7 @@ Ref<Window> WindowManager::addWindow(const std::string& title, const WindowInput
     if (window)
     {
         m_windows.push_back(window);
-        Global::graphicsManager.createSwapchain(window);
+        Global::graphicsManager.createSwapchain(window, input.m_renderDepth);
         if (parent.valid())
         {
             window->setParent(parent);

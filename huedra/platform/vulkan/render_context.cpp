@@ -1,5 +1,6 @@
 #include "render_context.hpp"
 #include "core/log.hpp"
+#include "platform/vulkan/type_converter.hpp"
 
 namespace huedra {
 
@@ -83,7 +84,7 @@ void VulkanRenderContext::bindResourceSets(std::vector<Ref<ResourceSet>> resourc
         descriptors[i] = static_cast<VulkanResourceSet*>(resourceSets[i].get())->get();
     }
 
-    vkCmdBindDescriptorSets(m_commandBuffer, p_pipeline->convertPipelineType(p_pipeline->getBuilder().getType()),
+    vkCmdBindDescriptorSets(m_commandBuffer, converter::convertPipelineType(p_pipeline->getBuilder().getType()),
                             p_pipeline->getLayout(), setOffset, static_cast<u32>(descriptors.size()),
                             descriptors.data(), 0, nullptr);
 }
@@ -105,14 +106,14 @@ void VulkanRenderContext::bindResourceSet(Ref<ResourceSet> resourceSet)
     VulkanResourceSet* set = static_cast<VulkanResourceSet*>(resourceSet.get());
     VkDescriptorSet descriptorSet = set->get();
 
-    vkCmdBindDescriptorSets(m_commandBuffer, p_pipeline->convertPipelineType(p_pipeline->getBuilder().getType()),
+    vkCmdBindDescriptorSets(m_commandBuffer, converter::convertPipelineType(p_pipeline->getBuilder().getType()),
                             p_pipeline->getLayout(), set->getSetIndex(), 1, &descriptorSet, 0, nullptr);
 }
 
 void VulkanRenderContext::pushConstants(ShaderStageFlags shaderStage, u32 size, void* data)
 {
-    vkCmdPushConstants(m_commandBuffer, p_pipeline->getLayout(), p_pipeline->convertShaderStage(shaderStage), 0, size,
-                       data);
+    vkCmdPushConstants(m_commandBuffer, p_pipeline->getLayout(),
+                       converter::convertShaderStage(p_pipeline->getBuilder().getType(), shaderStage), 0, size, data);
 }
 
 void VulkanRenderContext::draw(u32 vertexCount, u32 instanceCount, u32 vertexOffset, u32 instanceOffset)

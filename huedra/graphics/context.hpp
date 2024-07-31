@@ -18,7 +18,7 @@ public:
     virtual void init() = 0;
     virtual void cleanup() = 0;
 
-    virtual void createSwapchain(Window* window) = 0;
+    virtual void createSwapchain(Window* window, bool renderDepth) = 0;
     virtual void removeSwapchain(size_t index) = 0;
 
     virtual Pipeline* createPipeline(const PipelineBuilder& pipelineBuilder) = 0;

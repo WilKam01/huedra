@@ -43,7 +43,7 @@ void VulkanContext::init()
 
     VulkanSurfaceSupport surfaceSupport = m_device.querySurfaceSupport(m_device.getPhysical(), surface);
     VkSurfaceFormatKHR surfaceFormat = m_device.chooseSurfaceFormat(surfaceSupport.formats);
-    m_renderPass = createRenderPass(surfaceFormat.format);
+    m_renderPass = createRenderPass(surfaceFormat.format, m_device.findDepthFormat());
 
     vkDestroySurfaceKHR(m_instance.get(), surface, nullptr);
     tempWindow->cleanup();
@@ -90,11 +90,11 @@ void VulkanContext::cleanup()
     m_instance.cleanup();
 }
 
-void VulkanContext::createSwapchain(Window* window)
+void VulkanContext::createSwapchain(Window* window, bool renderDepth)
 {
     VulkanSwapchain* swapchain = new VulkanSwapchain();
     VkSurfaceKHR surface = createSurface(window);
-    swapchain->init(window, m_device, m_commandPool, surface, m_renderPass);
+    swapchain->init(window, m_device, m_commandPool, surface, m_renderPass, renderDepth);
 
     m_swapchains.push_back(swapchain);
     m_surfaces.push_back(surface);
@@ -299,13 +299,13 @@ VkSurfaceKHR VulkanContext::createSurface(Window* window)
     return surface;
 }
 
-VkRenderPass VulkanContext::createRenderPass(VkFormat format)
+VkRenderPass VulkanContext::createRenderPass(VkFormat format, VkFormat depthFormat)
 {
     VkRenderPass renderPass;
 
     VkAttachmentDescription colorAttachment{};
     colorAttachment.format = format;
-    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT; // TODO: Msaa
+    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -317,11 +317,25 @@ VkRenderPass VulkanContext::createRenderPass(VkFormat format)
     colorAttachmentRef.attachment = 0;
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+    VkAttachmentDescription depthAttachment{};
+    depthAttachment.format = depthFormat;
+    depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    VkAttachmentReference depthAttachmentRef{};
+    depthAttachmentRef.attachment = 1;
+    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
     VkSubpassDescription subpass{};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &colorAttachmentRef;
-    subpass.pDepthStencilAttachment = nullptr;
+    subpass.pDepthStencilAttachment = &depthAttachmentRef;
     subpass.pResolveAttachments = nullptr;
 
     VkSubpassDependency dependency{};
@@ -334,7 +348,7 @@ VkRenderPass VulkanContext::createRenderPass(VkFormat format)
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     dependency.srcAccessMask = 0;
 
-    std::array<VkAttachmentDescription, 1> attachments = {colorAttachment};
+    std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.attachmentCount = static_cast<u32>(attachments.size());
@@ -391,8 +405,9 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, RenderPas
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = renderTarget->getExtent();
 
-    std::array<VkClearValue, 1> clearValues{};
+    std::array<VkClearValue, 2> clearValues{};
     clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
+    clearValues[1].depthStencil = {1.0f, 0};
 
     renderPassInfo.clearValueCount = static_cast<u32>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();

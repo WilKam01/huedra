@@ -60,31 +60,10 @@ enum class VertexInputRate
     INSTANCE
 };
 
-enum class GraphicsChannels
-{
-    R,
-    RG,
-    RGB,
-    RGBA
-};
-
-enum class BitSize
-{
-    B8,
-    B16,
-    B32,
-    B64,
-};
-
-enum class GraphicsDataType
-{
-    INT,
-    UINT,
-    FLOAT
-};
-
 enum class GraphicsDataFormat
 {
+    UNDEFINED,
+
     R_8_INT,
     R_8_UINT,
     R_8_NORM,

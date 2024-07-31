@@ -1,5 +1,6 @@
 #include "pipeline.hpp"
 #include "core/log.hpp"
+#include "platform/vulkan/type_converter.hpp"
 
 #include <fstream>
 
@@ -47,14 +48,14 @@ void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device
     {
         vertexInputBindingDescs[i].binding = i;
         vertexInputBindingDescs[i].stride = inputStreams[i].size;
-        vertexInputBindingDescs[i].inputRate = convertVertexInputRate(inputStreams[i].inputRate);
+        vertexInputBindingDescs[i].inputRate = converter::convertVertexInputRate(inputStreams[i].inputRate);
 
         for (u32 j = 0; j < static_cast<u32>(inputStreams[i].attributes.size()); ++j)
         {
             VkVertexInputAttributeDescription attributeDescription;
             attributeDescription.location = i;
             attributeDescription.binding = locationOffset + j;
-            attributeDescription.format = convertDataFormat(inputStreams[i].attributes[j].format);
+            attributeDescription.format = converter::convertDataFormat(inputStreams[i].attributes[j].format);
             attributeDescription.offset = inputStreams[i].attributes[j].offset;
             vertexInputAttributeDescs.push_back(attributeDescription);
         }
@@ -130,6 +131,18 @@ void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device
     dynamicState.dynamicStateCount = static_cast<u32>(dynamicStates.size());
     dynamicState.pDynamicStates = dynamicStates.data();
 
+    VkPipelineDepthStencilStateCreateInfo depthStencil{};
+    depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencil.depthTestEnable = VK_TRUE;
+    depthStencil.depthWriteEnable = VK_TRUE;
+    depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+    depthStencil.depthBoundsTestEnable = VK_FALSE;
+    depthStencil.minDepthBounds = 0.0f;
+    depthStencil.maxDepthBounds = 1.0f;
+    depthStencil.stencilTestEnable = VK_FALSE;
+    depthStencil.front = {};
+    depthStencil.back = {};
+
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineInfo.stageCount = static_cast<u32>(shaderCreateInfos.size());
@@ -140,7 +153,7 @@ void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device
     pipelineInfo.pViewportState = &viewportState;
     pipelineInfo.pRasterizationState = &rasterizer;
     pipelineInfo.pMultisampleState = &multisampling;
-    pipelineInfo.pDepthStencilState = nullptr;
+    pipelineInfo.pDepthStencilState = &depthStencil;
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.layout = m_pipelineLayout;
@@ -172,60 +185,6 @@ void VulkanPipeline::cleanup()
     }
 }
 
-VkPipelineBindPoint VulkanPipeline::convertPipelineType(PipelineType type)
-{
-    switch (type)
-    {
-    case PipelineType::GRAPHICS:
-        return VK_PIPELINE_BIND_POINT_GRAPHICS;
-    };
-}
-
-VkShaderStageFlagBits VulkanPipeline::convertShaderStage(ShaderStageFlags shaderStage)
-{
-    PipelineType type = getBuilder().getType();
-    u32 result = 0;
-
-    switch (type)
-    {
-    case PipelineType::GRAPHICS:
-        if ((shaderStage & HU_SHADER_STAGE_GRAPHICS_ALL) == HU_SHADER_STAGE_GRAPHICS_ALL)
-        {
-            return VK_SHADER_STAGE_ALL_GRAPHICS;
-        }
-
-        if (shaderStage & HU_SHADER_STAGE_VERTEX)
-        {
-            result |= VK_SHADER_STAGE_VERTEX_BIT;
-        }
-        if (shaderStage & HU_SHADER_STAGE_FRAGMENT)
-        {
-            result |= VK_SHADER_STAGE_FRAGMENT_BIT;
-        }
-        break;
-    };
-
-    return static_cast<VkShaderStageFlagBits>(result);
-}
-
-VkDescriptorType VulkanPipeline::convertResourceType(ResourceType resource)
-{
-    switch (resource)
-    {
-    case ResourceType::UNIFORM_BUFFER:
-        return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-
-    case ResourceType::STORAGE_BUFFER:
-        return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-
-    case ResourceType::TEXTURE:
-        return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-
-    default:
-        return VK_DESCRIPTOR_TYPE_MAX_ENUM;
-    };
-}
-
 void VulkanPipeline::initLayout()
 {
     PipelineBuilder& builder = getBuilder();
@@ -240,8 +199,8 @@ void VulkanPipeline::initLayout()
         for (size_t j = 0; j < resources[i].size(); ++j)
         {
             bindings[i][j].binding = j;
-            bindings[i][j].descriptorType = convertResourceType(resources[i][j].resource);
-            bindings[i][j].stageFlags = convertShaderStage(resources[i][j].shaderStage);
+            bindings[i][j].descriptorType = converter::convertResourceType(resources[i][j].resource);
+            bindings[i][j].stageFlags = converter::convertShaderStage(builder.getType(), resources[i][j].shaderStage);
             bindings[i][j].descriptorCount = 1;
         }
 
@@ -264,7 +223,7 @@ void VulkanPipeline::initLayout()
     u32 pushConstantOffset = 0;
     for (size_t i = 0; i < pushConstants.size(); ++i)
     {
-        pushConstants[i].stageFlags = convertShaderStage(pushConstantsStages[i]);
+        pushConstants[i].stageFlags = converter::convertShaderStage(builder.getType(), pushConstantsStages[i]);
         pushConstants[i].offset = pushConstantOffset;
         pushConstants[i].size = pushConstantRanges[i];
 
@@ -293,147 +252,6 @@ void VulkanPipeline::initLayout()
     if (vkCreatePipelineLayout(p_device->getLogical(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS)
     {
         log(LogLevel::ERR, "Failed to create pipeline layout!");
-    }
-}
-
-VkVertexInputRate VulkanPipeline::convertVertexInputRate(VertexInputRate inputRate)
-{
-    switch (inputRate)
-    {
-    case VertexInputRate::VERTEX:
-        return VK_VERTEX_INPUT_RATE_VERTEX;
-    case VertexInputRate::INSTANCE:
-        return VK_VERTEX_INPUT_RATE_INSTANCE;
-    }
-}
-
-VkFormat VulkanPipeline::convertDataFormat(GraphicsDataFormat format)
-{
-    switch (format)
-    {
-    case GraphicsDataFormat::R_8_INT:
-        return VK_FORMAT_R8_SINT;
-    case GraphicsDataFormat::R_8_UINT:
-        return VK_FORMAT_R8_UINT;
-    case GraphicsDataFormat::R_8_NORM:
-        return VK_FORMAT_R8_SNORM;
-    case GraphicsDataFormat::R_8_UNORM:
-        return VK_FORMAT_R8_UNORM;
-    case GraphicsDataFormat::R_16_INT:
-        return VK_FORMAT_R16_SINT;
-    case GraphicsDataFormat::R_16_UINT:
-        return VK_FORMAT_R16_UINT;
-    case GraphicsDataFormat::R_16_FLOAT:
-        return VK_FORMAT_R16_SFLOAT;
-    case GraphicsDataFormat::R_16_NORM:
-        return VK_FORMAT_R16_SNORM;
-    case GraphicsDataFormat::R_16_UNORM:
-        return VK_FORMAT_R16_UNORM;
-    case GraphicsDataFormat::R_32_INT:
-        return VK_FORMAT_R32_SINT;
-    case GraphicsDataFormat::R_32_UINT:
-        return VK_FORMAT_R32_UINT;
-    case GraphicsDataFormat::R_32_FLOAT:
-        return VK_FORMAT_R32_SFLOAT;
-    case GraphicsDataFormat::R_64_INT:
-        return VK_FORMAT_R64_SINT;
-    case GraphicsDataFormat::R_64_UINT:
-        return VK_FORMAT_R64_UINT;
-    case GraphicsDataFormat::R_64_FLOAT:
-        return VK_FORMAT_R64_SFLOAT;
-
-    case GraphicsDataFormat::RG_8_INT:
-        return VK_FORMAT_R8G8_SINT;
-    case GraphicsDataFormat::RG_8_UINT:
-        return VK_FORMAT_R8G8_UINT;
-    case GraphicsDataFormat::RG_8_NORM:
-        return VK_FORMAT_R8G8_SNORM;
-    case GraphicsDataFormat::RG_8_UNORM:
-        return VK_FORMAT_R8G8_UNORM;
-    case GraphicsDataFormat::RG_16_INT:
-        return VK_FORMAT_R16G16_SINT;
-    case GraphicsDataFormat::RG_16_UINT:
-        return VK_FORMAT_R16G16_UINT;
-    case GraphicsDataFormat::RG_16_FLOAT:
-        return VK_FORMAT_R16G16_SFLOAT;
-    case GraphicsDataFormat::RG_16_NORM:
-        return VK_FORMAT_R16G16_SNORM;
-    case GraphicsDataFormat::RG_16_UNORM:
-        return VK_FORMAT_R16G16_UNORM;
-    case GraphicsDataFormat::RG_32_INT:
-        return VK_FORMAT_R32G32_SINT;
-    case GraphicsDataFormat::RG_32_UINT:
-        return VK_FORMAT_R32G32_UINT;
-    case GraphicsDataFormat::RG_32_FLOAT:
-        return VK_FORMAT_R32G32_SFLOAT;
-    case GraphicsDataFormat::RG_64_INT:
-        return VK_FORMAT_R64G64_SINT;
-    case GraphicsDataFormat::RG_64_UINT:
-        return VK_FORMAT_R64G64_UINT;
-    case GraphicsDataFormat::RG_64_FLOAT:
-        return VK_FORMAT_R64G64_SFLOAT;
-
-    case GraphicsDataFormat::RGB_8_INT:
-        return VK_FORMAT_R8G8B8_SINT;
-    case GraphicsDataFormat::RGB_8_UINT:
-        return VK_FORMAT_R8G8B8_UINT;
-    case GraphicsDataFormat::RGB_8_NORM:
-        return VK_FORMAT_R8G8B8_SNORM;
-    case GraphicsDataFormat::RGB_8_UNORM:
-        return VK_FORMAT_R8G8B8_UNORM;
-    case GraphicsDataFormat::RGB_16_INT:
-        return VK_FORMAT_R16G16B16_SINT;
-    case GraphicsDataFormat::RGB_16_UINT:
-        return VK_FORMAT_R16G16B16_UINT;
-    case GraphicsDataFormat::RGB_16_FLOAT:
-        return VK_FORMAT_R16G16B16_SFLOAT;
-    case GraphicsDataFormat::RGB_16_NORM:
-        return VK_FORMAT_R16G16B16_SNORM;
-    case GraphicsDataFormat::RGB_16_UNORM:
-        return VK_FORMAT_R16G16B16_UNORM;
-    case GraphicsDataFormat::RGB_32_INT:
-        return VK_FORMAT_R32G32B32_SINT;
-    case GraphicsDataFormat::RGB_32_UINT:
-        return VK_FORMAT_R32G32B32_UINT;
-    case GraphicsDataFormat::RGB_32_FLOAT:
-        return VK_FORMAT_R32G32B32_SFLOAT;
-    case GraphicsDataFormat::RGB_64_INT:
-        return VK_FORMAT_R64G64B64_SINT;
-    case GraphicsDataFormat::RGB_64_UINT:
-        return VK_FORMAT_R64G64B64_UINT;
-    case GraphicsDataFormat::RGB_64_FLOAT:
-        return VK_FORMAT_R64G64B64_SFLOAT;
-
-    case GraphicsDataFormat::RGBA_8_INT:
-        return VK_FORMAT_R8G8B8A8_SINT;
-    case GraphicsDataFormat::RGBA_8_UINT:
-        return VK_FORMAT_R8G8B8A8_UINT;
-    case GraphicsDataFormat::RGBA_8_NORM:
-        return VK_FORMAT_R8G8B8A8_SNORM;
-    case GraphicsDataFormat::RGBA_8_UNORM:
-        return VK_FORMAT_R8G8B8A8_UNORM;
-    case GraphicsDataFormat::RGBA_16_INT:
-        return VK_FORMAT_R16G16B16A16_SINT;
-    case GraphicsDataFormat::RGBA_16_UINT:
-        return VK_FORMAT_R16G16B16A16_UINT;
-    case GraphicsDataFormat::RGBA_16_FLOAT:
-        return VK_FORMAT_R16G16B16A16_SFLOAT;
-    case GraphicsDataFormat::RGBA_16_NORM:
-        return VK_FORMAT_R16G16B16A16_SNORM;
-    case GraphicsDataFormat::RGBA_16_UNORM:
-        return VK_FORMAT_R16G16B16A16_UNORM;
-    case GraphicsDataFormat::RGBA_32_INT:
-        return VK_FORMAT_R32G32B32A32_SINT;
-    case GraphicsDataFormat::RGBA_32_UINT:
-        return VK_FORMAT_R32G32B32A32_UINT;
-    case GraphicsDataFormat::RGBA_32_FLOAT:
-        return VK_FORMAT_R32G32B32A32_SFLOAT;
-    case GraphicsDataFormat::RGBA_64_INT:
-        return VK_FORMAT_R64G64B64A64_SINT;
-    case GraphicsDataFormat::RGBA_64_UINT:
-        return VK_FORMAT_R64G64B64A64_UINT;
-    case GraphicsDataFormat::RGBA_64_FLOAT:
-        return VK_FORMAT_R64G64B64A64_SFLOAT;
     }
 }
 

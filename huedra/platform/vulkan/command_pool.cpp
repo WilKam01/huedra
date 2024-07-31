@@ -66,4 +66,40 @@ void CommandPool::endSingleTimeCommand(VkCommandBuffer buffer)
     vkFreeCommandBuffers(p_device->getLogical(), m_commandPool, 1, &buffer);
 }
 
+void CommandPool::transistionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout,
+                                         VkImageLayout newLayout, VkAccessFlags srcAccessMask,
+                                         VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask,
+                                         VkAccessFlags dstAccessMask)
+{
+    VkCommandBuffer commandBuffer = beginSingleTimeCommand();
+
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.oldLayout = oldLayout;
+    barrier.newLayout = newLayout;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+    barrier.image = image;
+    barrier.srcAccessMask = srcAccessMask;
+    barrier.dstAccessMask = dstAccessMask;
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 1;
+
+    if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+    {
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+        if (format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT)
+            barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+    }
+
+    vkCmdPipelineBarrier(commandBuffer, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+
+    endSingleTimeCommand(commandBuffer);
+}
+
 } // namespace huedra

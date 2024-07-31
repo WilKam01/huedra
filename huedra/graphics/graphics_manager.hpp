@@ -32,7 +32,7 @@ public:
     u32 getCurrentFrame() { return m_currentFrame; }
 
 private:
-    void createSwapchain(Window* window);
+    void createSwapchain(Window* window, bool renderDepth);
     void removeSwapchain(size_t index);
 
     GraphicalContext* m_context;

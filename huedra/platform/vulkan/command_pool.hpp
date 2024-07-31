@@ -16,6 +16,10 @@ public:
     VkCommandBuffer beginSingleTimeCommand();
     void endSingleTimeCommand(VkCommandBuffer buffer);
 
+    void transistionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout,
+                                VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask,
+                                VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask);
+
     VkCommandPool get() { return m_commandPool; }
 
 private:
@@ -25,4 +29,4 @@ private:
     VkPipelineBindPoint m_pipeline;
 };
 
-}
+} // namespace huedra

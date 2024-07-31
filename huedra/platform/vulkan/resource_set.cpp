@@ -1,6 +1,7 @@
 #include "resource_set.hpp"
 #include "core/global.hpp"
 #include "core/log.hpp"
+#include "platform/vulkan/type_converter.hpp"
 
 #include <set>
 
@@ -19,7 +20,7 @@ void VulkanResourceSet::init(Device& device, VulkanPipeline& pipeline, u32 setIn
     std::multiset<VkDescriptorType> poolSizeSet{};
     for (auto& binding : bindings)
     {
-        m_descriptorTypes.push_back(pipeline.convertResourceType(binding.resource));
+        m_descriptorTypes.push_back(converter::convertResourceType(binding.resource));
         poolSizeSet.insert(m_descriptorTypes.back());
     }
 

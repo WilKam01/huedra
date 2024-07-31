@@ -73,6 +73,27 @@ VkSurfaceFormatKHR Device::chooseSurfaceFormat(const std::vector<VkSurfaceFormat
     return availableFormats[0];
 }
 
+VkFormat Device::findDepthFormat()
+{
+    std::vector<VkFormat> candidates{VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT};
+    VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL;
+    VkFormatFeatureFlags features = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+    for (VkFormat vkFormat : candidates)
+    {
+        VkFormatProperties props;
+        vkGetPhysicalDeviceFormatProperties(m_physicalDevice, vkFormat, &props);
+
+        if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
+            return vkFormat;
+        else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
+            return vkFormat;
+    }
+
+    log(LogLevel::ERR, "Failed to find supported depth format!");
+    return VK_FORMAT_UNDEFINED;
+}
+
 void Device::pickPhysicalDevice(Instance& instance, VkSurfaceKHR surface)
 {
     m_physicalDevice = VK_NULL_HANDLE;
