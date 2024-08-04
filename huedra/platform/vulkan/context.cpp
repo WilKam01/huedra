@@ -162,121 +162,47 @@ ResourceSet* VulkanContext::createResourceSet(Pipeline* pipeline, u32 setIndex)
     return resourceSet;
 }
 
-void VulkanContext::submitGraphicsQueue()
+void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
 {
-    if (!m_recordedCommands)
+    for (auto& [key, info] : builder.getRenderPasses())
     {
-        return;
-    }
-
-    m_commandBuffer.end(Global::graphicsManager.getCurrentFrame());
-
-    std::vector<VkSemaphore> waitSemaphores;
-    for (auto& swapchain : m_swapchains)
-    {
-        if (swapchain->canPresent())
-        {
-            waitSemaphores.push_back(swapchain->getImageAvailableSemaphore(Global::graphicsManager.getCurrentFrame()));
-        }
-    }
-
-    if (waitSemaphores.empty())
-    {
-        return;
-    }
-
-    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-                                         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.waitSemaphoreCount = static_cast<u32>(waitSemaphores.size());
-    submitInfo.pWaitSemaphores = waitSemaphores.data();
-    submitInfo.pWaitDstStageMask = waitStages;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &m_commandBuffer.get(Global::graphicsManager.getCurrentFrame());
-
-    VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphores[Global::graphicsManager.getCurrentFrame()]};
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = signalSemaphores;
-
-    if (vkQueueSubmit(m_device.getGraphicsQueue(), 1, &submitInfo,
-                      m_renderingInFlightFences[Global::graphicsManager.getCurrentFrame()]) != VK_SUCCESS)
-    {
-        log(LogLevel::ERR, "Failed to submit draw command buffer!");
+        m_renderPasses.push_back(info);
     }
 }
 
-void VulkanContext::presentSwapchains()
-{
-    if (!m_recordedCommands)
-    {
-        return;
-    }
-
-    VkSemaphore waitSemaphores[] = {m_renderFinishedSemaphores[Global::graphicsManager.getCurrentFrame()]};
-
-    VkPresentInfoKHR presentInfo{};
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = waitSemaphores;
-
-    std::vector<VkSwapchainKHR> swapchains;
-    std::vector<u32> imageIndices;
-    std::vector<VkResult> results;
-    for (auto& swapchain : m_swapchains)
-    {
-        if (swapchain->canPresent())
-        {
-            swapchains.push_back(swapchain->get());
-            imageIndices.push_back(swapchain->getRenderTarget().getImageIndex());
-            results.push_back(VK_SUCCESS);
-        }
-    }
-
-    if (swapchains.empty())
-    {
-        return;
-    }
-
-    presentInfo.swapchainCount = static_cast<u32>(swapchains.size());
-    presentInfo.pSwapchains = swapchains.data();
-    presentInfo.pImageIndices = imageIndices.data();
-    presentInfo.pResults = results.data();
-
-    VkResult result = vkQueuePresentKHR(m_device.getPresentQueue(), &presentInfo);
-
-    if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR && result != VK_ERROR_OUT_OF_DATE_KHR)
-    {
-        log(LogLevel::ERR, "Failed to present swap chain images!");
-    }
-
-    u32 index = 0;
-    for (auto& swapchain : m_swapchains)
-    {
-        if (swapchain->canPresent())
-        {
-            swapchain->handlePresentResult(results[index++]);
-        }
-    }
-}
-
-void VulkanContext::prepareRendering()
+void VulkanContext::render()
 {
     vkWaitForFences(m_device.getLogical(), 1, &m_renderingInFlightFences[Global::graphicsManager.getCurrentFrame()],
                     VK_TRUE, UINT64_MAX);
     m_recordedCommands = false;
-}
 
-void VulkanContext::recordGraphicsCommands(RenderPass& renderPass)
-{
-    if (!m_recordedCommands && renderPass.getRenderTarget().valid())
+    for (auto& renderPass : m_renderPasses)
     {
-        vkResetFences(m_device.getLogical(), 1, &m_renderingInFlightFences[Global::graphicsManager.getCurrentFrame()]);
-        m_commandBuffer.begin(Global::graphicsManager.getCurrentFrame());
-        m_recordedCommands = true;
+        if (!renderPass.renderTarget.valid() || !renderPass.pipeline.valid())
+        {
+            continue;
+        }
+
+        RenderTarget* renderTarget = renderPass.renderTarget.get();
+        renderTarget->prepareNextFrame(Global::graphicsManager.getCurrentFrame());
+        if (renderTarget->isAvailable())
+        {
+            if (!m_recordedCommands)
+            {
+                vkResetFences(m_device.getLogical(), 1,
+                              &m_renderingInFlightFences[Global::graphicsManager.getCurrentFrame()]);
+                m_commandBuffer.begin(Global::graphicsManager.getCurrentFrame());
+                m_recordedCommands = true;
+            }
+            recordCommandBuffer(m_commandBuffer.get(Global::graphicsManager.getCurrentFrame()), renderPass);
+        }
     }
-    recordCommandBuffer(m_commandBuffer.get(Global::graphicsManager.getCurrentFrame()), renderPass);
+
+    if (m_recordedCommands)
+    {
+        submitGraphicsQueue();
+        presentSwapchains();
+    }
 }
 
 VkSurfaceKHR VulkanContext::createSurface(Window* window)
@@ -393,10 +319,10 @@ VkBufferUsageFlagBits VulkanContext::convertBufferUsage(BufferUsageFlags usage)
     return static_cast<VkBufferUsageFlagBits>(result);
 }
 
-void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, RenderPass& renderPass)
+void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, RenderPassInfo& renderPass)
 {
-    VulkanPipeline* pipeline = static_cast<VulkanPipeline*>(renderPass.getPipeline().get());
-    VulkanRenderTarget* renderTarget = static_cast<VulkanRenderTarget*>(renderPass.getRenderTarget().get());
+    VulkanPipeline* pipeline = static_cast<VulkanPipeline*>(renderPass.pipeline.get());
+    VulkanRenderTarget* renderTarget = static_cast<VulkanRenderTarget*>(renderPass.renderTarget.get());
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -428,12 +354,11 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, RenderPas
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-    std::function<void(RenderContext&)> commands = renderPass.getRenderCommands();
-    if (commands)
+    if (renderPass.commands)
     {
         VulkanRenderContext renderContext;
         renderContext.init(commandBuffer, pipeline);
-        commands(renderContext);
+        renderPass.commands(renderContext);
     }
     else
     {
@@ -441,6 +366,95 @@ void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, RenderPas
     }
 
     vkCmdEndRenderPass(commandBuffer);
+}
+
+void VulkanContext::submitGraphicsQueue()
+{
+    m_commandBuffer.end(Global::graphicsManager.getCurrentFrame());
+
+    std::vector<VkSemaphore> waitSemaphores;
+    for (auto& swapchain : m_swapchains)
+    {
+        if (swapchain->canPresent())
+        {
+            waitSemaphores.push_back(swapchain->getImageAvailableSemaphore(Global::graphicsManager.getCurrentFrame()));
+        }
+    }
+
+    if (waitSemaphores.empty())
+    {
+        return;
+    }
+
+    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
+                                         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.waitSemaphoreCount = static_cast<u32>(waitSemaphores.size());
+    submitInfo.pWaitSemaphores = waitSemaphores.data();
+    submitInfo.pWaitDstStageMask = waitStages;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &m_commandBuffer.get(Global::graphicsManager.getCurrentFrame());
+
+    VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphores[Global::graphicsManager.getCurrentFrame()]};
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = signalSemaphores;
+
+    if (vkQueueSubmit(m_device.getGraphicsQueue(), 1, &submitInfo,
+                      m_renderingInFlightFences[Global::graphicsManager.getCurrentFrame()]) != VK_SUCCESS)
+    {
+        log(LogLevel::ERR, "Failed to submit draw command buffer!");
+    }
+}
+
+void VulkanContext::presentSwapchains()
+{
+    VkSemaphore waitSemaphores[] = {m_renderFinishedSemaphores[Global::graphicsManager.getCurrentFrame()]};
+
+    VkPresentInfoKHR presentInfo{};
+    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    presentInfo.waitSemaphoreCount = 1;
+    presentInfo.pWaitSemaphores = waitSemaphores;
+
+    std::vector<VkSwapchainKHR> swapchains;
+    std::vector<u32> imageIndices;
+    std::vector<VkResult> results;
+    for (auto& swapchain : m_swapchains)
+    {
+        if (swapchain->canPresent())
+        {
+            swapchains.push_back(swapchain->get());
+            imageIndices.push_back(swapchain->getRenderTarget().getImageIndex());
+            results.push_back(VK_SUCCESS);
+        }
+    }
+
+    if (swapchains.empty())
+    {
+        return;
+    }
+
+    presentInfo.swapchainCount = static_cast<u32>(swapchains.size());
+    presentInfo.pSwapchains = swapchains.data();
+    presentInfo.pImageIndices = imageIndices.data();
+    presentInfo.pResults = results.data();
+
+    VkResult result = vkQueuePresentKHR(m_device.getPresentQueue(), &presentInfo);
+
+    if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR && result != VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        log(LogLevel::ERR, "Failed to present swap chain images!");
+    }
+
+    u32 index = 0;
+    for (auto& swapchain : m_swapchains)
+    {
+        if (swapchain->canPresent())
+        {
+            swapchain->handlePresentResult(results[index++]);
+        }
+    }
 }
 
 } // namespace huedra

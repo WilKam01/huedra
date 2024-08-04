@@ -28,10 +28,8 @@ public:
     Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) override;
     ResourceSet* createResourceSet(Pipeline* pipeline, u32 setIndex) override;
 
-    void prepareRendering() override;
-    void recordGraphicsCommands(RenderPass& renderPass) override;
-    void submitGraphicsQueue() override;
-    void presentSwapchains() override;
+    void setRenderGraph(RenderGraphBuilder& builder) override;
+    void render() override;
 
 private:
     VkSurfaceKHR createSurface(Window* window);
@@ -39,7 +37,9 @@ private:
 
     VkBufferUsageFlagBits convertBufferUsage(BufferUsageFlags usage);
 
-    void recordCommandBuffer(VkCommandBuffer commandBuffer, RenderPass& renderPass);
+    void recordCommandBuffer(VkCommandBuffer commandBuffer, RenderPassInfo& renderPass);
+    void submitGraphicsQueue();
+    void presentSwapchains();
 
     Instance m_instance;
     Device m_device;
@@ -49,12 +49,13 @@ private:
 
     bool m_recordedCommands{false};
 
-    std::vector<VulkanSwapchain*> m_swapchains;
     std::vector<VkSurfaceKHR> m_surfaces;
-
+    std::vector<VulkanSwapchain*> m_swapchains;
     std::vector<VulkanPipeline*> m_pipelines;
     std::vector<VulkanBuffer*> m_buffers;
     std::vector<VulkanResourceSet*> m_resourceSets;
+
+    std::vector<RenderPassInfo> m_renderPasses;
 
     VkViewport m_viewport;
     VkRect2D m_scissor;

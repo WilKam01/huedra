@@ -31,13 +31,15 @@ int main()
         .addVertexInputStream({sizeof(float) * 3, VertexInputRate::VERTEX, {{GraphicsDataFormat::RGB_32_FLOAT, 0}}});
 
     Ref<Pipeline> pipeline = Global::graphicsManager.createPipeline(builder);
-    RenderPass pass;
-    pass.initGraphics("Pass", pipeline, window.get()->getRenderTarget(),
-                      [vertexPositionsBuffer, vertexColorsBuffer, indexBuffer](RenderContext& renderContext) {
-                          renderContext.bindVertexBuffers({vertexPositionsBuffer, vertexColorsBuffer});
-                          renderContext.bindIndexBuffer(indexBuffer);
-                          renderContext.drawIndexed(6, 1, 0, 0);
-                      });
+
+    RenderGraphBuilder graph;
+    graph.init().addGraphicsPass(
+        "Pass", pipeline, window.get()->getRenderTarget(),
+        [vertexPositionsBuffer, vertexColorsBuffer, indexBuffer](RenderContext& renderContext) {
+            renderContext.bindVertexBuffers({vertexPositionsBuffer, vertexColorsBuffer});
+            renderContext.bindIndexBuffer(indexBuffer);
+            renderContext.drawIndexed(6, 1, 0, 0);
+        });
 
     builder.init(PipelineType::GRAPHICS)
         .addShader(ShaderStage::VERTEX, "shaders/shader.vert")
@@ -54,16 +56,14 @@ int main()
         .addResourceBinding(HU_SHADER_STAGE_GRAPHICS_ALL, ResourceType::UNIFORM_BUFFER);
 
     pipeline = Global::graphicsManager.createPipeline(builder);
-    RenderPass pass1;
-    pass1.initGraphics("Pass1", pipeline, window1.get()->getRenderTarget(),
-                       [vertexPositionsBuffer, vertexColorsBuffer, indexBuffer](RenderContext& renderContext) {
-                           renderContext.bindVertexBuffers({vertexPositionsBuffer, vertexColorsBuffer});
-                           renderContext.bindIndexBuffer(indexBuffer);
-                           renderContext.drawIndexed(3, 1, 0, 0);
-                       });
+    graph.addGraphicsPass("Pass1", pipeline, window1.get()->getRenderTarget(),
+                          [vertexPositionsBuffer, vertexColorsBuffer, indexBuffer](RenderContext& renderContext) {
+                              renderContext.bindVertexBuffers({vertexPositionsBuffer, vertexColorsBuffer});
+                              renderContext.bindIndexBuffer(indexBuffer);
+                              renderContext.drawIndexed(3, 1, 0, 0);
+                          });
 
-    Global::graphicsManager.addRenderPass(pass);
-    Global::graphicsManager.addRenderPass(pass1);
+    Global::graphicsManager.setRenderGraph(graph);
 
     while (Global::windowManager.update())
     {

@@ -3,7 +3,7 @@
 #include "core/references/ref.hpp"
 #include "graphics/buffer.hpp"
 #include "graphics/context.hpp"
-#include "graphics/render_pass.hpp"
+#include "graphics/render_graph_builder.hpp"
 #include "graphics/resource_set.hpp"
 #include "window/window.hpp"
 
@@ -27,7 +27,7 @@ public:
     Ref<Buffer> createBuffer(BufferType type, u32 usage, u64 size, void* data = nullptr);
     Ref<ResourceSet> createResourceSet(Ref<Pipeline> pipeline, u32 setIndex);
 
-    void addRenderPass(RenderPass renderPass);
+    void setRenderGraph(RenderGraphBuilder& builder);
 
     u32 getCurrentFrame() { return m_currentFrame; }
 
@@ -36,7 +36,6 @@ private:
     void removeSwapchain(size_t index);
 
     GraphicalContext* m_context;
-    std::vector<RenderPass> m_renderPasses;
     u32 m_currentFrame{0};
 };
 

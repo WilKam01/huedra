@@ -24,41 +24,7 @@ void GraphicsManager::cleanup()
 
 void GraphicsManager::render()
 {
-    bool shouldRender = !m_renderPasses.empty();
-    for (auto& renderPass : m_renderPasses)
-    {
-        shouldRender = renderPass.getRenderTarget().valid();
-        if (shouldRender)
-        {
-            break;
-        }
-    }
-
-    if (!shouldRender)
-    {
-        return;
-    }
-
-    m_context->prepareRendering();
-
-    for (auto& renderPass : m_renderPasses)
-    {
-        if (!renderPass.getRenderTarget().valid() || !renderPass.getPipeline().valid())
-        {
-            continue;
-        }
-
-        RenderTarget* renderTarget = renderPass.getRenderTarget().get();
-        renderTarget->prepareNextFrame(m_currentFrame);
-        if (renderTarget->isAvailable())
-        {
-            m_context->recordGraphicsCommands(renderPass);
-        }
-    }
-
-    m_context->submitGraphicsQueue();
-    m_context->presentSwapchains();
-
+    m_context->render();
     m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
@@ -95,7 +61,7 @@ Ref<ResourceSet> GraphicsManager::createResourceSet(Ref<Pipeline> pipeline, u32 
     return Ref<ResourceSet>(m_context->createResourceSet(pipeline.get(), setIndex));
 }
 
-void GraphicsManager::addRenderPass(RenderPass renderPass) { m_renderPasses.push_back(renderPass); }
+void GraphicsManager::setRenderGraph(RenderGraphBuilder& builder) { m_context->setRenderGraph(builder); }
 
 void GraphicsManager::createSwapchain(Window* window, bool renderDepth)
 {
