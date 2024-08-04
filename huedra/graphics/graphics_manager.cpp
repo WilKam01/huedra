@@ -28,11 +28,6 @@ void GraphicsManager::render()
     m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-Ref<Pipeline> GraphicsManager::createPipeline(const PipelineBuilder& pipelineBuilder)
-{
-    return Ref<Pipeline>(m_context->createPipeline(pipelineBuilder));
-}
-
 Ref<Buffer> GraphicsManager::createBuffer(BufferType type, u32 usage, u64 size, void* data)
 {
     if (usage == HU_BUFFER_USAGE_UNDEFINED)
@@ -50,15 +45,9 @@ Ref<Buffer> GraphicsManager::createBuffer(BufferType type, u32 usage, u64 size, 
     return Ref<Buffer>(m_context->createBuffer(type, static_cast<BufferUsageFlags>(usage), size, data));
 }
 
-Ref<ResourceSet> GraphicsManager::createResourceSet(Ref<Pipeline> pipeline, u32 setIndex)
+Ref<ResourceSet> GraphicsManager::createResourceSet(const std::string renderPass, u32 setIndex)
 {
-    if (!pipeline.valid())
-    {
-        log(LogLevel::WARNING, "Could not create resource set, pipeline not valid");
-        return Ref<ResourceSet>(nullptr);
-    }
-
-    return Ref<ResourceSet>(m_context->createResourceSet(pipeline.get(), setIndex));
+    return Ref<ResourceSet>(m_context->createResourceSet(renderPass, setIndex));
 }
 
 void GraphicsManager::setRenderGraph(RenderGraphBuilder& builder) { m_context->setRenderGraph(builder); }

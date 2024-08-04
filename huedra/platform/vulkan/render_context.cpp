@@ -4,18 +4,17 @@
 
 namespace huedra {
 
-void VulkanRenderContext::init(VkCommandBuffer commandBuffer, VulkanPipeline* pipeline)
+void VulkanRenderContext::init(VkCommandBuffer commandBuffer, VulkanRenderPass* renderPass)
 {
     m_commandBuffer = commandBuffer;
-    p_pipeline = pipeline;
+    p_renderPass = renderPass;
     m_boundVertexBuffer = false;
     m_boundIndexBuffer = false;
-    vkCmdBindPipeline(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, p_pipeline->get());
 }
 
 void VulkanRenderContext::bindVertexBuffers(std::vector<Ref<Buffer>> buffers)
 {
-    if (p_pipeline->getBuilder().getType() != PipelineType::GRAPHICS)
+    if (p_renderPass->getPipelineType() != PipelineType::GRAPHICS)
     {
         log(LogLevel::WARNING, "Could not execute draw command, not using a graphics pipeline");
         return;
@@ -38,7 +37,7 @@ void VulkanRenderContext::bindVertexBuffers(std::vector<Ref<Buffer>> buffers)
 
 void VulkanRenderContext::bindIndexBuffer(Ref<Buffer> buffer)
 {
-    if (p_pipeline->getBuilder().getType() != PipelineType::GRAPHICS)
+    if (p_renderPass->getPipelineType() != PipelineType::GRAPHICS)
     {
         log(LogLevel::WARNING, "Could not execute draw command, not using a graphics pipeline");
         return;
@@ -56,21 +55,22 @@ void VulkanRenderContext::bindIndexBuffer(Ref<Buffer> buffer)
 
 void VulkanRenderContext::bindResourceSets(std::vector<Ref<ResourceSet>> resourceSets)
 {
-    if (resourceSets.size() > p_pipeline->getBuilder().getResources().size())
+    u32 resourceCount = p_renderPass->getPipeline().getBuilder().getResources().size();
+    if (resourceSets.size() > resourceCount)
     {
         log(LogLevel::WARNING, "Could not bind resource sets, pipeline supports %d sets but %d was provided",
-            p_pipeline->getBuilder().getResources().size(), resourceSets.size());
+            resourceCount, resourceSets.size());
     }
 
     for (size_t i = 0; i < resourceSets.size(); ++i)
     {
-        if (!resourceSets[i].valid() || !resourceSets[i].get()->getPipeline().valid())
+        if (!resourceSets[i].valid())
         {
             log(LogLevel::WARNING, "Could not bind resource set: %d. Not valid", i);
             return;
         }
 
-        if (static_cast<Pipeline*>(p_pipeline) != resourceSets[i].get()->getPipeline().get())
+        if (&p_renderPass->getPipeline() != static_cast<VulkanResourceSet*>(resourceSets[i].get())->getPipeline())
         {
             log(LogLevel::WARNING, "Could not bind resource set: %d. Using different pipelines", i);
             return;
@@ -84,20 +84,20 @@ void VulkanRenderContext::bindResourceSets(std::vector<Ref<ResourceSet>> resourc
         descriptors[i] = static_cast<VulkanResourceSet*>(resourceSets[i].get())->get();
     }
 
-    vkCmdBindDescriptorSets(m_commandBuffer, converter::convertPipelineType(p_pipeline->getBuilder().getType()),
-                            p_pipeline->getLayout(), setOffset, static_cast<u32>(descriptors.size()),
+    vkCmdBindDescriptorSets(m_commandBuffer, converter::convertPipelineType(p_renderPass->getPipelineType()),
+                            p_renderPass->getPipeline().getLayout(), setOffset, static_cast<u32>(descriptors.size()),
                             descriptors.data(), 0, nullptr);
 }
 
 void VulkanRenderContext::bindResourceSet(Ref<ResourceSet> resourceSet)
 {
-    if (!resourceSet.valid() || !resourceSet.get()->getPipeline().valid())
+    if (!resourceSet.valid())
     {
         log(LogLevel::WARNING, "Could not bind resource set. Not valid");
         return;
     }
 
-    if (static_cast<Pipeline*>(p_pipeline) != resourceSet.get()->getPipeline().get())
+    if (&p_renderPass->getPipeline() != static_cast<VulkanResourceSet*>(resourceSet.get())->getPipeline())
     {
         log(LogLevel::WARNING, "Could not bind resource set. Using different pipelines");
         return;
@@ -106,19 +106,19 @@ void VulkanRenderContext::bindResourceSet(Ref<ResourceSet> resourceSet)
     VulkanResourceSet* set = static_cast<VulkanResourceSet*>(resourceSet.get());
     VkDescriptorSet descriptorSet = set->get();
 
-    vkCmdBindDescriptorSets(m_commandBuffer, converter::convertPipelineType(p_pipeline->getBuilder().getType()),
-                            p_pipeline->getLayout(), set->getSetIndex(), 1, &descriptorSet, 0, nullptr);
+    vkCmdBindDescriptorSets(m_commandBuffer, converter::convertPipelineType(p_renderPass->getPipelineType()),
+                            p_renderPass->getPipeline().getLayout(), set->getSetIndex(), 1, &descriptorSet, 0, nullptr);
 }
 
 void VulkanRenderContext::pushConstants(ShaderStageFlags shaderStage, u32 size, void* data)
 {
-    vkCmdPushConstants(m_commandBuffer, p_pipeline->getLayout(),
-                       converter::convertShaderStage(p_pipeline->getBuilder().getType(), shaderStage), 0, size, data);
+    vkCmdPushConstants(m_commandBuffer, p_renderPass->getPipeline().getLayout(),
+                       converter::convertShaderStage(p_renderPass->getPipelineType(), shaderStage), 0, size, data);
 }
 
 void VulkanRenderContext::draw(u32 vertexCount, u32 instanceCount, u32 vertexOffset, u32 instanceOffset)
 {
-    if (p_pipeline->getBuilder().getType() != PipelineType::GRAPHICS)
+    if (p_renderPass->getPipelineType() != PipelineType::GRAPHICS)
     {
         log(LogLevel::WARNING, "Could not execute draw command, not using a graphics pipeline");
         return;
@@ -135,7 +135,7 @@ void VulkanRenderContext::draw(u32 vertexCount, u32 instanceCount, u32 vertexOff
 
 void VulkanRenderContext::drawIndexed(u32 indexCount, u32 instanceCount, u32 indexOffset, u32 instanceOffset)
 {
-    if (p_pipeline->getBuilder().getType() != PipelineType::GRAPHICS)
+    if (p_renderPass->getPipelineType() != PipelineType::GRAPHICS)
     {
         log(LogLevel::WARNING, "Could not execute draw command, not using a graphics pipeline");
         return;

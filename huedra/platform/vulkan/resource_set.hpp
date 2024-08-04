@@ -19,9 +19,11 @@ public:
     void assignBuffer(Ref<Buffer> buffer, u32 binding) override;
 
     VkDescriptorSet get();
+    VulkanPipeline* getPipeline() { return p_pipeline; }
 
 private:
     Device* p_device;
+    VulkanPipeline* p_pipeline;
 
     VkDescriptorPool m_pool;
     std::vector<VkDescriptorSet> m_descriptors;

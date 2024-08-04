@@ -30,8 +30,8 @@ void VulkanSwapchain::cleanup()
         vkDestroySemaphore(device, m_imageAvailableSemaphores[i], nullptr);
     }
 
-    m_renderTarget.cleanup();
     partialCleanup();
+    m_renderTarget.cleanup();
 }
 
 std::optional<u32> VulkanSwapchain::aquireNextImage(u32 frameIndex)

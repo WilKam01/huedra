@@ -23,9 +23,8 @@ public:
     void cleanup();
     void render();
 
-    Ref<Pipeline> createPipeline(const PipelineBuilder& pipelineBuilder);
     Ref<Buffer> createBuffer(BufferType type, u32 usage, u64 size, void* data = nullptr);
-    Ref<ResourceSet> createResourceSet(Ref<Pipeline> pipeline, u32 setIndex);
+    Ref<ResourceSet> createResourceSet(const std::string renderPass, u32 setIndex);
 
     void setRenderGraph(RenderGraphBuilder& builder);
 

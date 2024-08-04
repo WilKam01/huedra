@@ -44,7 +44,6 @@ private:
     u32 m_currentImageIndex{0};
     u32 m_imageCount{0};
     VkExtent2D m_extent;
-    bool m_initialized{false};
 };
 
 } // namespace huedra

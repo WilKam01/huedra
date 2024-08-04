@@ -4,25 +4,25 @@
 
 namespace huedra {
 
-void VulkanRenderPass::init(Device& device, VulkanPipeline* pipeline, RenderCommands commands, VkRenderPass renderPass,
+void VulkanRenderPass::init(Device& device, const PipelineBuilder& builder, RenderCommands commands,
                             VulkanRenderTarget* renderTarget, bool clearRenderTarget)
 {
     p_device = &device;
-    p_pipeline = Ref<Pipeline>(pipeline);
-    p_renderTarget = Ref<RenderTarget>(renderTarget);
     m_commands = commands;
+    p_renderTarget = Ref<RenderTarget>(renderTarget);
+    p_vkRenderTarget = renderTarget;
     m_clearRenderTarget = clearRenderTarget;
 
-    p_vkPipeline = pipeline;
-    p_vkRenderTarget = renderTarget;
     renderTarget->addRenderPass(this);
     createRenderPass();
+    m_pipeline.initGraphics(builder, device, m_renderPass);
     createFramebuffers();
 }
 
 void VulkanRenderPass::cleanup()
 {
     cleanupFramebuffers();
+    m_pipeline.cleanup();
     vkDestroyRenderPass(p_device->getLogical(), m_renderPass, nullptr);
 }
 
@@ -112,6 +112,7 @@ void VulkanRenderPass::begin(VkCommandBuffer commandBuffer)
     }
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.get());
 }
 
 void VulkanRenderPass::end(VkCommandBuffer commandBuffer) { vkCmdEndRenderPass(commandBuffer); }

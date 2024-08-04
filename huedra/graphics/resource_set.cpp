@@ -3,15 +3,6 @@
 
 namespace huedra {
 
-void ResourceSet::init(Pipeline* pipeline, u32 setIndex)
-{
-    p_pipeline = pipeline;
-    m_setIndex = setIndex;
-
-    if (setIndex >= pipeline->getBuilder().getResources().size())
-    {
-        log(LogLevel::ERR, "Could not create resource set, requested setIndex does not exist in pipeline");
-    }
-}
+void ResourceSet::init(u32 setIndex) { m_setIndex = setIndex; }
 
 } // namespace huedra

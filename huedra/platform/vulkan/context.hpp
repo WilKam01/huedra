@@ -25,9 +25,8 @@ public:
     void createSwapchain(Window* window, bool renderDepth) override;
     void removeSwapchain(size_t index) override;
 
-    Pipeline* createPipeline(const PipelineBuilder& pipelineBuilder) override;
     Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) override;
-    ResourceSet* createResourceSet(Pipeline* pipeline, u32 setIndex) override;
+    ResourceSet* createResourceSet(const std::string& renderPass, u32 setIndex) override;
 
     void setRenderGraph(RenderGraphBuilder& builder) override;
     void render() override;
@@ -49,19 +48,16 @@ private:
 
     std::vector<VkSurfaceKHR> m_surfaces;
     std::vector<VulkanSwapchain*> m_swapchains;
-    std::vector<VulkanPipeline*> m_pipelines;
     std::vector<VulkanBuffer*> m_buffers;
     std::vector<VulkanResourceSet*> m_resourceSets;
 
-    std::vector<VulkanRenderPass*> m_renderPasses;
+    std::map<std::string, VulkanRenderPass*> m_renderPasses;
 
     VkViewport m_viewport;
     VkRect2D m_scissor;
 
     std::vector<VkFence> m_renderingInFlightFences;
     std::vector<VkSemaphore> m_renderFinishedSemaphores;
-
-    VkRenderPass m_renderPass;
 };
 
 } // namespace huedra

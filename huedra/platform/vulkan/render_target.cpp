@@ -32,7 +32,6 @@ void VulkanRenderTarget::init(Device& device, CommandPool& commandPool, VulkanSw
     {
         renderPass->createFramebuffers();
     }
-    m_initialized = true;
 }
 
 void VulkanRenderTarget::init(Device& device, CommandPool& commandPool, RenderTargetType type,
@@ -58,7 +57,6 @@ void VulkanRenderTarget::init(Device& device, CommandPool& commandPool, RenderTa
     {
         renderPass->createFramebuffers();
     }
-    m_initialized = true;
 }
 
 void VulkanRenderTarget::cleanup()
@@ -69,22 +67,18 @@ void VulkanRenderTarget::cleanup()
 
 void VulkanRenderTarget::partialCleanup()
 {
-    if (m_initialized)
+    for (auto& renderPass : p_renderPasses)
     {
-        for (auto& renderPass : p_renderPasses)
-        {
-            renderPass->cleanupFramebuffers();
-        }
-        if (getType() == RenderTargetType::COLOR || getType() == RenderTargetType::COLOR_AND_DEPTH)
-        {
-            m_texture.cleanup();
-        }
-        if (getType() == RenderTargetType::DEPTH || getType() == RenderTargetType::COLOR_AND_DEPTH)
-        {
-            m_depthTexture.cleanup();
-        }
+        renderPass->cleanupFramebuffers();
     }
-    m_initialized = false;
+    if (getType() == RenderTargetType::COLOR || getType() == RenderTargetType::COLOR_AND_DEPTH)
+    {
+        m_texture.cleanup();
+    }
+    if (getType() == RenderTargetType::DEPTH || getType() == RenderTargetType::COLOR_AND_DEPTH)
+    {
+        m_depthTexture.cleanup();
+    }
 }
 
 void VulkanRenderTarget::prepareNextFrame(u32 frameIndex)

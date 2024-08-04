@@ -128,6 +128,9 @@ void VulkanTexture::cleanup()
             vkFreeMemory(p_device->getLogical(), m_memories[i], nullptr);
         }
     }
+    m_imageViews.clear();
+    m_images.clear();
+    m_memories.clear();
 }
 
 VkFormat VulkanTexture::findFormat(TextureType type, GraphicsDataFormat format)

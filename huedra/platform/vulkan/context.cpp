@@ -42,10 +42,6 @@ void VulkanContext::init()
         }
     }
 
-    VulkanSurfaceSupport surfaceSupport = m_device.querySurfaceSupport(m_device.getPhysical(), surface);
-    VkSurfaceFormatKHR surfaceFormat = m_device.chooseSurfaceFormat(surfaceSupport.formats);
-    m_renderPass = createRenderPass(surfaceFormat.format, m_device.findDepthFormat());
-
     vkDestroySurfaceKHR(m_instance.get(), surface, nullptr);
     tempWindow->cleanup();
     delete tempWindow;
@@ -53,20 +49,6 @@ void VulkanContext::init()
 
 void VulkanContext::cleanup()
 {
-    for (auto& swapchain : m_swapchains)
-    {
-        swapchain->cleanup();
-        delete swapchain;
-    }
-    m_swapchains.clear();
-
-    for (auto& renderPass : m_renderPasses)
-    {
-        renderPass->cleanup();
-        delete renderPass;
-    }
-    m_renderPasses.clear();
-
     for (auto& buffer : m_buffers)
     {
         buffer->cleanup();
@@ -81,14 +63,19 @@ void VulkanContext::cleanup()
     }
     m_resourceSets.clear();
 
-    for (auto& pipeline : m_pipelines)
+    for (auto& [name, renderPass] : m_renderPasses)
     {
-        pipeline->cleanup();
-        delete pipeline;
+        renderPass->cleanup();
+        delete renderPass;
     }
-    m_pipelines.clear();
+    m_renderPasses.clear();
 
-    vkDestroyRenderPass(m_device.getLogical(), m_renderPass, nullptr);
+    for (auto& swapchain : m_swapchains)
+    {
+        swapchain->cleanup();
+        delete swapchain;
+    }
+    m_swapchains.clear();
 
     for (u32 i = 0; i < GraphicsManager::MAX_FRAMES_IN_FLIGHT; ++i)
     {
@@ -122,14 +109,6 @@ void VulkanContext::removeSwapchain(size_t index)
 
     vkDestroySurfaceKHR(m_instance.get(), m_surfaces[index], nullptr);
     m_surfaces.erase(m_surfaces.begin() + index);
-}
-
-Pipeline* VulkanContext::createPipeline(const PipelineBuilder& pipelineBuilder)
-{
-    VulkanPipeline* pipeline = new VulkanPipeline();
-    pipeline->initGraphics(pipelineBuilder, m_device, m_renderPass);
-    m_pipelines.push_back(pipeline);
-    return pipeline;
 }
 
 Buffer* VulkanContext::createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data)
@@ -166,22 +145,45 @@ Buffer* VulkanContext::createBuffer(BufferType type, BufferUsageFlags usage, u64
     return buffer;
 }
 
-ResourceSet* VulkanContext::createResourceSet(Pipeline* pipeline, u32 setIndex)
+ResourceSet* VulkanContext::createResourceSet(const std::string& renderPass, u32 setIndex)
 {
+    if (!m_renderPasses.contains(renderPass))
+    {
+        log(LogLevel::ERR, "Could not create resource set, render pass: %s is not defined", renderPass.c_str());
+        return nullptr;
+    }
+
     VulkanResourceSet* resourceSet = new VulkanResourceSet();
-    resourceSet->init(m_device, *static_cast<VulkanPipeline*>(pipeline), setIndex);
+    resourceSet->init(m_device, m_renderPasses[renderPass]->getPipeline(), setIndex);
     m_resourceSets.push_back(resourceSet);
     return resourceSet;
 }
 
 void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
 {
+    m_device.waitIdle();
+
+    // Destroy all previous resource sets and render passes
+    for (auto& resourceSet : m_resourceSets)
+    {
+        resourceSet->cleanup();
+        delete resourceSet;
+    }
+    m_resourceSets.clear();
+
+    for (auto& [name, renderPass] : m_renderPasses)
+    {
+        renderPass->cleanup();
+        delete renderPass;
+    }
+    m_renderPasses.clear();
+
     for (auto& [key, info] : builder.getRenderPasses())
     {
         VulkanRenderPass* renderPass = new VulkanRenderPass();
-        renderPass->init(m_device, static_cast<VulkanPipeline*>(info.pipeline.get()), info.commands, m_renderPass,
+        renderPass->init(m_device, info.pipeline, info.commands,
                          static_cast<VulkanRenderTarget*>(info.renderTarget.get()), info.clearRenderTarget);
-        m_renderPasses.push_back(renderPass);
+        m_renderPasses.insert(std::pair<std::string, VulkanRenderPass*>(key, renderPass));
     }
 }
 
@@ -191,9 +193,9 @@ void VulkanContext::render()
                     VK_TRUE, UINT64_MAX);
     m_recordedCommands = false;
 
-    for (auto& renderPass : m_renderPasses)
+    for (auto& [name, renderPass] : m_renderPasses)
     {
-        if (!renderPass->getRenderTarget().valid() || !renderPass->getPipeline().valid())
+        if (!renderPass->getRenderTarget().valid())
         {
             continue;
         }
@@ -209,13 +211,12 @@ void VulkanContext::render()
                 m_commandBuffer.begin(Global::graphicsManager.getCurrentFrame());
                 m_recordedCommands = true;
             }
-            // recordCommandBuffer(m_commandBuffer.get(Global::graphicsManager.getCurrentFrame()), renderPass);
 
             VkCommandBuffer commandBuffer = m_commandBuffer.get(Global::graphicsManager.getCurrentFrame());
             renderPass->begin(commandBuffer);
 
             VulkanRenderContext renderContext;
-            renderContext.init(commandBuffer, static_cast<VulkanPipeline*>(renderPass->getPipeline().get()));
+            renderContext.init(commandBuffer, static_cast<VulkanRenderPass*>(renderPass));
             renderPass->getCommands()(renderContext);
 
             renderPass->end(commandBuffer);

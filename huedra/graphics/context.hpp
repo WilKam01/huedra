@@ -21,9 +21,8 @@ public:
     virtual void createSwapchain(Window* window, bool renderDepth) = 0;
     virtual void removeSwapchain(size_t index) = 0;
 
-    virtual Pipeline* createPipeline(const PipelineBuilder& pipelineBuilder) = 0;
     virtual Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) = 0;
-    virtual ResourceSet* createResourceSet(Pipeline* pipeline, u32 setIndex) = 0;
+    virtual ResourceSet* createResourceSet(const std::string& renderPass, u32 setIndex) = 0;
 
     virtual void setRenderGraph(RenderGraphBuilder& builder) = 0;
     virtual void render() = 0;

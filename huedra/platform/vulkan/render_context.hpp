@@ -2,7 +2,7 @@
 
 #include "graphics/render_context.hpp"
 #include "platform/vulkan/buffer.hpp"
-#include "platform/vulkan/pipeline.hpp"
+#include "platform/vulkan/render_pass.hpp"
 #include "platform/vulkan/resource_set.hpp"
 
 namespace huedra {
@@ -13,7 +13,7 @@ public:
     VulkanRenderContext() = default;
     ~VulkanRenderContext() = default;
 
-    void init(VkCommandBuffer commandBuffer, VulkanPipeline* pipeline);
+    void init(VkCommandBuffer commandBuffer, VulkanRenderPass* renderPass);
 
     void bindVertexBuffers(std::vector<Ref<Buffer>> buffers) override;
     void bindIndexBuffer(Ref<Buffer> buffer) override;
@@ -27,7 +27,7 @@ public:
 
 private:
     VkCommandBuffer m_commandBuffer;
-    VulkanPipeline* p_pipeline;
+    VulkanRenderPass* p_renderPass;
 
     bool m_boundVertexBuffer{false};
     bool m_boundIndexBuffer{false};

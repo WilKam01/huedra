@@ -9,8 +9,14 @@ namespace huedra {
 
 void VulkanResourceSet::init(Device& device, VulkanPipeline& pipeline, u32 setIndex)
 {
-    ResourceSet::init(&pipeline, setIndex);
+    if (setIndex >= pipeline.getBuilder().getResources().size())
+    {
+        log(LogLevel::ERR, "Could not create resource set, requested setIndex does not exist in pipeline");
+    }
+
+    ResourceSet::init(setIndex);
     p_device = &device;
+    p_pipeline = &pipeline;
     m_descriptors.resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
 
     PipelineBuilder& builder = pipeline.getBuilder();

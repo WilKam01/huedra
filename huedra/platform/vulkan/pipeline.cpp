@@ -8,8 +8,8 @@ namespace huedra {
 
 void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device& device, VkRenderPass renderPass)
 {
-    Pipeline::init(pipelineBuilder);
     p_device = &device;
+    m_builder = pipelineBuilder;
     initLayout();
 
     std::map<ShaderStage, std::string> shaders = pipelineBuilder.getShaderStages();

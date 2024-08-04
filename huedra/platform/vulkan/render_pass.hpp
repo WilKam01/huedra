@@ -13,7 +13,7 @@ public:
     VulkanRenderPass() = default;
     ~VulkanRenderPass() = default;
 
-    void init(Device& device, VulkanPipeline* pipeline, RenderCommands commands, VkRenderPass renderPass,
+    void init(Device& device, const PipelineBuilder& builder, RenderCommands commands,
               VulkanRenderTarget* renderTarget = nullptr, bool clearRenderTarget = true);
     void cleanup();
 
@@ -25,21 +25,20 @@ public:
 
     VkRenderPass get() { return m_renderPass; }
     RenderCommands getCommands() { return m_commands; };
-    Ref<Pipeline> getPipeline() { return p_pipeline; }
     Ref<RenderTarget> getRenderTarget() { return p_renderTarget; }
+    VulkanPipeline& getPipeline() { return m_pipeline; }
+    PipelineType getPipelineType() { return m_pipeline.getBuilder().getType(); }
 
 private:
     void createRenderPass();
 
     Device* p_device;
-    Ref<Pipeline> p_pipeline{nullptr};
-    Ref<RenderTarget> p_renderTarget{nullptr};
     RenderCommands m_commands;
+    Ref<RenderTarget> p_renderTarget{nullptr};
+    VulkanRenderTarget* p_vkRenderTarget;
     bool m_clearRenderTarget{true};
 
-    VulkanPipeline* p_vkPipeline;
-    VulkanRenderTarget* p_vkRenderTarget;
-
+    VulkanPipeline m_pipeline;
     VkRenderPass m_renderPass;
     std::vector<VkFramebuffer> m_framebuffers;
 };

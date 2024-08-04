@@ -7,7 +7,8 @@ int main()
     Global::windowManager.init();
     Global::graphicsManager.init();
 
-    Ref<Window> window = Global::windowManager.addWindow("Hello Windows!", huedra::WindowInput(1278, 1360, -7, 0));
+    Ref<Window> window =
+        Global::windowManager.addWindow("Hello Windows!", huedra::WindowInput(1278, 1360, -7, 0, false));
     Ref<Window> window1 = Global::windowManager.addWindow("Hello", huedra::WindowInput(300, 300, 100, 100), window);
 
     // Draw data
@@ -30,11 +31,9 @@ int main()
         .addVertexInputStream({sizeof(float) * 2, VertexInputRate::VERTEX, {{GraphicsDataFormat::RG_32_FLOAT, 0}}})
         .addVertexInputStream({sizeof(float) * 3, VertexInputRate::VERTEX, {{GraphicsDataFormat::RGB_32_FLOAT, 0}}});
 
-    Ref<Pipeline> pipeline = Global::graphicsManager.createPipeline(builder);
-
     RenderGraphBuilder graph;
     graph.init().addGraphicsPass(
-        "Pass", pipeline, window.get()->getRenderTarget(),
+        "Pass", builder, window.get()->getRenderTarget(),
         [vertexPositionsBuffer, vertexColorsBuffer, indexBuffer](RenderContext& renderContext) {
             renderContext.bindVertexBuffers({vertexPositionsBuffer, vertexColorsBuffer});
             renderContext.bindIndexBuffer(indexBuffer);
@@ -55,8 +54,7 @@ int main()
         .addResourceSet()
         .addResourceBinding(HU_SHADER_STAGE_GRAPHICS_ALL, ResourceType::UNIFORM_BUFFER);
 
-    pipeline = Global::graphicsManager.createPipeline(builder);
-    graph.addGraphicsPass("Pass1", pipeline, window1.get()->getRenderTarget(),
+    graph.addGraphicsPass("Pass1", builder, window1.get()->getRenderTarget(),
                           [vertexPositionsBuffer, vertexColorsBuffer, indexBuffer](RenderContext& renderContext) {
                               renderContext.bindVertexBuffers({vertexPositionsBuffer, vertexColorsBuffer});
                               renderContext.bindIndexBuffer(indexBuffer);

@@ -9,14 +9,14 @@ RenderGraphBuilder& RenderGraphBuilder::init()
     return *this;
 }
 
-RenderGraphBuilder& RenderGraphBuilder::addGraphicsPass(const std::string& name, Ref<Pipeline> pipeline,
+RenderGraphBuilder& RenderGraphBuilder::addGraphicsPass(const std::string& name, const PipelineBuilder& pipeline,
                                                         Ref<RenderTarget> renderTarget, RenderCommands renderCommands,
-                                                        bool clearRenderTarget,
-                                                        const std::vector<std::string>& dependencies)
+                                                        const std::vector<std::string>& dependencies,
+                                                        bool clearRenderTarget)
 {
-    if (!pipeline.valid())
+    if (pipeline.getType() != PipelineType::GRAPHICS)
     {
-        log(LogLevel::WARNING, "Could not add render pass, pipeline not valid");
+        log(LogLevel::WARNING, "Could not add render pass, pipeline not a graphics pipeline");
         return *this;
     }
 
@@ -29,12 +29,6 @@ RenderGraphBuilder& RenderGraphBuilder::addGraphicsPass(const std::string& name,
     if (!renderCommands)
     {
         log(LogLevel::WARNING, "Could not add render pass, no renderCommands present");
-        return *this;
-    }
-
-    if (pipeline.get()->getBuilder().getType() != PipelineType::GRAPHICS)
-    {
-        log(LogLevel::WARNING, "Could not add render pass, pipeline is not a graphics pipeline");
         return *this;
     }
 
@@ -55,7 +49,7 @@ RenderGraphBuilder& RenderGraphBuilder::addGraphicsPass(const std::string& name,
     }
 
     m_renderPasses.insert(std::pair<std::string, RenderPassInfo>(
-        name, {pipeline, renderTarget, renderCommands, clearRenderTarget, dependencies}));
+        name, {pipeline, renderTarget, renderCommands, dependencies, clearRenderTarget}));
     return *this;
 }
 
