@@ -14,7 +14,7 @@ public:
     ~VulkanRenderPass() = default;
 
     void init(Device& device, const PipelineBuilder& builder, RenderCommands commands,
-              VulkanRenderTarget* renderTarget = nullptr, bool clearRenderTarget = true);
+              VulkanRenderTarget* renderTarget = nullptr, RenderPassSettings settings = {});
     void cleanup();
 
     void createFramebuffers();
@@ -36,7 +36,7 @@ private:
     RenderCommands m_commands;
     Ref<RenderTarget> p_renderTarget{nullptr};
     VulkanRenderTarget* p_vkRenderTarget;
-    bool m_clearRenderTarget{true};
+    RenderPassSettings m_settings{true};
 
     VulkanPipeline m_pipeline;
     VkRenderPass m_renderPass;

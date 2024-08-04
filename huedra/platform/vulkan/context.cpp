@@ -182,7 +182,7 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
     {
         VulkanRenderPass* renderPass = new VulkanRenderPass();
         renderPass->init(m_device, info.pipeline, info.commands,
-                         static_cast<VulkanRenderTarget*>(info.renderTarget.get()), info.clearRenderTarget);
+                         static_cast<VulkanRenderTarget*>(info.renderTarget.get()), info.settings);
         m_renderPasses.insert(std::pair<std::string, VulkanRenderPass*>(key, renderPass));
     }
 }

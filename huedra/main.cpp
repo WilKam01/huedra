@@ -31,6 +31,9 @@ int main()
         .addVertexInputStream({sizeof(float) * 2, VertexInputRate::VERTEX, {{GraphicsDataFormat::RG_32_FLOAT, 0}}})
         .addVertexInputStream({sizeof(float) * 3, VertexInputRate::VERTEX, {{GraphicsDataFormat::RGB_32_FLOAT, 0}}});
 
+    RenderPassSettings settings;
+    settings.clearColor = {{0.2f, 0.2f, 0.2f}};
+
     RenderGraphBuilder graph;
     graph.init().addGraphicsPass(
         "Pass", builder, window.get()->getRenderTarget(),
@@ -38,7 +41,8 @@ int main()
             renderContext.bindVertexBuffers({vertexPositionsBuffer, vertexColorsBuffer});
             renderContext.bindIndexBuffer(indexBuffer);
             renderContext.drawIndexed(6, 1, 0, 0);
-        });
+        },
+        {}, settings);
 
     builder.init(PipelineType::GRAPHICS)
         .addShader(ShaderStage::VERTEX, "shaders/shader.vert")

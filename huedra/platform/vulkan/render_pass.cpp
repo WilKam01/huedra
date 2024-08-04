@@ -5,13 +5,13 @@
 namespace huedra {
 
 void VulkanRenderPass::init(Device& device, const PipelineBuilder& builder, RenderCommands commands,
-                            VulkanRenderTarget* renderTarget, bool clearRenderTarget)
+                            VulkanRenderTarget* renderTarget, RenderPassSettings settings)
 {
     p_device = &device;
     m_commands = commands;
     p_renderTarget = Ref<RenderTarget>(renderTarget);
     p_vkRenderTarget = renderTarget;
-    m_clearRenderTarget = clearRenderTarget;
+    m_settings = settings;
 
     renderTarget->addRenderPass(this);
     createRenderPass();
@@ -95,12 +95,12 @@ void VulkanRenderPass::begin(VkCommandBuffer commandBuffer)
     renderPassInfo.pClearValues = nullptr;
 
     std::vector<VkClearValue> clearValues{};
-    if (m_clearRenderTarget)
+    if (m_settings.clearRenderTarget)
     {
         if (p_vkRenderTarget->usesColor())
         {
             VkClearValue& value = clearValues.emplace_back();
-            value.color = {0.0f, 0.0f, 0.0f, 1.0f};
+            value.color = {m_settings.clearColor[0], m_settings.clearColor[1], m_settings.clearColor[2], 1.0f};
         }
         if (p_vkRenderTarget->usesDepth())
         {
@@ -126,7 +126,8 @@ void VulkanRenderPass::createRenderPass()
         VkAttachmentDescription colorAttachment{};
         colorAttachment.format = p_vkRenderTarget->getColorFormat();
         colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorAttachment.loadOp = m_clearRenderTarget ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+        colorAttachment.loadOp =
+            m_settings.clearRenderTarget ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
         colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -141,7 +142,8 @@ void VulkanRenderPass::createRenderPass()
         VkAttachmentDescription depthAttachment{};
         depthAttachment.format = p_vkRenderTarget->getDepthFormat();
         depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        depthAttachment.loadOp = m_clearRenderTarget ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+        depthAttachment.loadOp =
+            m_settings.clearRenderTarget ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
         depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;

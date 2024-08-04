@@ -12,7 +12,7 @@ RenderGraphBuilder& RenderGraphBuilder::init()
 RenderGraphBuilder& RenderGraphBuilder::addGraphicsPass(const std::string& name, const PipelineBuilder& pipeline,
                                                         Ref<RenderTarget> renderTarget, RenderCommands renderCommands,
                                                         const std::vector<std::string>& dependencies,
-                                                        bool clearRenderTarget)
+                                                        RenderPassSettings settings)
 {
     if (pipeline.getType() != PipelineType::GRAPHICS)
     {
@@ -48,8 +48,8 @@ RenderGraphBuilder& RenderGraphBuilder::addGraphicsPass(const std::string& name,
         }
     }
 
-    m_renderPasses.insert(std::pair<std::string, RenderPassInfo>(
-        name, {pipeline, renderTarget, renderCommands, dependencies, clearRenderTarget}));
+    m_renderPasses.insert(
+        std::pair<std::string, RenderPassInfo>(name, {pipeline, renderTarget, renderCommands, dependencies, settings}));
     return *this;
 }
 
