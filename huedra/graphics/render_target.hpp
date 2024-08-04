@@ -26,6 +26,8 @@ public:
     u32 getWidth() { return m_width; }
     u32 getHeight() { return m_height; }
     bool isAvailable() const { return m_available; }
+    bool usesColor() { return m_type == RenderTargetType::COLOR || m_type == RenderTargetType::COLOR_AND_DEPTH; }
+    bool usesDepth() { return m_type == RenderTargetType::DEPTH || m_type == RenderTargetType::COLOR_AND_DEPTH; }
 
     virtual void prepareNextFrame(u32 frameIndex) = 0;
 

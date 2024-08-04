@@ -7,6 +7,7 @@
 namespace huedra {
 
 class VulkanSwapchain;
+class VulkanRenderPass;
 
 class VulkanRenderTarget : public RenderTarget
 {
@@ -14,30 +15,36 @@ public:
     VulkanRenderTarget() = default;
     ~VulkanRenderTarget() = default;
 
-    void init(Device& device, CommandPool& commandPool, VulkanSwapchain& swapchain, VkFormat format, VkExtent2D extent,
-              VkRenderPass renderPass);
+    void init(Device& device, CommandPool& commandPool, VulkanSwapchain& swapchain, VkFormat format, VkExtent2D extent);
     void init(Device& device, CommandPool& commandPool, RenderTargetType type, GraphicsDataFormat format, u32 width,
-              u32 height, VkRenderPass renderPass);
+              u32 height);
     void cleanup() override;
+    void partialCleanup();
 
     void prepareNextFrame(u32 frameIndex) override;
 
-    VkFramebuffer getFramebuffer() { return m_framebuffers[m_currentImageIndex]; }
+    void addRenderPass(VulkanRenderPass* renderPass);
+
+    VulkanTexture& getColorTexture() { return m_texture; }
+    VulkanTexture& getDepthTexture() { return m_depthTexture; }
+    VkFormat getColorFormat() { return m_texture.getFormat(); }
+    VkFormat getDepthFormat() { return m_depthTexture.getFormat(); }
     u32 getImageIndex() { return m_currentImageIndex; }
+    u32 getImageCount() { return m_imageCount; }
     VkExtent2D getExtent() { return m_extent; }
 
 private:
-    void createFramebuffers(VkRenderPass renderPass);
-
     Device* p_device{nullptr};
     VulkanSwapchain* p_swapchain{nullptr};
+    std::vector<VulkanRenderPass*> p_renderPasses;
 
     VulkanTexture m_texture;
     VulkanTexture m_depthTexture;
-    std::vector<VkFramebuffer> m_framebuffers;
 
     u32 m_currentImageIndex{0};
+    u32 m_imageCount{0};
     VkExtent2D m_extent;
+    bool m_initialized{false};
 };
 
 } // namespace huedra

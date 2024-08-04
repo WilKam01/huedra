@@ -199,6 +199,33 @@ VkVertexInputRate convertVertexInputRate(VertexInputRate inputRate)
     }
 }
 
+VkBufferUsageFlagBits convertBufferUsage(BufferUsageFlags usage)
+{
+    u32 result = 0;
+
+    if (usage & HU_BUFFER_USAGE_VERTEX_BUFFER)
+    {
+        result |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    }
+
+    if (usage & HU_BUFFER_USAGE_INDEX_BUFFER)
+    {
+        result |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    }
+
+    if (usage & HU_BUFFER_USAGE_UNIFORM_BUFFER)
+    {
+        result |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    }
+
+    if (usage & HU_BUFFER_USAGE_STORAGE_BUFFER)
+    {
+        result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    }
+
+    return static_cast<VkBufferUsageFlagBits>(result);
+}
+
 GraphicsDataFormat convertVkFormat(VkFormat format)
 {
     switch (format)

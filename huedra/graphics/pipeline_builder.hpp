@@ -4,8 +4,6 @@
 #include "graphics/pipeline_data.hpp"
 #include "graphics/render_context.hpp"
 
-#include <functional>
-
 namespace huedra {
 
 class PipelineBuilder

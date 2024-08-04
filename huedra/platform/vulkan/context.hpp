@@ -6,6 +6,7 @@
 #include "platform/vulkan/instance.hpp"
 #include "platform/vulkan/pipeline.hpp"
 #include "platform/vulkan/render_context.hpp"
+#include "platform/vulkan/render_pass.hpp"
 #include "platform/vulkan/resource_set.hpp"
 #include "platform/vulkan/swapchain.hpp"
 #include "window/window.hpp"
@@ -35,9 +36,6 @@ private:
     VkSurfaceKHR createSurface(Window* window);
     VkRenderPass createRenderPass(VkFormat format, VkFormat depthFormat);
 
-    VkBufferUsageFlagBits convertBufferUsage(BufferUsageFlags usage);
-
-    void recordCommandBuffer(VkCommandBuffer commandBuffer, RenderPassInfo& renderPass);
     void submitGraphicsQueue();
     void presentSwapchains();
 
@@ -55,7 +53,7 @@ private:
     std::vector<VulkanBuffer*> m_buffers;
     std::vector<VulkanResourceSet*> m_resourceSets;
 
-    std::vector<RenderPassInfo> m_renderPasses;
+    std::vector<VulkanRenderPass*> m_renderPasses;
 
     VkViewport m_viewport;
     VkRect2D m_scissor;

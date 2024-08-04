@@ -5,13 +5,12 @@
 namespace huedra {
 
 void VulkanSwapchain::init(Window* window, Device& device, CommandPool& commandPool, VkSurfaceKHR surface,
-                           VkRenderPass renderPass, bool renderDepth)
+                           bool renderDepth)
 {
     p_window = window;
     p_device = &device;
     p_commandPool = &commandPool;
     m_surface = surface;
-    m_renderPass = renderPass;
     m_renderDepth = renderDepth;
 
     createSyncObjects();
@@ -31,6 +30,7 @@ void VulkanSwapchain::cleanup()
         vkDestroySemaphore(device, m_imageAvailableSemaphores[i], nullptr);
     }
 
+    m_renderTarget.cleanup();
     partialCleanup();
 }
 
@@ -112,7 +112,7 @@ void VulkanSwapchain::recreate()
 
 void VulkanSwapchain::partialCleanup()
 {
-    m_renderTarget.cleanup();
+    m_renderTarget.partialCleanup();
     vkDestroySwapchainKHR(p_device->getLogical(), m_swapchain, nullptr);
 }
 
@@ -183,7 +183,7 @@ void VulkanSwapchain::create()
         log(LogLevel::ERR, "Failed to create swap chain!");
     }
 
-    m_renderTarget.init(*p_device, *p_commandPool, *this, surfaceFormat.format, extent, m_renderPass);
+    m_renderTarget.init(*p_device, *p_commandPool, *this, surfaceFormat.format, extent);
 }
 
 } // namespace huedra

@@ -13,8 +13,7 @@ public:
     VulkanSwapchain() = default;
     ~VulkanSwapchain() = default;
 
-    void init(Window* window, Device& device, CommandPool& commandPool, VkSurfaceKHR surface, VkRenderPass renderPass,
-              bool renderDepth);
+    void init(Window* window, Device& device, CommandPool& commandPool, VkSurfaceKHR surface, bool renderDepth);
     void cleanup();
 
     std::optional<u32> aquireNextImage(u32 frameIndex);
@@ -43,7 +42,6 @@ private:
 
     VkSwapchainKHR m_swapchain;
     VkSurfaceKHR m_surface;
-    VkRenderPass m_renderPass;
     VulkanRenderTarget m_renderTarget;
     bool m_renderDepth;
 

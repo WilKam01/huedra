@@ -11,6 +11,7 @@ VkShaderStageFlagBits convertShaderStage(PipelineType type, ShaderStageFlags sha
 VkDescriptorType convertResourceType(ResourceType resource);
 VkFormat convertDataFormat(GraphicsDataFormat format);
 VkVertexInputRate convertVertexInputRate(VertexInputRate inputRate);
+VkBufferUsageFlagBits convertBufferUsage(BufferUsageFlags usage);
 
 // VK -> HU
 GraphicsDataFormat convertVkFormat(VkFormat format);

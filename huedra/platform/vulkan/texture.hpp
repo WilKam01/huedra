@@ -28,6 +28,7 @@ public:
 
     VkImage get(size_t index = 0) { return m_images[index]; }
     VkImageView getView(size_t index = 0) { return m_imageViews[index]; }
+    VkFormat getFormat() { return m_format; }
 
 private:
     VkFormat findFormat(TextureType type, GraphicsDataFormat format);

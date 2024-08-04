@@ -2,6 +2,7 @@
 #include "core/global.hpp"
 #include "core/log.hpp"
 #include "platform/vulkan/config.hpp"
+#include "platform/vulkan/type_converter.hpp"
 
 #ifdef WIN32
 #include "platform/win32/window.hpp"
@@ -57,24 +58,35 @@ void VulkanContext::cleanup()
         swapchain->cleanup();
         delete swapchain;
     }
+    m_swapchains.clear();
+
+    for (auto& renderPass : m_renderPasses)
+    {
+        renderPass->cleanup();
+        delete renderPass;
+    }
+    m_renderPasses.clear();
 
     for (auto& buffer : m_buffers)
     {
         buffer->cleanup();
         delete buffer;
     }
+    m_buffers.clear();
 
     for (auto& resourceSet : m_resourceSets)
     {
         resourceSet->cleanup();
         delete resourceSet;
     }
+    m_resourceSets.clear();
 
     for (auto& pipeline : m_pipelines)
     {
         pipeline->cleanup();
         delete pipeline;
     }
+    m_pipelines.clear();
 
     vkDestroyRenderPass(m_device.getLogical(), m_renderPass, nullptr);
 
@@ -94,7 +106,7 @@ void VulkanContext::createSwapchain(Window* window, bool renderDepth)
 {
     VulkanSwapchain* swapchain = new VulkanSwapchain();
     VkSurfaceKHR surface = createSurface(window);
-    swapchain->init(window, m_device, m_commandPool, surface, m_renderPass, renderDepth);
+    swapchain->init(window, m_device, m_commandPool, surface, renderDepth);
 
     m_swapchains.push_back(swapchain);
     m_surfaces.push_back(surface);
@@ -123,7 +135,7 @@ Pipeline* VulkanContext::createPipeline(const PipelineBuilder& pipelineBuilder)
 Buffer* VulkanContext::createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data)
 {
     VulkanBuffer* buffer = new VulkanBuffer();
-    VkBufferUsageFlagBits bufferUsage = convertBufferUsage(usage);
+    VkBufferUsageFlagBits bufferUsage = converter::convertBufferUsage(usage);
 
     if (type == BufferType::STATIC && data)
     {
@@ -166,7 +178,10 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
 {
     for (auto& [key, info] : builder.getRenderPasses())
     {
-        m_renderPasses.push_back(info);
+        VulkanRenderPass* renderPass = new VulkanRenderPass();
+        renderPass->init(m_device, static_cast<VulkanPipeline*>(info.pipeline.get()), info.commands, m_renderPass,
+                         static_cast<VulkanRenderTarget*>(info.renderTarget.get()), info.clearRenderTarget);
+        m_renderPasses.push_back(renderPass);
     }
 }
 
@@ -178,12 +193,12 @@ void VulkanContext::render()
 
     for (auto& renderPass : m_renderPasses)
     {
-        if (!renderPass.renderTarget.valid() || !renderPass.pipeline.valid())
+        if (!renderPass->getRenderTarget().valid() || !renderPass->getPipeline().valid())
         {
             continue;
         }
 
-        RenderTarget* renderTarget = renderPass.renderTarget.get();
+        RenderTarget* renderTarget = renderPass->getRenderTarget().get();
         renderTarget->prepareNextFrame(Global::graphicsManager.getCurrentFrame());
         if (renderTarget->isAvailable())
         {
@@ -194,7 +209,16 @@ void VulkanContext::render()
                 m_commandBuffer.begin(Global::graphicsManager.getCurrentFrame());
                 m_recordedCommands = true;
             }
-            recordCommandBuffer(m_commandBuffer.get(Global::graphicsManager.getCurrentFrame()), renderPass);
+            // recordCommandBuffer(m_commandBuffer.get(Global::graphicsManager.getCurrentFrame()), renderPass);
+
+            VkCommandBuffer commandBuffer = m_commandBuffer.get(Global::graphicsManager.getCurrentFrame());
+            renderPass->begin(commandBuffer);
+
+            VulkanRenderContext renderContext;
+            renderContext.init(commandBuffer, static_cast<VulkanPipeline*>(renderPass->getPipeline().get()));
+            renderPass->getCommands()(renderContext);
+
+            renderPass->end(commandBuffer);
         }
     }
 
@@ -290,82 +314,6 @@ VkRenderPass VulkanContext::createRenderPass(VkFormat format, VkFormat depthForm
     }
 
     return renderPass;
-}
-
-VkBufferUsageFlagBits VulkanContext::convertBufferUsage(BufferUsageFlags usage)
-{
-    u32 result = 0;
-
-    if (usage & HU_BUFFER_USAGE_VERTEX_BUFFER)
-    {
-        result |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-    }
-
-    if (usage & HU_BUFFER_USAGE_INDEX_BUFFER)
-    {
-        result |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-    }
-
-    if (usage & HU_BUFFER_USAGE_UNIFORM_BUFFER)
-    {
-        result |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-    }
-
-    if (usage & HU_BUFFER_USAGE_STORAGE_BUFFER)
-    {
-        result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-    }
-
-    return static_cast<VkBufferUsageFlagBits>(result);
-}
-
-void VulkanContext::recordCommandBuffer(VkCommandBuffer commandBuffer, RenderPassInfo& renderPass)
-{
-    VulkanPipeline* pipeline = static_cast<VulkanPipeline*>(renderPass.pipeline.get());
-    VulkanRenderTarget* renderTarget = static_cast<VulkanRenderTarget*>(renderPass.renderTarget.get());
-
-    VkRenderPassBeginInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = m_renderPass;
-    renderPassInfo.framebuffer = renderTarget->getFramebuffer();
-    renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = renderTarget->getExtent();
-
-    std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = {0.0f, 0.0f, 0.0f, 1.0f};
-    clearValues[1].depthStencil = {1.0f, 0};
-
-    renderPassInfo.clearValueCount = static_cast<u32>(clearValues.size());
-    renderPassInfo.pClearValues = clearValues.data();
-
-    VkExtent2D extent = renderTarget->getExtent();
-    m_viewport.x = 0.0f;
-    m_viewport.y = 0.0f;
-    m_viewport.width = static_cast<float>(extent.width);
-    m_viewport.height = static_cast<float>(extent.height);
-    m_viewport.minDepth = 0.0f;
-    m_viewport.maxDepth = 1.0f;
-
-    m_scissor.offset = {0, 0};
-    m_scissor.extent = extent;
-
-    vkCmdSetViewport(commandBuffer, 0, 1, &m_viewport);
-    vkCmdSetScissor(commandBuffer, 0, 1, &m_scissor);
-
-    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-    if (renderPass.commands)
-    {
-        VulkanRenderContext renderContext;
-        renderContext.init(commandBuffer, pipeline);
-        renderPass.commands(renderContext);
-    }
-    else
-    {
-        log(LogLevel::WARNING, "Could not execute render commands, not defined");
-    }
-
-    vkCmdEndRenderPass(commandBuffer);
 }
 
 void VulkanContext::submitGraphicsQueue()
