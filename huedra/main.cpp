@@ -1,9 +1,11 @@
 #include "core/global.hpp"
+#include "core/log.hpp"
 
 using namespace huedra;
 
 int main()
 {
+    Global::timer.init();
     Global::windowManager.init();
     Global::graphicsManager.init();
 
@@ -69,7 +71,10 @@ int main()
 
     while (Global::windowManager.update())
     {
+        Global::timer.update();
         Global::graphicsManager.render();
+
+        log(LogLevel::INFO, "Elapsed: %f, Delta: %f", Global::timer.secondsElapsed(), Global::timer.dt());
     }
 
     Global::graphicsManager.cleanup();

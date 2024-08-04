@@ -40,7 +40,7 @@ RenderGraphBuilder& RenderGraphBuilder::addGraphicsPass(const std::string& name,
 
     for (auto& dependency : dependencies)
     {
-        if (m_renderPasses.contains(dependency))
+        if (!m_renderPasses.contains(dependency))
         {
             log(LogLevel::WARNING, "Could not add render pass, render pass dependency: %s not defined",
                 dependency.c_str());
