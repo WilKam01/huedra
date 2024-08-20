@@ -6,10 +6,9 @@ namespace huedra {
 
 class Timer
 {
-private:
+public:
     const static u64 SECONDS_TO_NANO = 1'000'000'000;
 
-public:
     Timer() = default;
     ~Timer() = default;
 
