@@ -42,6 +42,7 @@ public:
     }
 
     inline T operator[](u64 index) const { return m_elements[index]; }
+    inline T& operator[](u64 index) { return m_elements[index]; }
 
 private:
     std::array<T, L> m_elements{};
