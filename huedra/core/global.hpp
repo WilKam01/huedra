@@ -8,9 +8,9 @@ namespace huedra {
 
 struct Global
 {
-    static Timer timer;
-    static WindowManager windowManager;
-    static GraphicsManager graphicsManager;
+    static inline Timer timer;
+    static inline WindowManager windowManager;
+    static inline GraphicsManager graphicsManager;
 };
 
 } // namespace huedra
