@@ -18,7 +18,6 @@ int main()
     // Draw data
     std::array<vec2, 4> positions = {{{-0.5f, -0.5f}, {0.5f, -0.5f}, {0.5f, 0.5f}, {-0.5f, 0.5f}}};
     std::array<vec3, 4> colors = {{{0.5f, 0.0f, 0.0f}, {0.0f, 0.5f, 0.0f}, {0.0f, 0.0f, 0.5f}, {0.5f, 0.5f, 0.5f}}};
-
     std::array<u32, 6> indices = {0, 1, 2, 2, 3, 0};
 
     Ref<Buffer> vertexPositionsBuffer = Global::graphicsManager.createBuffer(

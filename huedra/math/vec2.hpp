@@ -48,6 +48,8 @@ public:
 #define VEC_OP(OP)                                                                                \
     constexpr Vec2<T> operator OP(const Vec2<T>& rhs) { return Vec2<T>(x OP rhs.x, y OP rhs.y); } \
                                                                                                   \
+    constexpr Vec2<T> operator OP(T scalar) { return Vec2<T>(x OP scalar, y OP scalar); }         \
+                                                                                                  \
     constexpr Vec2<T>& operator OP##=(const Vec2<T>& rhs)                                         \
     {                                                                                             \
         x OP## = rhs.x;                                                                           \
