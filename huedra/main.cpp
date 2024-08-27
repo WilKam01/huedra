@@ -1,5 +1,7 @@
 #include "core/global.hpp"
 #include "core/log.hpp"
+#include "math/matrix_projection.hpp"
+#include "math/matrix_transform.hpp"
 #include "math/vec2.hpp"
 #include "math/vec3.hpp"
 
