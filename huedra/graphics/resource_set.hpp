@@ -1,15 +1,15 @@
 #pragma once
 
-#include "graphics/buffer.hpp"
 #include "core/references/ref.hpp"
+#include "graphics/buffer.hpp"
 
 namespace huedra {
 
 class ResourceSet
 {
 public:
-    ResourceSet() = default;
-    virtual ~ResourceSet() = default;
+    ResourceSet();
+    virtual ~ResourceSet();
 
     void init(u32 setIndex);
     virtual void cleanup() = 0;

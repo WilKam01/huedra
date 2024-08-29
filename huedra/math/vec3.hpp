@@ -47,17 +47,17 @@ public:
     inline T operator[](u64 index) const { return data[index]; }
     inline T& operator[](u64 index) { return data[index]; }
 
-#define VEC_OP(OP)                                                                                            \
-    constexpr Vec3<T> operator OP(const Vec3<T>& rhs) { return Vec3<T>(x OP rhs.x, y OP rhs.y, z OP rhs.z); } \
-                                                                                                              \
-    constexpr Vec3<T> operator OP(T scalar) { return Vec3<T>(x OP scalar, y OP scalar, z OP scalar); }        \
-                                                                                                              \
-    constexpr Vec3<T>& operator OP##=(const Vec3<T>& rhs)                                                     \
-    {                                                                                                         \
-        x OP## = rhs.x;                                                                                       \
-        y OP## = rhs.y;                                                                                       \
-        z OP## = rhs.z;                                                                                       \
-        return *this;                                                                                         \
+#define VEC_OP(OP)                                                                                                  \
+    constexpr Vec3<T> operator OP(const Vec3<T>& rhs) const { return Vec3<T>(x OP rhs.x, y OP rhs.y, z OP rhs.z); } \
+                                                                                                                    \
+    constexpr Vec3<T> operator OP(T scalar) const { return Vec3<T>(x OP scalar, y OP scalar, z OP scalar); }        \
+                                                                                                                    \
+    constexpr Vec3<T>& operator OP##=(const Vec3<T>& rhs)                                                           \
+    {                                                                                                               \
+        x OP## = rhs.x;                                                                                             \
+        y OP## = rhs.y;                                                                                             \
+        z OP## = rhs.z;                                                                                             \
+        return *this;                                                                                               \
     }
 
     VEC_OP(+);

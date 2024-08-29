@@ -92,7 +92,7 @@ public:
             {
                 for (u64 k = 0; k < C; ++k)
                 {
-                    ret.m_elements[i][j] += m_elements[k][j] * matrix.m_elements[i][k];
+                    ret.m_elements[i][j] += m_elements[i][k] * matrix.m_elements[k][j];
                 }
             }
         }
@@ -146,7 +146,7 @@ public:
     }
 
 private:
-    std::array<std::array<T, R>, C> m_elements;
+    std::array<std::array<T, R>, C> m_elements{static_cast<T>(0)};
 };
 
 using matrix2x2 = Matrix<float, 2, 2>;

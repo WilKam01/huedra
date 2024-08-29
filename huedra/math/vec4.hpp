@@ -49,21 +49,24 @@ public:
     inline T operator[](u64 index) const { return data[index]; }
     inline T& operator[](u64 index) { return data[index]; }
 
-#define VEC_OP(OP)                                                                                                  \
-    constexpr Vec4<T> operator OP(const Vec4<T>& rhs)                                                               \
-    {                                                                                                               \
-        return Vec4<T>(x OP rhs.x, y OP rhs.y, z OP rhs.z, w OP rhs.w);                                             \
-    }                                                                                                               \
-                                                                                                                    \
-    constexpr Vec4<T> operator OP(T scalar) { return Vec4<T>(x OP scalar, y OP scalar, z OP scalar, w OP scalar); } \
-                                                                                                                    \
-    constexpr Vec4<T>& operator OP##=(const Vec4<T>& rhs)                                                           \
-    {                                                                                                               \
-        x OP## = rhs.x;                                                                                             \
-        y OP## = rhs.y;                                                                                             \
-        z OP## = rhs.z;                                                                                             \
-        w OP## = rhs.w;                                                                                             \
-        return *this;                                                                                               \
+#define VEC_OP(OP)                                                          \
+    constexpr Vec4<T> operator OP(const Vec4<T>& rhs) const                 \
+    {                                                                       \
+        return Vec4<T>(x OP rhs.x, y OP rhs.y, z OP rhs.z, w OP rhs.w);     \
+    }                                                                       \
+                                                                            \
+    constexpr Vec4<T> operator OP(T scalar) const                           \
+    {                                                                       \
+        return Vec4<T>(x OP scalar, y OP scalar, z OP scalar, w OP scalar); \
+    }                                                                       \
+                                                                            \
+    constexpr Vec4<T>& operator OP##=(const Vec4<T>& rhs)                   \
+    {                                                                       \
+        x OP## = rhs.x;                                                     \
+        y OP## = rhs.y;                                                     \
+        z OP## = rhs.z;                                                     \
+        w OP## = rhs.w;                                                     \
+        return *this;                                                       \
     }
 
     VEC_OP(+);

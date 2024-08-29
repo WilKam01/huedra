@@ -1,6 +1,7 @@
 #pragma once
 
 #include "math/matrix.hpp"
+#include "math/matrix_core.hpp"
 #include "math/vec2.hpp"
 #include "math/vec3.hpp"
 

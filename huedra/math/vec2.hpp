@@ -45,16 +45,16 @@ public:
     inline T operator[](u64 index) const { return data[index]; }
     inline T& operator[](u64 index) { return data[index]; }
 
-#define VEC_OP(OP)                                                                                \
-    constexpr Vec2<T> operator OP(const Vec2<T>& rhs) { return Vec2<T>(x OP rhs.x, y OP rhs.y); } \
-                                                                                                  \
-    constexpr Vec2<T> operator OP(T scalar) { return Vec2<T>(x OP scalar, y OP scalar); }         \
-                                                                                                  \
-    constexpr Vec2<T>& operator OP##=(const Vec2<T>& rhs)                                         \
-    {                                                                                             \
-        x OP## = rhs.x;                                                                           \
-        y OP## = rhs.y;                                                                           \
-        return *this;                                                                             \
+#define VEC_OP(OP)                                                                                      \
+    constexpr Vec2<T> operator OP(const Vec2<T>& rhs) const { return Vec2<T>(x OP rhs.x, y OP rhs.y); } \
+                                                                                                        \
+    constexpr Vec2<T> operator OP(T scalar) const { return Vec2<T>(x OP scalar, y OP scalar); }         \
+                                                                                                        \
+    constexpr Vec2<T>& operator OP##=(const Vec2<T>& rhs)                                               \
+    {                                                                                                   \
+        x OP## = rhs.x;                                                                                 \
+        y OP## = rhs.y;                                                                                 \
+        return *this;                                                                                   \
     }
 
     VEC_OP(+);
