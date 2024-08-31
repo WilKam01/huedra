@@ -12,6 +12,14 @@ class Matrix
 {
 public:
     Matrix() = default;
+    Matrix(T scalar)
+    {
+        static_assert(R == C, "Scalar constructor only works on square matrices");
+        for (u64 i = 0; i < C; ++i)
+        {
+            m_elements[i][i] = scalar;
+        }
+    }
     Matrix(std::array<std::array<T, R>, C> values) { m_elements = values; }
     Matrix(std::array<T, R * C> values)
     {
@@ -19,7 +27,7 @@ public:
         {
             for (u64 j = 0; j < R; ++j)
             {
-                m_elements[i][j] = values[i * C + j];
+                m_elements[i][j] = values[i * R + j];
             }
         }
     }

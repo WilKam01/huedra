@@ -18,7 +18,7 @@ namespace huedra {
 template <typename T>
 constexpr Matrix<T, 4, 4> orthoZRH(const Vec2<T>& width, const Vec2<T>& height, const Vec2<T>& zPlanes)
 {
-    Matrix<T, 4, 4> matrix = identity<T, 4>();
+    Matrix<T, 4, 4> matrix(static_cast<T>(1));
     matrix(0, 0) = 2 / (width.y - width.x);
     matrix(1, 1) = 2 / (height.y - height.x);
     matrix(2, 2) = -1 / (zPlanes.y - zPlanes.x);
@@ -32,7 +32,7 @@ constexpr Matrix<T, 4, 4> orthoZRH(const Vec2<T>& width, const Vec2<T>& height, 
 template <typename T>
 constexpr Matrix<T, 4, 4> orthoZLH(const Vec2<T>& width, const Vec2<T>& height, const Vec2<T>& zPlanes)
 {
-    Matrix<T, 4, 4> matrix = identity<T, 4>();
+    Matrix<T, 4, 4> matrix(static_cast<T>(1));
     matrix(0, 0) = 2 / (width.y - width.x);
     matrix(1, 1) = 2 / (height.y - height.x);
     matrix(2, 2) = 1 / (zPlanes.y - zPlanes.x);
@@ -46,7 +46,7 @@ constexpr Matrix<T, 4, 4> orthoZLH(const Vec2<T>& width, const Vec2<T>& height, 
 template <typename T>
 constexpr Matrix<T, 4, 4> orthoNRH(const Vec2<T>& width, const Vec2<T>& height, const Vec2<T>& zPlanes)
 {
-    Matrix<T, 4, 4> matrix = identity<T, 4>();
+    Matrix<T, 4, 4> matrix(static_cast<T>(1));
     matrix(0, 0) = 2 / (width.y - width.x);
     matrix(1, 1) = 2 / (height.y - height.x);
     matrix(2, 2) = -1 / (zPlanes.y - zPlanes.x);
@@ -60,7 +60,7 @@ constexpr Matrix<T, 4, 4> orthoNRH(const Vec2<T>& width, const Vec2<T>& height, 
 template <typename T>
 constexpr Matrix<T, 4, 4> orthoNLH(const Vec2<T>& width, const Vec2<T>& height, const Vec2<T>& zPlanes)
 {
-    Matrix<T, 4, 4> matrix = identity<T, 4>();
+    Matrix<T, 4, 4> matrix(static_cast<T>(1));
     matrix(0, 0) = 2 / (width.y - width.x);
     matrix(1, 1) = 2 / (height.y - height.x);
     matrix(2, 2) = 1 / (zPlanes.y - zPlanes.x);

@@ -15,34 +15,22 @@ namespace huedra {
 // Translate
 
 template <typename T>
-constexpr void translate(Matrix<T, 3, 3>& matrix, const Vec2<T>& vec)
+constexpr Matrix<T, 3, 3> translate(const Matrix<T, 3, 3>& matrix, const Vec2<T>& vec)
 {
-    matrix(0, 2) = vec.x;
-    matrix(1, 2) = vec.y;
+    Matrix<T, 3, 3> mat = matrix;
+    mat(0, 2) = vec.x;
+    mat(1, 2) = vec.y;
+    return mat;
 }
 
 template <typename T>
-constexpr Matrix<T, 3, 3> translate(const Vec2<T>& vec)
+constexpr Matrix<T, 4, 4> translate(const Matrix<T, 4, 4>& matrix, const Vec3<T>& vec)
 {
-    Matrix<T, 3, 3> matrix = identity<T, 3>();
-    translate(matrix, vec);
-    return matrix;
-}
-
-template <typename T>
-constexpr void translate(Matrix<T, 4, 4>& matrix, const Vec3<T>& vec)
-{
-    matrix(0, 3) = vec.x;
-    matrix(1, 3) = vec.y;
-    matrix(2, 3) = vec.z;
-}
-
-template <typename T>
-constexpr Matrix<T, 4, 4> translate(const Vec3<T>& vec)
-{
-    Matrix<T, 4, 4> matrix = identity<T, 4>();
-    translate(matrix, vec);
-    return matrix;
+    Matrix<T, 4, 4> mat = matrix;
+    mat(0, 3) = vec.x;
+    mat(1, 3) = vec.y;
+    mat(2, 3) = vec.z;
+    return mat;
 }
 
 // Rotate
@@ -50,334 +38,231 @@ constexpr Matrix<T, 4, 4> translate(const Vec3<T>& vec)
 // 2x2
 
 template <typename T>
-constexpr void rotate(Matrix<T, 2, 2>& matrix, T angle)
+constexpr Matrix<T, 2, 2> rotate(const Matrix<T, 2, 2>& matrix, T angle)
 {
+    Matrix<T, 2, 2> mat = matrix;
     T c = cos(angle);
     T s = sin(angle);
 
-    matrix(0, 0) = c;
-    matrix(0, 1) = -s;
-    matrix(1, 0) = s;
-    matrix(1, 1) = c;
-}
-
-template <typename T>
-constexpr Matrix<T, 2, 2> rotate(T angle)
-{
-    Matrix<T, 2, 2> matrix = identity<T, 2>();
-    rotate(matrix, angle);
-    return matrix;
+    mat(0, 0) = c;
+    mat(0, 1) = -s;
+    mat(1, 0) = s;
+    mat(1, 1) = c;
+    return mat;
 }
 
 // 3x3
 
 template <typename T>
-constexpr void rotateX(Matrix<T, 3, 3>& matrix, T angle)
+constexpr Matrix<T, 3, 3> rotateX(const Matrix<T, 3, 3>& matrix, T angle)
 {
+    Matrix<T, 3, 3> mat = matrix;
     T c = cos(angle);
     T s = sin(angle);
 
-    matrix(1, 1) = c;
-    matrix(1, 2) = -s;
-    matrix(2, 1) = s;
-    matrix(2, 2) = c;
+    mat(1, 1) = c;
+    mat(1, 2) = -s;
+    mat(2, 1) = s;
+    mat(2, 2) = c;
+    return mat;
 }
 
 template <typename T>
-constexpr Matrix<T, 3, 3> rotateX(T angle)
+constexpr Matrix<T, 3, 3> rotateY(const Matrix<T, 3, 3>& matrix, T angle)
 {
-    Matrix<T, 3, 3> matrix = identity<T, 3>();
-    rotateX(matrix, angle);
-    return matrix;
-}
-
-template <typename T>
-constexpr void rotateY(Matrix<T, 3, 3>& matrix, T angle)
-{
+    Matrix<T, 3, 3> mat = matrix;
     T c = cos(angle);
     T s = sin(angle);
 
-    matrix(0, 0) = c;
-    matrix(0, 2) = s;
-    matrix(2, 0) = -s;
-    matrix(2, 2) = c;
+    mat(0, 0) = c;
+    mat(0, 2) = s;
+    mat(2, 0) = -s;
+    mat(2, 2) = c;
+    return mat;
 }
 
 template <typename T>
-constexpr Matrix<T, 3, 3> rotateY(T angle)
+constexpr Matrix<T, 3, 3> rotateZ(const Matrix<T, 3, 3>& matrix, T angle)
 {
-    Matrix<T, 3, 3> matrix = identity<T, 3>();
-    rotateY(matrix, angle);
-    return matrix;
-}
-
-template <typename T>
-constexpr void rotateZ(Matrix<T, 3, 3>& matrix, T angle)
-{
+    Matrix<T, 3, 3> mat = matrix;
     T c = cos(angle);
     T s = sin(angle);
 
-    matrix(0, 0) = c;
-    matrix(0, 1) = -s;
-    matrix(1, 0) = s;
-    matrix(1, 1) = c;
+    mat(0, 0) = c;
+    mat(0, 1) = -s;
+    mat(1, 0) = s;
+    mat(1, 1) = c;
+    return mat;
 }
 
 template <typename T>
-constexpr Matrix<T, 3, 3> rotateZ(T angle)
+constexpr Matrix<T, 3, 3> rotate(const Matrix<T, 3, 3>& matrix, T angle, const Vec3<T>& axis)
 {
-    Matrix<T, 3, 3> matrix = identity<T, 3>();
-    rotateZ(matrix, angle);
-    return matrix;
-}
-
-template <typename T>
-constexpr void rotate(Matrix<T, 3, 3>& matrix, T angle, const Vec3<T>& axis)
-{
+    Matrix<T, 3, 3> mat = matrix;
     T c = cos(angle);
     T s = sin(angle);
     T oneMinusC = 1 - c;
     Vec3<T> v = normalize(axis);
 
-    matrix(0, 0) = c + v.x * v.x * oneMinusC;
-    matrix(0, 1) = v.x * v.y * oneMinusC - v.z * s;
-    matrix(0, 2) = v.x * v.z * oneMinusC + v.y * s;
-    matrix(1, 0) = v.y * v.x * oneMinusC + v.z * s;
-    matrix(1, 1) = c + v.y * v.y * oneMinusC;
-    matrix(1, 2) = v.y * v.z * oneMinusC - v.x * s;
-    matrix(2, 0) = v.z * v.x * oneMinusC - v.y * s;
-    matrix(2, 1) = v.z * v.y * oneMinusC + v.x * s;
-    matrix(2, 2) = c + v.z * v.z * oneMinusC;
-}
-
-template <typename T>
-constexpr Matrix<T, 3, 3> rotate(T angle, const Vec3<T>& axis)
-{
-    Matrix<T, 3, 3> matrix = identity<T, 3>();
-    rotate(matrix, angle, axis);
-    return matrix;
+    mat(0, 0) = c + v.x * v.x * oneMinusC;
+    mat(0, 1) = v.x * v.y * oneMinusC - v.z * s;
+    mat(0, 2) = v.x * v.z * oneMinusC + v.y * s;
+    mat(1, 0) = v.y * v.x * oneMinusC + v.z * s;
+    mat(1, 1) = c + v.y * v.y * oneMinusC;
+    mat(1, 2) = v.y * v.z * oneMinusC - v.x * s;
+    mat(2, 0) = v.z * v.x * oneMinusC - v.y * s;
+    mat(2, 1) = v.z * v.y * oneMinusC + v.x * s;
+    mat(2, 2) = c + v.z * v.z * oneMinusC;
+    return mat;
 }
 
 // 4x4
 
 template <typename T>
-constexpr void rotateX(Matrix<T, 4, 4>& matrix, T angle)
+constexpr Matrix<T, 4, 4> rotateX(const Matrix<T, 4, 4>& matrix, T angle)
 {
+    Matrix<T, 4, 4> mat = matrix;
     T c = cos(angle);
     T s = sin(angle);
 
-    matrix(1, 1) = c;
-    matrix(1, 2) = -s;
-    matrix(2, 1) = s;
-    matrix(2, 2) = c;
+    mat(1, 1) = c;
+    mat(1, 2) = -s;
+    mat(2, 1) = s;
+    mat(2, 2) = c;
+    return mat;
 }
 
 template <typename T>
-constexpr Matrix<T, 4, 4> rotateX(T angle)
+constexpr Matrix<T, 4, 4> rotateY(const Matrix<T, 4, 4>& matrix, T angle)
 {
-    Matrix<T, 4, 4> matrix = identity<T, 4>();
-    rotateX(matrix);
-    return matrix;
-}
-
-template <typename T>
-constexpr void rotateY(Matrix<T, 4, 4>& matrix, T angle)
-{
+    Matrix<T, 4, 4> mat = matrix;
     T c = cos(angle);
     T s = sin(angle);
 
-    matrix(0, 0) = c;
-    matrix(0, 2) = s;
-    matrix(2, 0) = -s;
-    matrix(2, 2) = c;
+    mat(0, 0) = c;
+    mat(0, 2) = s;
+    mat(2, 0) = -s;
+    mat(2, 2) = c;
+    return mat;
 }
 
 template <typename T>
-constexpr Matrix<T, 4, 4> rotateY(T angle)
+constexpr Matrix<T, 4, 4> rotateZ(const Matrix<T, 4, 4>& matrix, T angle)
 {
-    Matrix<T, 4, 4> matrix = identity<T, 4>();
-    rotateY(matrix);
-    return matrix;
-}
-
-template <typename T>
-constexpr void rotateZ(Matrix<T, 4, 4>& matrix, T angle)
-{
+    Matrix<T, 4, 4> mat = matrix;
     T c = cos(angle);
     T s = sin(angle);
 
-    matrix(0, 0) = c;
-    matrix(0, 1) = -s;
-    matrix(1, 0) = s;
-    matrix(1, 1) = c;
+    mat(0, 0) = c;
+    mat(0, 1) = -s;
+    mat(1, 0) = s;
+    mat(1, 1) = c;
+    return mat;
 }
 
 template <typename T>
-constexpr Matrix<T, 4, 4> rotateZ(T angle)
+constexpr Matrix<T, 4, 4> rotate(const Matrix<T, 4, 4>& matrix, T angle, const Vec3<T>& axis)
 {
-    Matrix<T, 4, 4> matrix = identity<T, 4>();
-    rotateZ(matrix);
-    return matrix;
-}
-
-template <typename T>
-constexpr void rotate(Matrix<T, 4, 4>& matrix, T angle, const Vec3<T>& axis)
-{
+    Matrix<T, 4, 4> mat = matrix;
     T c = cos(angle);
     T s = sin(angle);
     T oneMinusC = 1 - c;
     Vec3<T> v = normalize(axis);
 
-    matrix(0, 0) = c + v.x * v.x * oneMinusC;
-    matrix(0, 1) = v.x * v.y * oneMinusC - v.z * s;
-    matrix(0, 2) = v.x * v.z * oneMinusC + v.y * s;
-    matrix(1, 0) = v.y * v.x * oneMinusC + v.z * s;
-    matrix(1, 1) = c + v.y * v.y * oneMinusC;
-    matrix(1, 2) = v.y * v.z * oneMinusC - v.x * s;
-    matrix(2, 0) = v.z * v.x * oneMinusC - v.y * s;
-    matrix(2, 1) = v.z * v.y * oneMinusC + v.x * s;
-    matrix(2, 2) = c + v.z * v.z * oneMinusC;
-}
-
-template <typename T>
-constexpr Matrix<T, 4, 4> rotate(T angle, const Vec3<T>& axis)
-{
-    Matrix<T, 4, 4> matrix = identity<T, 4>();
-    rotate(matrix, angle, axis);
-    return matrix;
+    mat(0, 0) = c + v.x * v.x * oneMinusC;
+    mat(0, 1) = v.x * v.y * oneMinusC - v.z * s;
+    mat(0, 2) = v.x * v.z * oneMinusC + v.y * s;
+    mat(1, 0) = v.y * v.x * oneMinusC + v.z * s;
+    mat(1, 1) = c + v.y * v.y * oneMinusC;
+    mat(1, 2) = v.y * v.z * oneMinusC - v.x * s;
+    mat(2, 0) = v.z * v.x * oneMinusC - v.y * s;
+    mat(2, 1) = v.z * v.y * oneMinusC + v.x * s;
+    mat(2, 2) = c + v.z * v.z * oneMinusC;
+    return mat;
 }
 
 // Scale
 
 template <typename T>
-constexpr void scale(Matrix<T, 2, 2>& matrix, const Vec2<T>& vec)
+constexpr Matrix<T, 2, 2> scale(const Matrix<T, 2, 2>& matrix, const Vec2<T>& vec)
 {
-    matrix(0, 0) = vec.x;
-    matrix(1, 1) = vec.y;
+    Matrix<T, 2, 2> mat = matrix;
+    mat(0, 0) = vec.x;
+    mat(1, 1) = vec.y;
+    return mat;
 }
 
 template <typename T>
-constexpr Matrix<T, 2, 2> scale(const Vec2<T>& vec)
+constexpr Matrix<T, 3, 3> scale(const Matrix<T, 3, 3>& matrix, const Vec2<T>& vec)
 {
-    Matrix<T, 2, 2> matrix = identity<T, 2>();
-    scale(matrix, vec);
-    return matrix;
+    Matrix<T, 3, 3> mat = matrix;
+    mat(0, 0) = vec.x;
+    mat(1, 1) = vec.y;
+    return mat;
 }
 
 template <typename T>
-constexpr void scale(Matrix<T, 3, 3>& matrix, const Vec2<T>& vec)
+constexpr Matrix<T, 3, 3> scale(const Matrix<T, 3, 3>& matrix, const Vec3<T>& vec)
 {
-    matrix(0, 0) = vec.x;
-    matrix(1, 1) = vec.y;
+    Matrix<T, 3, 3> mat = matrix;
+    mat(0, 0) = vec.x;
+    mat(1, 1) = vec.y;
+    mat(2, 2) = vec.z;
+    return mat;
 }
 
 template <typename T>
-constexpr Matrix<T, 3, 3> scale(const Vec2<T>& vec)
+constexpr Matrix<T, 4, 4> scale(const Matrix<T, 4, 4>& matrix, const Vec3<T>& vec)
 {
-    Matrix<T, 3, 3> matrix = identity<T, 3>();
-    scale(matrix, vec);
-    return matrix;
-}
-
-template <typename T>
-constexpr void scale(Matrix<T, 3, 3>& matrix, const Vec3<T>& vec)
-{
-    matrix(0, 0) = vec.x;
-    matrix(1, 1) = vec.y;
-    matrix(2, 2) = vec.z;
-}
-
-template <typename T>
-constexpr Matrix<T, 3, 3> scale(const Vec3<T>& vec)
-{
-    Matrix<T, 3, 3> matrix = identity<T, 3>();
-    scale(matrix, vec);
-    return matrix;
-}
-
-template <typename T>
-constexpr void scale(Matrix<T, 4, 4>& matrix, const Vec3<T>& vec)
-{
-    matrix(0, 0) = vec.x;
-    matrix(1, 1) = vec.y;
-    matrix(2, 2) = vec.z;
-}
-
-template <typename T>
-constexpr Matrix<T, 4, 4> scale(const Vec3<T>& vec)
-{
-    Matrix<T, 4, 4> matrix = identity<T, 4>();
-    scale(matrix, vec);
-    return matrix;
+    Matrix<T, 4, 4> mat = matrix;
+    mat(0, 0) = vec.x;
+    mat(1, 1) = vec.y;
+    mat(2, 2) = vec.z;
+    return mat;
 }
 
 // Shear
 
 // vec.x = x, vec.y = y
 template <typename T>
-constexpr void shear(Matrix<T, 2, 2>& matrix, const Vec2<T>& vec)
+constexpr Matrix<T, 2, 2> shear(const Matrix<T, 2, 2>& matrix, const Vec2<T>& vec)
 {
-    matrix(0, 1) = vec.x;
-    matrix(1, 0) = vec.y;
-}
-
-// vec.x = x, vec.y = y
-template <typename T>
-constexpr Matrix<T, 2, 2> shear(const Vec2<T>& vec)
-{
-    Matrix<T, 2, 2> matrix = identity<T, 2>();
-    shear(matrix, vec);
-    return matrix;
+    Matrix<T, 2, 2> mat = matrix;
+    mat(0, 1) = vec.x;
+    mat(1, 0) = vec.y;
+    return mat;
 }
 
 // v0.x = xy, v0.y = xz
 // v1.x = yx, v1.y = yz
 // v2.x = zx, v2.y = zy
 template <typename T>
-constexpr void shear(Matrix<T, 3, 3>& matrix, const Vec2<T>& v0, const Vec2<T>& v1, const Vec2<T>& v2)
+constexpr Matrix<T, 3, 3> shear(const Matrix<T, 3, 3>& matrix, const Vec2<T>& v0, const Vec2<T>& v1, const Vec2<T>& v2)
 {
-    matrix(0, 1) = v0.x;
-    matrix(0, 2) = v0.y;
-    matrix(1, 0) = v1.x;
-    matrix(1, 2) = v1.y;
-    matrix(2, 0) = v2.x;
-    matrix(2, 1) = v2.y;
+    Matrix<T, 3, 3> mat = matrix;
+    mat(0, 1) = v0.x;
+    mat(0, 2) = v0.y;
+    mat(1, 0) = v1.x;
+    mat(1, 2) = v1.y;
+    mat(2, 0) = v2.x;
+    mat(2, 1) = v2.y;
+    return mat;
 }
 
 // v0.x = xy, v0.y = xz
 // v1.x = yx, v1.y = yz
 // v2.x = zx, v2.y = zy
 template <typename T>
-constexpr Matrix<T, 3, 3> shear(const Vec2<T>& v0, const Vec2<T>& v1, const Vec2<T>& v2)
+constexpr Matrix<T, 4, 4> shear(const Matrix<T, 4, 4>& matrix, const Vec2<T>& v0, const Vec2<T>& v1, const Vec2<T>& v2)
 {
-    Matrix<T, 3, 3> matrix = identity<T, 3>();
-    shear(matrix, v0, v1, v2);
-    return matrix;
-}
-
-// v0.x = xy, v0.y = xz
-// v1.x = yx, v1.y = yz
-// v2.x = zx, v2.y = zy
-template <typename T>
-constexpr void shear(Matrix<T, 4, 4>& matrix, const Vec2<T>& v0, const Vec2<T>& v1, const Vec2<T>& v2)
-{
-    matrix(0, 1) = v0.x;
-    matrix(0, 2) = v0.y;
-    matrix(1, 0) = v1.x;
-    matrix(1, 2) = v1.y;
-    matrix(2, 0) = v2.x;
-    matrix(2, 1) = v2.y;
-}
-
-// v0.x = xy, v0.y = xz
-// v1.x = yx, v1.y = yz
-// v2.x = zx, v2.y = zy
-template <typename T>
-constexpr Matrix<T, 4, 4> shear(const Vec2<T>& v0, const Vec2<T>& v1, const Vec2<T>& v2)
-{
-    Matrix<T, 4, 4> matrix = identity<T, 4>();
-    shear(matrix, v0, v1, v2);
-    return matrix;
+    Matrix<T, 4, 4> mat = matrix;
+    mat(0, 1) = v0.x;
+    mat(0, 2) = v0.y;
+    mat(1, 0) = v1.x;
+    mat(1, 2) = v1.y;
+    mat(2, 0) = v2.x;
+    mat(2, 1) = v2.y;
+    return mat;
 }
 
 // LookAt
@@ -389,7 +274,7 @@ constexpr Matrix<T, 4, 4> lookAtRH(const Vec3<T>& eye, const Vec3<T>& target, co
     Vec3<T> x = normalize(cross(z, up));
     Vec3<T> y = cross(x, z);
 
-    Matrix<T, 4, 4> matrix = identity<T, 4>();
+    Matrix<T, 4, 4> matrix(static_cast<T>(1));
     matrix(0, 0) = x.x;
     matrix(0, 1) = x.y;
     matrix(0, 2) = x.z;
@@ -415,7 +300,7 @@ constexpr Matrix<T, 4, 4> lookAtLH(const Vec3<T>& eye, const Vec3<T>& target, co
     Vec3<T> x = normalize(cross(up, z));
     Vec3<T> y = cross(z, x);
 
-    Matrix<T, 4, 4> matrix = identity<T, 4>();
+    Matrix<T, 4, 4> matrix(static_cast<T>(1));
     matrix(0, 0) = x.x;
     matrix(0, 1) = x.y;
     matrix(0, 2) = x.z;

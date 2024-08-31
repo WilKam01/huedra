@@ -2,19 +2,6 @@
 
 namespace huedra {
 
-// Identity
-
-template <typename T, u64 N>
-constexpr Matrix<T, N, N> identity()
-{
-    Matrix<T, N, N> ret;
-    for (u64 i = 0; i < N; ++i)
-    {
-        ret(i, i) = 1;
-    }
-    return ret;
-}
-
 // Determinant
 
 template <typename T>

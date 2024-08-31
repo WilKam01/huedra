@@ -52,7 +52,7 @@ int main()
                     vec2(0.1f, 100.0f)) *
         lookAt(vec3(0.0f, 0.0f, -5.0f), vec3(0.0f), vec3(0.0f, 1.0f, 0.0f));
 
-    matrix4 modelMatrix = identity<float, 4>();
+    matrix4 modelMatrix(1.0f);
 
     Ref<Buffer> viewProjBuffer = Global::graphicsManager.createBuffer(
         BufferType::DYNAMIC, HU_BUFFER_USAGE_UNIFORM_BUFFER, sizeof(viewProj), &viewProj);
@@ -114,11 +114,9 @@ int main()
             scaler = 10.0f;
         }
 
-        modelMatrix = identity<float, 4>();
-        scale(modelMatrix, vec3(scaler / 100.0f));
+        modelMatrix = scale(matrix4(1.0f), vec3(scaler / 100.0f));
 
-        matrix4 mat = identity<float, 4>();
-        rotateY(mat, Global::timer.secondsElapsed());
+        matrix4 mat = rotateY(matrix4(1.0f), Global::timer.secondsElapsed());
         vec4 eye = mat * vec4(0.0f, 0.0f, -3.0f, 0.0f);
 
         rect = window.get()->getRect();
@@ -143,9 +141,8 @@ int main()
                 sum += fps;
             }
 
-            // log(LogLevel::INFO, "Elapsed: %f, Delta: %f, FPS: %u", Global::timer.secondsElapsed(),
-            // Global::timer.dt(),
-            //    sum / 500);
+            log(LogLevel::INFO, "Elapsed: %f, Delta: %f, FPS: %u", Global::timer.secondsElapsed(), Global::timer.dt(),
+                sum / 500);
             i = 0;
         }
     }
