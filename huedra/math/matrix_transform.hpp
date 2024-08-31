@@ -385,25 +385,49 @@ constexpr Matrix<T, 4, 4> shear(const Vec2<T>& v0, const Vec2<T>& v1, const Vec2
 template <typename T>
 constexpr Matrix<T, 4, 4> lookAtRH(const Vec3<T>& eye, const Vec3<T>& target, const Vec3<T>& up)
 {
-    Vec3<T> z = normalize(eye - target);
+    Vec3<T> z = normalize(target - eye);
     Vec3<T> x = normalize(cross(z, up));
     Vec3<T> y = cross(x, z);
 
-    std::array<T, 16> data = {
-        {x.x, x.y, x.z, -dot(x, eye), y.x, y.y, y.z, -dot(y, eye), z.x, z.y, z.z, -dot(z, eye), 0, 0, 0, 1}};
-    Matrix<T, 4, 4> matrix(data);
+    Matrix<T, 4, 4> matrix = identity<T, 4>();
+    matrix(0, 0) = x.x;
+    matrix(0, 1) = x.y;
+    matrix(0, 2) = x.z;
+    matrix(0, 3) = -dot(x, eye);
+
+    matrix(1, 0) = y.x;
+    matrix(1, 1) = y.y;
+    matrix(1, 2) = y.z;
+    matrix(1, 3) = -dot(y, eye);
+
+    matrix(2, 0) = -z.x;
+    matrix(2, 1) = -z.y;
+    matrix(2, 2) = -z.z;
+    matrix(2, 3) = dot(z, eye);
+
     return matrix;
 }
 
 template <typename T>
 constexpr Matrix<T, 4, 4> lookAtLH(const Vec3<T>& eye, const Vec3<T>& target, const Vec3<T>& up)
 {
-    Vec3<T> z = normalize(eye - target);
+    Vec3<T> z = normalize(target - eye);
     Vec3<T> x = normalize(cross(up, z));
     Vec3<T> y = cross(z, x);
 
-    Matrix<T, 4, 4> matrix(x.x, x.y, x.z, -dot(x, eye), y.x, y.y, y.z, -dot(y, eye), z.x, z.y, z.z, -dot(z, eye), 0, 0,
-                           0, 1);
+    Matrix<T, 4, 4> matrix = identity<T, 4>();
+    matrix(0, 0) = x.x;
+    matrix(0, 1) = x.y;
+    matrix(0, 2) = x.z;
+    matrix(1, 0) = y.x;
+    matrix(1, 1) = y.y;
+    matrix(1, 2) = y.z;
+    matrix(2, 0) = -z.x;
+    matrix(2, 1) = -z.y;
+    matrix(2, 2) = -z.z;
+    matrix(0, 3) = -dot(x, eye);
+    matrix(1, 3) = -dot(y, eye);
+    matrix(2, 3) = dot(z, eye);
     return matrix;
 }
 

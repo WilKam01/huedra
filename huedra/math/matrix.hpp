@@ -92,7 +92,7 @@ public:
             {
                 for (u64 k = 0; k < C; ++k)
                 {
-                    ret.m_elements[i][j] += m_elements[i][k] * matrix.m_elements[k][j];
+                    ret.m_elements[i][j] += m_elements[k][j] * matrix.m_elements[i][k];
                 }
             }
         }

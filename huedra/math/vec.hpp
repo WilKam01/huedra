@@ -45,7 +45,7 @@ public:
     inline T& operator[](u64 index) { return m_elements[index]; }
 
 private:
-    std::array<T, L> m_elements{};
+    std::array<T, L> m_elements{static_cast<T>(0)};
 };
 
 } // namespace huedra

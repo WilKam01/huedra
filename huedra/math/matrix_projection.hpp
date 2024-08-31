@@ -113,13 +113,13 @@ constexpr Matrix<T, 4, 4> ortho(const Vec2<T>& width, const Vec2<T>& height, con
 template <typename T>
 constexpr Matrix<T, 4, 4> perspectiveZRH(T fov, T aspectRatio, const Vec2<T>& zPlanes)
 {
-    T tanVert = tan(fov / 2);
+    T tanVert = tan(fov / static_cast<T>(2));
 
     Matrix<T, 4, 4> matrix;
-    matrix(0, 0) = 1 / (aspectRatio * tanVert);
-    matrix(1, 1) = 1 / tanVert;
+    matrix(0, 0) = static_cast<T>(1) / (aspectRatio * tanVert);
+    matrix(1, 1) = static_cast<T>(1) / tanVert;
     matrix(2, 2) = (zPlanes.y) / (zPlanes.x - zPlanes.y);
-    matrix(3, 2) = -1;
+    matrix(3, 2) = -static_cast<T>(1);
     matrix(2, 3) = -(zPlanes.y * zPlanes.x) / (zPlanes.y - zPlanes.x);
 
     return matrix;
@@ -129,13 +129,13 @@ constexpr Matrix<T, 4, 4> perspectiveZRH(T fov, T aspectRatio, const Vec2<T>& zP
 template <typename T>
 constexpr Matrix<T, 4, 4> perspectiveNRH(T fov, T aspectRatio, const Vec2<T>& zPlanes)
 {
-    T tanVert = tan(fov / 2);
+    T tanVert = tan(fov / static_cast<T>(2));
 
     Matrix<T, 4, 4> matrix;
-    matrix(0, 0) = 1 / (aspectRatio * tanVert);
-    matrix(1, 1) = 1 / tanVert;
+    matrix(0, 0) = static_cast<T>(1) / (aspectRatio * tanVert);
+    matrix(1, 1) = static_cast<T>(1) / tanVert;
     matrix(2, 2) = -(zPlanes.y + zPlanes.x) / (zPlanes.y - zPlanes.x);
-    matrix(3, 2) = -1;
+    matrix(3, 2) = -static_cast<T>(1);
     matrix(2, 3) = -(2 * zPlanes.y * zPlanes.x) / (zPlanes.y - zPlanes.x);
 
     return matrix;
@@ -145,13 +145,13 @@ constexpr Matrix<T, 4, 4> perspectiveNRH(T fov, T aspectRatio, const Vec2<T>& zP
 template <typename T>
 constexpr Matrix<T, 4, 4> perspectiveZLH(T fov, T aspectRatio, const Vec2<T>& zPlanes)
 {
-    T tanVert = tan(fov / 2);
+    T tanVert = tan(fov / static_cast<T>(2));
 
     Matrix<T, 4, 4> matrix;
-    matrix(0, 0) = 1 / (aspectRatio * tanVert);
-    matrix(1, 1) = 1 / tanVert;
+    matrix(0, 0) = static_cast<T>(1) / (aspectRatio * tanVert);
+    matrix(1, 1) = static_cast<T>(1) / tanVert;
     matrix(2, 2) = (zPlanes.y) / (zPlanes.y - zPlanes.x);
-    matrix(3, 2) = 1;
+    matrix(3, 2) = static_cast<T>(1);
     matrix(2, 3) = -(zPlanes.y * zPlanes.x) / (zPlanes.y - zPlanes.x);
 
     return matrix;
@@ -161,13 +161,13 @@ constexpr Matrix<T, 4, 4> perspectiveZLH(T fov, T aspectRatio, const Vec2<T>& zP
 template <typename T>
 constexpr Matrix<T, 4, 4> perspectiveNLH(T fov, T aspectRatio, const Vec2<T>& zPlanes)
 {
-    T tanVert = tan(fov / 2);
+    T tanVert = tan(fov / static_cast<T>(2));
 
     Matrix<T, 4, 4> matrix;
-    matrix(0, 0) = 1 / (aspectRatio * tanVert);
-    matrix(1, 1) = 1 / tanVert;
+    matrix(0, 0) = static_cast<T>(1) / (aspectRatio * tanVert);
+    matrix(1, 1) = static_cast<T>(1) / tanVert;
     matrix(2, 2) = (zPlanes.y + zPlanes.x) / (zPlanes.y - zPlanes.x);
-    matrix(3, 2) = 1;
+    matrix(3, 2) = static_cast<T>(1);
     matrix(2, 3) = -(2 * zPlanes.y * zPlanes.x) / (zPlanes.y - zPlanes.x);
 
     return matrix;

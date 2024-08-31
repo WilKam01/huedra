@@ -27,7 +27,7 @@ public:
 
     union
     {
-        Vec<T, 2> data;
+        Vec<T, 2> data{};
         struct
         {
             T x, y;
