@@ -1,4 +1,6 @@
 #include "window.hpp"
+#include "core/global.hpp"
+#include "core/log.hpp"
 
 namespace huedra {
 
@@ -56,6 +58,18 @@ LRESULT CALLBACK Win32Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
                 rect.yPos = winRect.top;
             }
             break;
+        case WM_KEYDOWN:
+            Global::input.setKey(convertKey(wParam), true);
+            break;
+        case WM_KEYUP:
+            Global::input.setKey(convertKey(wParam), false);
+            break;
+        case WM_SYSKEYDOWN:
+            Global::input.setKey(Keys::ALT, true);
+            return 0;
+        case WM_SYSKEYUP:
+            Global::input.setKey(Keys::ALT, false);
+            return 0;
         case WM_PAINT: {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
@@ -103,7 +117,7 @@ bool Win32Window::init(const std::string& title, const WindowInput& input, HINST
 
     if (m_handle == NULL)
     {
-        // Log Error
+        log(LogLevel::WARNING, "Failed to create win32 window!");
         return false;
     }
 
@@ -148,5 +162,182 @@ void Win32Window::setResolution(u32 width, u32 height)
 }
 
 void Win32Window::setPos(i32 x, i32 y) { SetWindowPos(m_handle, NULL, x, y, 0, 0, SWP_NOSIZE); }
+
+Keys Win32Window::convertKey(i64 code)
+{
+    char letter = static_cast<char>(code);
+    if (letter >= 'A' && letter <= 'Z')
+    {
+        return static_cast<Keys>(static_cast<u32>(Keys::A) + static_cast<u32>(letter - 'A'));
+    }
+
+    Keys key = Keys::NONE;
+    switch (code)
+    {
+    case VK_LEFT:
+        key = Keys::ARR_LEFT;
+        break;
+    case VK_RIGHT:
+        key = Keys::ARR_RIGHT;
+        break;
+    case VK_UP:
+        key = Keys::ARR_UP;
+        break;
+    case VK_DOWN:
+        key = Keys::ARR_DOWN;
+        break;
+    case VK_ESCAPE:
+        key = Keys::ESCAPE;
+        break;
+    case VK_SHIFT:
+        key = Keys::SHIFT;
+        break;
+    case VK_CONTROL:
+        key = Keys::CTRL;
+        break;
+    case VK_MENU:
+        key = Keys::ALT;
+        break;
+    case VK_TAB:
+        key = Keys::TAB;
+        break;
+    case VK_BACK:
+        key = Keys::BACKSPACE;
+        break;
+    case VK_RETURN:
+        key = Keys::ENTER;
+        break;
+    case VK_SPACE:
+        key = Keys::SPACE;
+        break;
+    case VK_CAPITAL:
+        key = Keys::CAPS_LOCK;
+        break;
+    case VK_NUMLOCK:
+        key = Keys::NUM_LOCK;
+        break;
+    case VK_SCROLL:
+        key = Keys::SCR_LOCK;
+        break;
+    case VK_F1:
+        key = Keys::F1;
+        break;
+    case VK_F2:
+        key = Keys::F2;
+        break;
+    case VK_F3:
+        key = Keys::F3;
+        break;
+    case VK_F4:
+        key = Keys::F4;
+        break;
+    case VK_F5:
+        key = Keys::F5;
+        break;
+    case VK_F6:
+        key = Keys::F6;
+        break;
+    case VK_F7:
+        key = Keys::F7;
+        break;
+    case VK_F8:
+        key = Keys::F8;
+        break;
+    case VK_F9:
+        key = Keys::F9;
+        break;
+    case VK_F10:
+        key = Keys::F10;
+        break;
+    case VK_F11:
+        key = Keys::F11;
+        break;
+    case VK_F12:
+        key = Keys::F12;
+        break;
+    case VK_OEM_COMMA:
+        key = Keys::COMMA;
+        break;
+    case VK_OEM_PERIOD:
+        key = Keys::DOT;
+        break;
+    case VK_OEM_MINUS:
+        key = Keys::MINUS;
+        break;
+    case VK_OEM_PLUS:
+        key = Keys::PLUS;
+        break;
+    case VK_INSERT:
+        key = Keys::INSERT;
+        break;
+    case VK_DELETE:
+        key = Keys::DEL;
+        break;
+    case VK_HOME:
+        key = Keys::HOME;
+        break;
+    case VK_END:
+        key = Keys::END;
+        break;
+    case VK_PRIOR:
+        key = Keys::PAGE_UP;
+        break;
+    case VK_NEXT:
+        key = Keys::PAGE_DOWN;
+        break;
+    case VK_DIVIDE:
+        key = Keys::NUMPAD_DIVIDE;
+        break;
+    case VK_MULTIPLY:
+        key = Keys::NUMPAD_MULT;
+        break;
+    case VK_SUBTRACT:
+        key = Keys::NUMPAD_MINUS;
+        break;
+    case VK_ADD:
+        key = Keys::NUMPAD_PLUS;
+        break;
+    case VK_SEPARATOR:
+        key = Keys::NUMPAD_DEL;
+        break;
+    case VK_NUMPAD0:
+        key = Keys::NUMPAD_0;
+        break;
+    case VK_NUMPAD1:
+        key = Keys::NUMPAD_1;
+        break;
+    case VK_NUMPAD2:
+        key = Keys::NUMPAD_2;
+        break;
+    case VK_NUMPAD3:
+        key = Keys::NUMPAD_3;
+        break;
+    case VK_NUMPAD4:
+        key = Keys::NUMPAD_4;
+        break;
+    case VK_NUMPAD5:
+        key = Keys::NUMPAD_5;
+        break;
+    case VK_NUMPAD6:
+        key = Keys::NUMPAD_6;
+        break;
+    case VK_NUMPAD7:
+        key = Keys::NUMPAD_7;
+        break;
+    case VK_NUMPAD8:
+        key = Keys::NUMPAD_8;
+        break;
+    case VK_NUMPAD9:
+        key = Keys::NUMPAD_9;
+        break;
+    }
+
+    if (key == Keys::NONE && letter >= '0' && letter <= '9')
+    {
+        return static_cast<Keys>(static_cast<u32>(Keys::K0) + static_cast<u32>(letter - '0'));
+    }
+
+    return key;
+}
 
 } // namespace huedra

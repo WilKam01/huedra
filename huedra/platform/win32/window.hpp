@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/input/keys.hpp"
 #include "window/window.hpp"
 
 #include <windows.h>
@@ -25,6 +26,8 @@ public:
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 private:
+    static Keys convertKey(i64 code);
+
     HWND m_handle;
 };
 

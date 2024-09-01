@@ -123,6 +123,15 @@ int main()
 
         Global::graphicsManager.render();
 
+        if (Global::input.isKeyPressed(Keys::A))
+        {
+            log(LogLevel::INFO, "Pressed A");
+        }
+        else if (Global::input.isKeyReleased(Keys::A))
+        {
+            log(LogLevel::INFO, "Released A");
+        }
+
         static u32 i = 0;
         static std::array<u32, 500> avgFps;
 
@@ -139,6 +148,7 @@ int main()
                 sum / 500);
             i = 0;
         }
+        Global::input.update();
     }
 
     Global::graphicsManager.cleanup();
