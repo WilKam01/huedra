@@ -164,19 +164,19 @@ Vec4<T> reflect(const Vec4<T>& vec, const Vec4<T>& normal)
 // Angle (radians)
 
 template <typename T>
-float angle(const Vec2<T>& lhs, const Vec2<T>& rhs)
+T angle(const Vec2<T>& lhs, const Vec2<T>& rhs)
 {
     return acos(dot(lhs, rhs) / (length(lhs) * length(rhs)));
 }
 
 template <typename T>
-float angle(const Vec3<T>& lhs, const Vec3<T>& rhs)
+T angle(const Vec3<T>& lhs, const Vec3<T>& rhs)
 {
     return acos(dot(lhs, rhs) / (length(lhs) * length(rhs)));
 }
 
 template <typename T>
-float angle(const Vec4<T>& lhs, const Vec4<T>& rhs)
+T angle(const Vec4<T>& lhs, const Vec4<T>& rhs)
 {
     return acos(dot(lhs, rhs) / (length(lhs) * length(rhs)));
 }
@@ -206,9 +206,9 @@ Vec4<T> lerp(const Vec4<T>& start, const Vec4<T>& end, float t)
 template <typename T>
 Vec2<T> slerp(const Vec2<T>& start, const Vec2<T>& end, float t)
 {
-    float cosTheta = dot(normalize(start), normalize(end));
-    float theta = acos(cosTheta);
-    float sinTheta = sin(theta);
+    T cosTheta = dot(normalize(start), normalize(end));
+    T theta = acos(cosTheta);
+    T sinTheta = sin(theta);
 
     return (sin(std::abs((1.0f - t) * theta)) / sinTheta) * start + (sin(std::abs(t * theta)) / sinTheta) * end;
 }
@@ -216,9 +216,9 @@ Vec2<T> slerp(const Vec2<T>& start, const Vec2<T>& end, float t)
 template <typename T>
 Vec3<T> slerp(const Vec3<T>& start, const Vec3<T>& end, float t)
 {
-    float cosTheta = dot(normalize(start), normalize(end));
-    float theta = acos(cosTheta);
-    float sinTheta = sin(theta);
+    T cosTheta = dot(normalize(start), normalize(end));
+    T theta = acos(cosTheta);
+    T sinTheta = sin(theta);
 
     return (sin(std::abs((1.0f - t) * theta)) / sinTheta) * start + (sin(std::abs(t * theta)) / sinTheta) * end;
 }
@@ -226,9 +226,9 @@ Vec3<T> slerp(const Vec3<T>& start, const Vec3<T>& end, float t)
 template <typename T>
 Vec4<T> slerp(const Vec4<T>& start, const Vec4<T>& end, float t)
 {
-    float cosTheta = dot(normalize(start), normalize(end));
-    float theta = acos(cosTheta);
-    float sinTheta = sin(theta);
+    T cosTheta = dot(normalize(start), normalize(end));
+    T theta = acos(cosTheta);
+    T sinTheta = sin(theta);
 
     return (sin(std::abs((1.0f - t) * theta)) / sinTheta) * start + (sin(std::abs(t * theta)) / sinTheta) * end;
 }

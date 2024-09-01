@@ -8,6 +8,7 @@ class Timer
 {
 public:
     const static u64 SECONDS_TO_NANO = 1'000'000'000;
+    const static u64 MILLISECONDS_TO_NANO = 1'000'000;
 
     Timer() = default;
     ~Timer() = default;
@@ -18,6 +19,10 @@ public:
     // In nanoseconds
     i64 timeElapsed() { return m_currentTime - m_startTime; }
     i64 dtNano() { return m_deltaTime; }
+
+    // In milliseconds
+    float msElapsed() { return (m_currentTime - m_startTime) / static_cast<float>(MILLISECONDS_TO_NANO); }
+    float msDt() { return m_deltaTime / static_cast<float>(MILLISECONDS_TO_NANO); }
 
     // In seconds
     float secondsElapsed() { return (m_currentTime - m_startTime) / static_cast<float>(SECONDS_TO_NANO); }

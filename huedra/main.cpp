@@ -95,17 +95,11 @@ int main()
     Global::graphicsManager.setRenderGraph(graph);
 
     resourseSet = Global::graphicsManager.createResourceSet("Pass", 0);
+    resourseSet.get()->assignBuffer(viewProjBuffer, 0);
 
     while (Global::windowManager.update())
     {
         Global::timer.update();
-
-        static u32 count = 0;
-        if (count < GraphicsManager::MAX_FRAMES_IN_FLIGHT)
-        {
-            resourseSet.get()->assignBuffer(viewProjBuffer, 0);
-            count++;
-        }
 
         static float scaler = 10.0f;
         scaler += 5.0f * Global::timer.dt();

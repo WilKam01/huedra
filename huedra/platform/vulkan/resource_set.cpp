@@ -73,21 +73,26 @@ void VulkanResourceSet::assignBuffer(Ref<Buffer> buffer, u32 binding)
         return;
     }
 
+    p_device->waitIdle();
+
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.offset = 0;
     bufferInfo.buffer = static_cast<VulkanBuffer*>(buffer.get())->get();
     bufferInfo.range = VK_WHOLE_SIZE;
 
-    VkWriteDescriptorSet descriptorWrites{};
-    descriptorWrites.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites.dstSet = m_descriptors[Global::graphicsManager.getCurrentFrame()];
-    descriptorWrites.dstBinding = binding;
-    descriptorWrites.dstArrayElement = 0;
-    descriptorWrites.descriptorType = m_descriptorTypes[binding];
-    descriptorWrites.descriptorCount = 1;
-    descriptorWrites.pBufferInfo = &bufferInfo;
-
-    vkUpdateDescriptorSets(p_device->getLogical(), 1, &descriptorWrites, 0, nullptr);
+    std::vector<VkWriteDescriptorSet> descriptorWrites(m_descriptors.size());
+    for (u64 i = 0; i < m_descriptors.size(); ++i)
+    {
+        descriptorWrites[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[i].dstSet = m_descriptors[i];
+        descriptorWrites[i].dstBinding = binding;
+        descriptorWrites[i].dstArrayElement = 0;
+        descriptorWrites[i].descriptorType = m_descriptorTypes[binding];
+        descriptorWrites[i].descriptorCount = 1;
+        descriptorWrites[i].pBufferInfo = &bufferInfo;
+    }
+    vkUpdateDescriptorSets(p_device->getLogical(), static_cast<u32>(descriptorWrites.size()), descriptorWrites.data(),
+                           0, nullptr);
 }
 
 VkDescriptorSet VulkanResourceSet::get() { return m_descriptors[Global::graphicsManager.getCurrentFrame()]; }
