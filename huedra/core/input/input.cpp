@@ -38,12 +38,19 @@ bool Input::isKeyReleased(Keys key) const
     return (m_keyDown[index] & bit) == 0 && (m_prevKeyDown[index] & bit);
 }
 
+bool Input::isKeyToggled(KeyToggles keyToggle) const
+{
+    u64 bit = 1u << (static_cast<u64>(keyToggle));
+    return m_keyToggle & bit;
+}
+
 void Input::setKey(Keys key, bool isDown)
 {
     if (key == Keys::NONE)
     {
         return;
     }
+
     u64 index = static_cast<u64>(static_cast<u64>(key) > 63);
     u64 bit = 1u << (static_cast<u64>(key) - index * 64);
 
@@ -54,6 +61,19 @@ void Input::setKey(Keys key, bool isDown)
     else
     {
         m_keyDown[index] &= ~bit;
+    }
+}
+
+void Input::setKeyToggle(KeyToggles keyToggle, bool isActive)
+{
+    u64 bit = 1u << (static_cast<u64>(keyToggle));
+    if (isActive)
+    {
+        m_keyToggle |= bit;
+    }
+    else
+    {
+        m_keyToggle &= ~bit;
     }
 }
 

@@ -138,6 +138,10 @@ void Win32Window::cleanup()
 // TODO: Run on another thread since resizing and moving window will halt execution in DispatchMessage
 bool Win32Window::update()
 {
+    Global::input.setKeyToggle(KeyToggles::CAPS_LOCK, GetKeyState(VK_CAPITAL) & 1);
+    Global::input.setKeyToggle(KeyToggles::NUM_LOCK, GetKeyState(VK_NUMLOCK) & 1);
+    Global::input.setKeyToggle(KeyToggles::SCR_LOCK, GetKeyState(VK_SCROLL) & 1);
+
     MSG msg{};
     while (PeekMessage(&msg, m_handle, 0, 0, PM_REMOVE))
     {

@@ -132,6 +132,11 @@ int main()
             log(LogLevel::INFO, "Released A");
         }
 
+        if (Global::input.isKeyToggled(KeyToggles::CAPS_LOCK))
+        {
+            log(LogLevel::INFO, "Caps is on");
+        }
+
         static u32 i = 0;
         static std::array<u32, 500> avgFps;
 

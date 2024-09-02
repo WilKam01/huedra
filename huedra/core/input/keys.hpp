@@ -105,9 +105,6 @@ enum class Keys
 
 enum class KeyToggles
 {
-    SHIFT,
-    CTRL,
-    ALT,
     CAPS_LOCK,
     NUM_LOCK,
     SCR_LOCK
