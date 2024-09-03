@@ -81,7 +81,7 @@ int main()
             renderContext.bindIndexBuffer(indexBuffer);
             renderContext.bindResourceSet(resourseSet);
             renderContext.pushConstants(HU_SHADER_STAGE_VERTEX, sizeof(modelMatrix), &modelMatrix);
-            renderContext.drawIndexed(36, 1, 0, 0);
+            renderContext.drawIndexed(36, 2, 0, 0);
         },
         {}, settings);
 
@@ -89,7 +89,7 @@ int main()
                           [vertexPositionsBuffer, vertexColorsBuffer, indexBuffer](RenderContext& renderContext) {
                               renderContext.bindVertexBuffers({vertexPositionsBuffer, vertexColorsBuffer});
                               renderContext.bindIndexBuffer(indexBuffer);
-                              renderContext.drawIndexed(36, 1, 0, 0);
+                              renderContext.drawIndexed(36, 2, 0, 0);
                           });
 
     Global::graphicsManager.setRenderGraph(graph);
