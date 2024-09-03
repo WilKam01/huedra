@@ -12,7 +12,7 @@ bool Input::isKeyDown(Keys key) const
         return false;
     }
     u64 index = static_cast<u64>(static_cast<u64>(key) > 63);
-    u64 bit = 1u << (static_cast<u64>(key) - index * 64);
+    u64 bit = 1ULL << (static_cast<u64>(key) - index * 64);
     return m_keyDown[index] & bit;
 }
 
@@ -23,7 +23,7 @@ bool Input::isKeyPressed(Keys key) const
         return false;
     }
     u64 index = static_cast<u64>(static_cast<u64>(key) > 63);
-    u64 bit = 1u << (static_cast<u64>(key) - index * 64);
+    u64 bit = 1ULL << (static_cast<u64>(key) - index * 64);
     return (m_keyDown[index] & bit) && (m_prevKeyDown[index] & bit) == 0;
 }
 
@@ -34,13 +34,13 @@ bool Input::isKeyReleased(Keys key) const
         return false;
     }
     u64 index = static_cast<u64>(static_cast<u64>(key) > 63);
-    u64 bit = 1u << (static_cast<u64>(key) - index * 64);
+    u64 bit = 1ULL << (static_cast<u64>(key) - index * 64);
     return (m_keyDown[index] & bit) == 0 && (m_prevKeyDown[index] & bit);
 }
 
-bool Input::isKeyToggled(KeyToggles keyToggle) const
+bool Input::isKeyActive(KeyToggles keyToggle) const
 {
-    u64 bit = 1u << (static_cast<u64>(keyToggle));
+    u64 bit = 1ULL << (static_cast<u64>(keyToggle));
     return m_keyToggle & bit;
 }
 
@@ -52,7 +52,7 @@ void Input::setKey(Keys key, bool isDown)
     }
 
     u64 index = static_cast<u64>(static_cast<u64>(key) > 63);
-    u64 bit = 1u << (static_cast<u64>(key) - index * 64);
+    u64 bit = 1ULL << (static_cast<u64>(key) - index * 64);
 
     if (isDown)
     {

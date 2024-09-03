@@ -90,6 +90,24 @@ public:
     }
 };
 
+#define VEC_OP(OP)                                                         \
+    template <typename T>                                                  \
+    constexpr Vec3<T> operator OP(T scalar, const Vec3<T>& vec)            \
+    {                                                                      \
+        return Vec3<T>(scalar OP vec.x, scalar OP vec.y, scalar OP vec.z); \
+    }
+
+VEC_OP(+);
+VEC_OP(-);
+VEC_OP(*);
+VEC_OP(/);
+VEC_OP(&);
+VEC_OP(|);
+VEC_OP(^);
+VEC_OP(>>);
+VEC_OP(<<);
+#undef VEC_OP
+
 using vec3 = Vec3<float>;
 using ivec3 = Vec3<i32>;
 using uvec3 = Vec3<u32>;

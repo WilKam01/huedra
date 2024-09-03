@@ -53,9 +53,6 @@ private:
 
     std::map<std::string, VulkanRenderPass*> m_renderPasses;
 
-    VkViewport m_viewport;
-    VkRect2D m_scissor;
-
     std::vector<VkFence> m_renderingInFlightFences;
     std::vector<VkSemaphore> m_renderFinishedSemaphores;
 };

@@ -20,7 +20,7 @@ public:
     bool isKeyDown(Keys key) const;
     bool isKeyPressed(Keys key) const;
     bool isKeyReleased(Keys key) const;
-    bool isKeyToggled(KeyToggles keyToggle) const;
+    bool isKeyActive(KeyToggles keyToggle) const;
 
 private:
     void setKey(Keys key, bool isDown);

@@ -103,6 +103,24 @@ public:
     }
 };
 
+#define VEC_OP(OP)                                                                          \
+    template <typename T>                                                                   \
+    constexpr Vec4<T> operator OP(T scalar, const Vec4<T>& vec)                             \
+    {                                                                                       \
+        return Vec4<T>(scalar OP vec.x, scalar OP vec.y, scalar OP vec.z, scalar OP vec.w); \
+    }
+
+VEC_OP(+);
+VEC_OP(-);
+VEC_OP(*);
+VEC_OP(/);
+VEC_OP(&);
+VEC_OP(|);
+VEC_OP(^);
+VEC_OP(>>);
+VEC_OP(<<);
+#undef VEC_OP
+
 using vec4 = Vec4<float>;
 using ivec4 = Vec4<i32>;
 using uvec4 = Vec4<u32>;

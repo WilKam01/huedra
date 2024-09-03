@@ -83,6 +83,24 @@ public:
     }
 };
 
+#define VEC_OP(OP)                                              \
+    template <typename T>                                       \
+    constexpr Vec2<T> operator OP(T scalar, const Vec2<T>& vec) \
+    {                                                           \
+        return Vec2<T>(scalar OP vec.x, scalar OP vec.y);       \
+    }
+
+VEC_OP(+);
+VEC_OP(-);
+VEC_OP(*);
+VEC_OP(/);
+VEC_OP(&);
+VEC_OP(|);
+VEC_OP(^);
+VEC_OP(>>);
+VEC_OP(<<);
+#undef VEC_OP
+
 using vec2 = Vec2<float>;
 using ivec2 = Vec2<i32>;
 using uvec2 = Vec2<u32>;

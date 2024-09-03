@@ -97,42 +97,41 @@ int main()
     resourseSet = Global::graphicsManager.createResourceSet("Pass", 0);
     resourseSet.get()->assignBuffer(viewProjBuffer, 0);
 
+    vec3 eye(0.0f, 0.0f, -5.0f);
+    vec3 rot(0.0f);
     while (Global::windowManager.update())
     {
         Global::timer.update();
 
-        static float scaler = 10.0f;
-        scaler += 5.0f * Global::timer.dt();
-        if (scaler > 100.0f)
-        {
-            scaler = 10.0f;
-        }
+        modelMatrix = rotateY(matrix4(1.0f), Global::timer.secondsElapsed());
 
-        modelMatrix = scale(matrix4(1.0f), vec3(scaler / 100.0f));
+        rot += vec3(Global::input.isKeyDown(Keys::K) - Global::input.isKeyDown(Keys::I),
+                    Global::input.isKeyDown(Keys::J) - Global::input.isKeyDown(Keys::L),
+                    Global::input.isKeyDown(Keys::U) - Global::input.isKeyDown(Keys::O)) *
+               1.0f * Global::timer.dt();
 
-        matrix4 mat = rotateY(matrix4(1.0f), Global::timer.secondsElapsed());
-        vec4 eye = mat * vec4(0.0f, 0.0f, -3.0f, 0.0f);
+        matrix3 rMat = rotateZ(matrix3(1.0f), rot.z) * rotateY(matrix3(1.0f), rot.y) * rotateX(matrix3(1.0f), rot.x);
+
+        vec3 right = vec3(rMat(0, 0), rMat(1, 0), rMat(2, 0));
+        vec3 up = vec3(rMat(0, 1), rMat(1, 1), rMat(2, 1));
+        vec3 forward = vec3(rMat(0, 2), rMat(1, 2), rMat(2, 2));
+
+        eye += (static_cast<float>(Global::input.isKeyDown(Keys::A) - Global::input.isKeyDown(Keys::D)) * right +
+                static_cast<float>(Global::input.isKeyDown(Keys::Q) - Global::input.isKeyDown(Keys::E)) * up +
+                static_cast<float>(Global::input.isKeyDown(Keys::W) - Global::input.isKeyDown(Keys::S)) * forward) *
+               5.0f * Global::timer.dt();
 
         rect = window.get()->getRect();
         matrix4 viewProj =
             perspective(radians(90.0f), static_cast<float>(rect.screenWidth) / static_cast<float>(rect.screenHeight),
                         vec2(0.1f, 100.0f)) *
-            lookAt(vec3(eye.x, eye.y, eye.z), vec3(0.0f), vec3(0.0f, 1.0f, 0.0f));
+            lookTo(eye, forward, up);
 
         viewProjBuffer.get()->write(sizeof(viewProj), &viewProj);
 
         Global::graphicsManager.render();
 
-        if (Global::input.isKeyPressed(Keys::A))
-        {
-            log(LogLevel::INFO, "Pressed A");
-        }
-        else if (Global::input.isKeyReleased(Keys::A))
-        {
-            log(LogLevel::INFO, "Released A");
-        }
-
-        if (Global::input.isKeyToggled(KeyToggles::CAPS_LOCK))
+        if (Global::input.isKeyActive(KeyToggles::CAPS_LOCK))
         {
             log(LogLevel::INFO, "Caps is on");
         }
