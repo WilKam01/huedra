@@ -24,6 +24,7 @@ public:
     void render();
 
     Ref<Buffer> createBuffer(BufferType type, u32 usage, u64 size, void* data = nullptr);
+    Ref<Texture> createTexture(u32 width, u32 height, GraphicsDataFormat format, u32 texelSize, void* data);
     Ref<ResourceSet> createResourceSet(const std::string renderPass, u32 setIndex);
 
     void setRenderGraph(RenderGraphBuilder& builder);

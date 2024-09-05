@@ -68,8 +68,8 @@ void CommandPool::endSingleTimeCommand(VkCommandBuffer buffer)
 
 void CommandPool::transistionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout,
                                          VkImageLayout newLayout, VkAccessFlags srcAccessMask,
-                                         VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask,
-                                         VkAccessFlags dstAccessMask)
+                                         VkAccessFlags dstAccessMask, VkPipelineStageFlags srcStageMask,
+                                         VkPipelineStageFlags dstStageMask)
 {
     VkCommandBuffer commandBuffer = beginSingleTimeCommand();
 

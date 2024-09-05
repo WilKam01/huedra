@@ -1,18 +1,13 @@
 #pragma once
 
 #include "graphics/pipeline_data.hpp"
+#include "graphics/texture.hpp"
 #include "platform/vulkan/command_pool.hpp"
 #include "platform/vulkan/device.hpp"
 
 namespace huedra {
 
-enum class TextureType
-{
-    COLOR,
-    DEPTH,
-};
-
-class VulkanTexture
+class VulkanTexture : public Texture
 {
 public:
     VulkanTexture() = default;
@@ -24,11 +19,12 @@ public:
               u32 height, u32 imageCount);
     void init(Device& device, CommandPool& commandPool, std::vector<VkImage> images, VkFormat format,
               VkExtent2D extent);
-    void cleanup();
+    void cleanup() override;
 
     VkImage get(size_t index = 0) { return m_images[index]; }
     VkImageView getView(size_t index = 0) { return m_imageViews[index]; }
     VkFormat getFormat() { return m_format; }
+    VkSampler getSampler() { return m_sampler; }
 
 private:
     VkFormat findFormat(TextureType type, GraphicsDataFormat format);
@@ -39,17 +35,14 @@ private:
     Device* p_device;
     CommandPool* p_commandPool;
     bool m_externallyCreated{false};
-    bool m_multipleImages{true};
-
-    u32 m_width;
-    u32 m_height;
-    TextureType m_type;
-    GraphicsDataFormat m_dataFormat;
+    bool m_multipleImages{false};
+    bool m_createdSampler{false};
 
     std::vector<VkImage> m_images;
     std::vector<VkDeviceMemory> m_memories;
     std::vector<VkImageView> m_imageViews;
     VkFormat m_format;
+    VkSampler m_sampler;
 };
 
 } // namespace huedra

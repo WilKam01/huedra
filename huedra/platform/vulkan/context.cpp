@@ -56,6 +56,13 @@ void VulkanContext::cleanup()
     }
     m_buffers.clear();
 
+    for (auto& texture : m_textures)
+    {
+        texture->cleanup();
+        delete texture;
+    }
+    m_textures.clear();
+
     for (auto& resourceSet : m_resourceSets)
     {
         resourceSet->cleanup();
@@ -143,6 +150,14 @@ Buffer* VulkanContext::createBuffer(BufferType type, BufferUsageFlags usage, u64
 
     m_buffers.push_back(buffer);
     return buffer;
+}
+
+Texture* VulkanContext::createTexture(u32 width, u32 height, GraphicsDataFormat format, u32 texelSize, void* data)
+{
+    VulkanTexture* texture = new VulkanTexture();
+    texture->init(m_device, m_commandPool, format, width, height, texelSize, data);
+    m_textures.push_back(texture);
+    return texture;
 }
 
 ResourceSet* VulkanContext::createResourceSet(const std::string& renderPass, u32 setIndex)

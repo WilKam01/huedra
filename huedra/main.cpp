@@ -57,6 +57,10 @@ int main()
     Ref<Buffer> viewProjBuffer = Global::graphicsManager.createBuffer(
         BufferType::DYNAMIC, HU_BUFFER_USAGE_UNIFORM_BUFFER, sizeof(viewProj), &viewProj);
 
+    std::array<u8, 4> textureData = {{0, 192, 128, 255}};
+    Ref<Texture> texture = Global::graphicsManager.createTexture(1, 1, GraphicsDataFormat::RGBA_8_UNORM, sizeof(u8) * 4,
+                                                                 textureData.data());
+
     Ref<ResourceSet> resourseSet(nullptr);
 
     PipelineBuilder builder;
@@ -67,7 +71,8 @@ int main()
         .addVertexInputStream({sizeof(vec3), VertexInputRate::VERTEX, {{GraphicsDataFormat::RGB_32_FLOAT, 0}}})
         .addPushConstantRange(HU_SHADER_STAGE_VERTEX, sizeof(modelMatrix))
         .addResourceSet()
-        .addResourceBinding(HU_SHADER_STAGE_VERTEX, ResourceType::UNIFORM_BUFFER);
+        .addResourceBinding(HU_SHADER_STAGE_VERTEX, ResourceType::UNIFORM_BUFFER)
+        .addResourceBinding(HU_SHADER_STAGE_FRAGMENT, ResourceType::TEXTURE);
 
     RenderPassSettings settings;
     settings.clearColor = {{0.2f, 0.2f, 0.2f}};
@@ -96,6 +101,7 @@ int main()
 
     resourseSet = Global::graphicsManager.createResourceSet("Pass", 0);
     resourseSet.get()->assignBuffer(viewProjBuffer, 0);
+    resourseSet.get()->assignTexture(texture, 1);
 
     vec3 eye(0.0f, 0.0f, -5.0f);
     vec3 rot(0.0f);

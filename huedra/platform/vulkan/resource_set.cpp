@@ -95,6 +95,39 @@ void VulkanResourceSet::assignBuffer(Ref<Buffer> buffer, u32 binding)
                            0, nullptr);
 }
 
+void VulkanResourceSet::assignTexture(Ref<Texture> texture, u32 binding)
+{
+    if (!texture.valid())
+    {
+        log(LogLevel::WARNING, "Could not assign texture to resource set, reference not valid");
+        return;
+    }
+
+    p_device->waitIdle();
+
+    VulkanTexture* vkTexture = static_cast<VulkanTexture*>(texture.get());
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = vkTexture->getType() == TextureType::COLOR
+                                ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                                : VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = vkTexture->getView();
+    imageInfo.sampler = vkTexture->getSampler();
+
+    std::vector<VkWriteDescriptorSet> descriptorWrites(m_descriptors.size());
+    for (u64 i = 0; i < m_descriptors.size(); ++i)
+    {
+        descriptorWrites[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[i].dstSet = m_descriptors[i];
+        descriptorWrites[i].dstBinding = binding;
+        descriptorWrites[i].dstArrayElement = 0;
+        descriptorWrites[i].descriptorType = m_descriptorTypes[binding];
+        descriptorWrites[i].descriptorCount = 1;
+        descriptorWrites[i].pImageInfo = &imageInfo;
+    }
+    vkUpdateDescriptorSets(p_device->getLogical(), static_cast<u32>(descriptorWrites.size()), descriptorWrites.data(),
+                           0, nullptr);
+}
+
 VkDescriptorSet VulkanResourceSet::get() { return m_descriptors[Global::graphicsManager.getCurrentFrame()]; }
 
 } // namespace huedra

@@ -4,6 +4,7 @@
 #include "graphics/buffer.hpp"
 #include "graphics/render_graph_builder.hpp"
 #include "graphics/resource_set.hpp"
+#include "graphics/texture.hpp"
 #include "window/window.hpp"
 
 namespace huedra {
@@ -22,6 +23,7 @@ public:
     virtual void removeSwapchain(size_t index) = 0;
 
     virtual Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) = 0;
+    virtual Texture* createTexture(u32 width, u32 height, GraphicsDataFormat format, u32 texelSize, void* data) = 0;
     virtual ResourceSet* createResourceSet(const std::string& renderPass, u32 setIndex) = 0;
 
     virtual void setRenderGraph(RenderGraphBuilder& builder) = 0;

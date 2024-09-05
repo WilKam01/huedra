@@ -10,18 +10,17 @@ namespace huedra {
 void VulkanTexture::init(Device& device, CommandPool& commandPool, GraphicsDataFormat format, u32 width, u32 height,
                          u32 texelSize, void* data)
 {
+    Texture::init(width, height, format, TextureType::COLOR);
+
     p_device = &device;
     p_commandPool = &commandPool;
     m_externallyCreated = false;
     m_multipleImages = false;
-    m_type = TextureType::COLOR;
-    m_width = width;
-    m_height = height;
-    m_dataFormat = format;
+    m_createdSampler = true;
 
-    m_format = findFormat(m_type, m_dataFormat);
+    m_format = findFormat(TextureType::COLOR, format);
 
-    VkDeviceSize size = m_width * m_height * texelSize;
+    VkDeviceSize size = width * height * texelSize;
 
     m_images.resize(1);
     m_imageViews.resize(1);
@@ -49,7 +48,7 @@ void VulkanTexture::init(Device& device, CommandPool& commandPool, GraphicsDataF
     region.imageSubresource.baseArrayLayer = 0;
     region.imageSubresource.layerCount = 1;
     region.imageOffset = {0, 0, 0};
-    region.imageExtent = {m_width, m_height, 1};
+    region.imageExtent = {width, height, 1};
 
     vkCmdCopyBufferToImage(commandBuffer, stagingBuffer.get(), m_images[0], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
                            &region);
@@ -64,21 +63,48 @@ void VulkanTexture::init(Device& device, CommandPool& commandPool, GraphicsDataF
     stagingBuffer.cleanup();
 
     createImageViews(VK_IMAGE_ASPECT_COLOR_BIT);
+
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+
+    VkPhysicalDeviceProperties properties{};
+    vkGetPhysicalDeviceProperties(p_device->getPhysical(), &properties);
+
+    samplerInfo.anisotropyEnable = VK_TRUE;
+    samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+    samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = 0.0f;
+    samplerInfo.mipLodBias = 0.0f;
+
+    if (vkCreateSampler(p_device->getLogical(), &samplerInfo, nullptr, &m_sampler) != VK_SUCCESS)
+    {
+        log(LogLevel::ERR, "Failed to create sampler!");
+    }
 }
 
 void VulkanTexture::init(Device& device, CommandPool& commandPool, TextureType type, GraphicsDataFormat format,
                          u32 width, u32 height, u32 imageCount)
 {
+    Texture::init(width, height, format, type);
+
     p_device = &device;
     p_commandPool = &commandPool;
     m_externallyCreated = false;
     m_multipleImages = true;
-    m_type = type;
-    m_width = width;
-    m_height = height;
-    m_dataFormat = format;
+    m_createdSampler = false;
 
-    m_format = findFormat(m_type, m_dataFormat);
+    m_format = findFormat(type, format);
 
     m_images.resize(imageCount);
     m_imageViews.resize(imageCount);
@@ -101,14 +127,13 @@ void VulkanTexture::init(Device& device, CommandPool& commandPool, TextureType t
 void VulkanTexture::init(Device& device, CommandPool& commandPool, std::vector<VkImage> images, VkFormat format,
                          VkExtent2D extent)
 {
+    Texture::init(extent.width, extent.height, converter::convertVkFormat(format), TextureType::COLOR);
+
     p_device = &device;
     p_commandPool = &commandPool;
     m_externallyCreated = true;
     m_multipleImages = true;
-    m_type = TextureType::COLOR;
-    m_width = extent.width;
-    m_height = extent.height;
-    m_dataFormat = converter::convertVkFormat(format);
+    m_createdSampler = false;
     m_format = format;
 
     m_images = images;
@@ -119,6 +144,11 @@ void VulkanTexture::init(Device& device, CommandPool& commandPool, std::vector<V
 
 void VulkanTexture::cleanup()
 {
+    if (m_createdSampler)
+    {
+        vkDestroySampler(p_device->getLogical(), m_sampler, nullptr);
+    }
+
     for (size_t i = 0; i < m_images.size(); ++i)
     {
         vkDestroyImageView(p_device->getLogical(), m_imageViews[i], nullptr);
@@ -162,8 +192,8 @@ void VulkanTexture::createImages(VkImageTiling tiling, VkImageUsageFlags usage, 
         VkImageCreateInfo imageInfo{};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         imageInfo.imageType = VK_IMAGE_TYPE_2D;
-        imageInfo.extent.width = m_width;
-        imageInfo.extent.height = m_height;
+        imageInfo.extent.width = getWidth();
+        imageInfo.extent.height = getHeight();
         imageInfo.extent.depth = 1;
         imageInfo.mipLevels = 1;
         imageInfo.arrayLayers = 1;

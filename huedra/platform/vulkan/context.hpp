@@ -26,6 +26,7 @@ public:
     void removeSwapchain(size_t index) override;
 
     Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) override;
+    Texture* createTexture(u32 width, u32 height, GraphicsDataFormat format, u32 texelSize, void* data) override;
     ResourceSet* createResourceSet(const std::string& renderPass, u32 setIndex) override;
 
     void setRenderGraph(RenderGraphBuilder& builder) override;
@@ -49,6 +50,7 @@ private:
     std::vector<VkSurfaceKHR> m_surfaces;
     std::vector<VulkanSwapchain*> m_swapchains;
     std::vector<VulkanBuffer*> m_buffers;
+    std::vector<VulkanTexture*> m_textures;
     std::vector<VulkanResourceSet*> m_resourceSets;
 
     std::map<std::string, VulkanRenderPass*> m_renderPasses;

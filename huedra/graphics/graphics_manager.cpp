@@ -45,6 +45,16 @@ Ref<Buffer> GraphicsManager::createBuffer(BufferType type, u32 usage, u64 size, 
     return Ref<Buffer>(m_context->createBuffer(type, static_cast<BufferUsageFlags>(usage), size, data));
 }
 
+Ref<Texture> GraphicsManager::createTexture(u32 width, u32 height, GraphicsDataFormat format, u32 texelSize, void* data)
+{
+    if (!data)
+    {
+        log(LogLevel::WARNING, "Could not create texture, no texture data provided");
+        return Ref<Texture>(nullptr);
+    }
+    return Ref<Texture>(m_context->createTexture(width, height, format, texelSize, data));
+}
+
 Ref<ResourceSet> GraphicsManager::createResourceSet(const std::string renderPass, u32 setIndex)
 {
     return Ref<ResourceSet>(m_context->createResourceSet(renderPass, setIndex));

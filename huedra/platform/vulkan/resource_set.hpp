@@ -4,6 +4,7 @@
 #include "platform/vulkan/buffer.hpp"
 #include "platform/vulkan/device.hpp"
 #include "platform/vulkan/pipeline.hpp"
+#include "platform/vulkan/texture.hpp"
 
 namespace huedra {
 
@@ -17,6 +18,7 @@ public:
     void cleanup() override;
 
     void assignBuffer(Ref<Buffer> buffer, u32 binding) override;
+    void assignTexture(Ref<Texture> texture, u32 binding) override;
 
     VkDescriptorSet get();
     VulkanPipeline* getPipeline() { return p_pipeline; }
