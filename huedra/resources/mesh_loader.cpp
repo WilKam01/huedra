@@ -47,18 +47,82 @@ std::vector<MeshData> loadObj(const std::string& path)
 
         case 'f': // Face
             elements = splitByChar(line, ' ');
-            for (u64 i = 1; i < elements.size(); ++i)
+            // Triangle (3 + 'f')
+            for (u64 i = 1; i < 3 + 1; ++i)
             {
                 std::vector<std::string> indices = splitByChar(elements[i], '/');
-                uvec3 vertex(std::stoul(indices[0]), std::stoul(indices[1]), std::stoul(indices[2]));
 
+                u32 uvIndex = 0;
+                u32 normalIndex = 0;
+
+                // positions and uvs, no normals
+                if (indices.size() == 2) // x/y
+                {
+                    uvIndex = std::stoul(indices[1]);
+                }
+                // All or positions and normals, no uvs
+                else if (indices.size() == 3) // x/y/z or x//z
+                {
+                    uvIndex = indices[1].empty() ? 0 : std::stoul(indices[1]);
+                    normalIndex = std::stoul(indices[2]);
+                }
+
+                uvec3 vertex(std::stoul(indices[0]), uvIndex, normalIndex);
                 if (!vertices.contains(vertex))
                 {
                     vertices.insert(std::pair<uvec3, u32>(vertex, static_cast<u32>(vertices.size())));
                     curMesh->positions.push_back(positions[vertex[0] - 1]);
-                    curMesh->uvs.push_back(uvs[vertex[1] - 1]);
-                    curMesh->normals.push_back(normals[vertex[2] - 1]);
+                    if (vertex[1] != 0)
+                    {
+                        curMesh->uvs.push_back(uvs[vertex[1] - 1]);
+                    }
+                    if (vertex[2] != 0)
+                    {
+                        curMesh->normals.push_back(normals[vertex[2] - 1]);
+                    }
                 }
+                curMesh->indices.push_back(vertices[vertex]);
+            }
+
+            if (elements.size() == 5) // Quad (4 + 'f')
+            {
+                // Create another triangle
+                std::vector<std::string> indices = splitByChar(elements[4], '/');
+
+                u32 uvIndex = 0;
+                u32 normalIndex = 0;
+
+                // positions and uvs, no normals
+                if (indices.size() == 2) // x/y
+                {
+                    uvIndex = std::stoul(indices[1]);
+                }
+                // All or positions and normals, no uvs
+                else if (indices.size() == 3) // x/y/z or x//z
+                {
+                    uvIndex = indices[1].empty() ? 0 : std::stoul(indices[1]);
+                    normalIndex = std::stoul(indices[2]);
+                }
+
+                uvec3 vertex(std::stoul(indices[0]), uvIndex, normalIndex);
+                if (!vertices.contains(vertex))
+                {
+                    vertices.insert(std::pair<uvec3, u32>(vertex, static_cast<u32>(vertices.size())));
+                    curMesh->positions.push_back(positions[vertex[0] - 1]);
+                    if (vertex[1] != 0)
+                    {
+                        curMesh->uvs.push_back(uvs[vertex[1] - 1]);
+                    }
+                    if (vertex[2] != 0)
+                    {
+                        curMesh->normals.push_back(normals[vertex[2] - 1]);
+                    }
+                }
+
+                // Quad (v0, v1, v2, v3) =
+                // Triangles (v0, v1, v2), (v0, v2, v3)
+                curMesh->indices.push_back(curMesh->indices[curMesh->indices.size() - 3]); // v0
+                curMesh->indices.push_back(curMesh->indices[curMesh->indices.size() - 2]); // v2
                 curMesh->indices.push_back(vertices[vertex]);
             }
             break;
@@ -90,6 +154,11 @@ std::vector<MeshData> loadObj(const std::string& path)
     if (line.length() != 0)
     {
         parseLine(line);
+    }
+
+    if (meshDatas.empty())
+    {
+        log(LogLevel::ERR, "loadObj(): %s has no mesh data", path.c_str());
     }
 
     return meshDatas;

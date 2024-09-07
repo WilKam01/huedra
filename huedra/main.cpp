@@ -22,10 +22,23 @@ int main()
     // Draw data
     std::vector<MeshData> meshes = loadObj("assets/mesh/untitled.obj");
 
-    Ref<Buffer> vertexPositionsBuffer =
+    if (meshes[0].uvs.empty())
+    {
+        log(LogLevel::ERR, "Imported mesh: %s has no uv coordinates", meshes[0].name.c_str());
+    }
+    if (meshes[0].normals.empty())
+    {
+        log(LogLevel::ERR, "Imported mesh: %s has no normals", meshes[0].name.c_str());
+    }
+
+    Ref<Buffer> positionsBuffer =
         Global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER,
                                              sizeof(vec3) * meshes[0].positions.size(), meshes[0].positions.data());
-    Ref<Buffer> vertexColorsBuffer =
+
+    Ref<Buffer> uvsBuffer = Global::graphicsManager.createBuffer(
+        BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER, sizeof(vec2) * meshes[0].uvs.size(), meshes[0].uvs.data());
+
+    Ref<Buffer> normalsBuffer =
         Global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER,
                                              sizeof(vec3) * meshes[0].normals.size(), meshes[0].normals.data());
     Ref<Buffer> indexBuffer =
@@ -55,6 +68,7 @@ int main()
         .addShader(ShaderStage::VERTEX, "assets/shaders/shader.vert")
         .addShader(ShaderStage::FRAGMENT, "assets/shaders/shader.frag")
         .addVertexInputStream({sizeof(vec3), VertexInputRate::VERTEX, {{GraphicsDataFormat::RGB_32_FLOAT, 0}}})
+        .addVertexInputStream({sizeof(vec2), VertexInputRate::VERTEX, {{GraphicsDataFormat::RG_32_FLOAT, 0}}})
         .addVertexInputStream({sizeof(vec3), VertexInputRate::VERTEX, {{GraphicsDataFormat::RGB_32_FLOAT, 0}}})
         .addPushConstantRange(HU_SHADER_STAGE_VERTEX, sizeof(modelMatrix))
         .addResourceSet()
@@ -67,9 +81,9 @@ int main()
     RenderGraphBuilder graph;
     graph.init().addGraphicsPass(
         "Pass", builder, window.get()->getRenderTarget(),
-        [&meshes, vertexPositionsBuffer, vertexColorsBuffer, indexBuffer, &resourseSet,
+        [&meshes, positionsBuffer, uvsBuffer, normalsBuffer, indexBuffer, &resourseSet,
          &modelMatrix](RenderContext& renderContext) {
-            renderContext.bindVertexBuffers({vertexPositionsBuffer, vertexColorsBuffer});
+            renderContext.bindVertexBuffers({positionsBuffer, uvsBuffer, normalsBuffer});
             renderContext.bindIndexBuffer(indexBuffer);
             renderContext.bindResourceSet(resourseSet);
             renderContext.pushConstants(HU_SHADER_STAGE_VERTEX, sizeof(modelMatrix), &modelMatrix);
@@ -78,9 +92,9 @@ int main()
         {}, settings);
 
     graph.addGraphicsPass("Pass1", builder, window1.get()->getRenderTarget(),
-                          [&meshes, vertexPositionsBuffer, vertexColorsBuffer, indexBuffer, &resourseSet,
+                          [&meshes, positionsBuffer, uvsBuffer, normalsBuffer, indexBuffer, &resourseSet,
                            &modelMatrix](RenderContext& renderContext) {
-                              renderContext.bindVertexBuffers({vertexPositionsBuffer, vertexColorsBuffer});
+                              renderContext.bindVertexBuffers({positionsBuffer, uvsBuffer, normalsBuffer});
                               renderContext.bindIndexBuffer(indexBuffer);
                               renderContext.bindResourceSet(resourseSet);
                               renderContext.pushConstants(HU_SHADER_STAGE_VERTEX, sizeof(modelMatrix), &modelMatrix);
