@@ -14,13 +14,14 @@ void VulkanResourceSet::init(Device& device, VulkanPipeline& pipeline, u32 setIn
         log(LogLevel::ERR, "Could not create resource set, requested setIndex does not exist in pipeline");
     }
 
-    ResourceSet::init(setIndex);
+    PipelineBuilder& builder = pipeline.getBuilder();
+    std::vector<ResourceBinding> bindings = builder.getResources()[setIndex];
+
+    ResourceSet::init(setIndex, bindings);
     p_device = &device;
     p_pipeline = &pipeline;
     m_descriptors.resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
 
-    PipelineBuilder& builder = pipeline.getBuilder();
-    std::vector<ResourceBinding> bindings = builder.getResources()[setIndex];
     m_descriptorTypes.reserve(bindings.size());
 
     std::multiset<VkDescriptorType> poolSizeSet{};

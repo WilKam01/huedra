@@ -81,26 +81,23 @@ public:
 #undef VEC_OP
 
     constexpr Vec4<T> operator-() const { return Vec4<T>(-x, -y, -z); }
-    constexpr bool operator==(const Vec4<T>& rhs) const
+    constexpr std::strong_ordering operator<=>(const Vec4<T>& rhs) const
     {
-        if (x != rhs.x)
+        if (auto cmp = x <=> rhs.x; cmp != 0)
         {
-            return false;
+            return cmp;
         }
-        if (y != rhs.y)
+        if (auto cmp = y <=> rhs.y; cmp != 0)
         {
-            return false;
+            return cmp;
         }
-        if (z != rhs.z)
+        if (auto cmp = z <=> rhs.z; cmp != 0)
         {
-            return false;
+            return cmp;
         }
-        if (w != rhs.w)
-        {
-            return false;
-        }
-        return true;
+        return w <=> rhs.w;
     }
+    constexpr bool operator==(const Vec4<T>& rhs) const = default;
 };
 
 #define VEC_OP(OP)                                                                          \

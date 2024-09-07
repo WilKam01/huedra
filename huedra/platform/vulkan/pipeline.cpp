@@ -1,8 +1,7 @@
 #include "pipeline.hpp"
+#include "core/file/utils.hpp"
 #include "core/log.hpp"
 #include "platform/vulkan/type_converter.hpp"
-
-#include <fstream>
 
 namespace huedra {
 
@@ -257,20 +256,7 @@ void VulkanPipeline::initLayout()
 
 VkShaderModule VulkanPipeline::loadShader(const std::string& path)
 {
-    std::string realPath = path + ".spv";
-    std::ifstream file(realPath, std::ios::ate | std::ios::binary);
-
-    if (!file.is_open())
-    {
-        log(LogLevel::ERR, "Failed to open file: \"%s\"!", realPath.c_str());
-    }
-
-    size_t fileSize = static_cast<size_t>(file.tellg());
-    std::vector<char> buffer(fileSize);
-
-    file.seekg(0);
-    file.read(buffer.data(), fileSize);
-    file.close();
+    std::vector<u8> buffer = readBytes(path + ".spv");
 
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;

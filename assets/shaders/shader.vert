@@ -16,7 +16,6 @@ layout(binding = 0) uniform CameraBuffer
 layout(location = 0) out vec3 fragColor;
 
 void main() {
-    vec3 offset = vec3(1.0, 0.0, 3.0) * gl_InstanceIndex;
-    gl_Position = cameraBuffer.projView * pushConstantData.model * vec4(position + offset, 1.0);
+    gl_Position = cameraBuffer.projView * pushConstantData.model * vec4(position, 1.0);
     fragColor = color;
 }

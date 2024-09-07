@@ -97,9 +97,9 @@ void VulkanRenderContext::bindResourceSet(Ref<ResourceSet> resourceSet)
         return;
     }
 
-    if (&p_renderPass->getPipeline() != static_cast<VulkanResourceSet*>(resourceSet.get())->getPipeline())
+    if (!resourceSet.get()->isCompatible(p_renderPass->getPipeline().getBuilder()))
     {
-        log(LogLevel::WARNING, "Could not bind resource set. Using different pipelines");
+        log(LogLevel::WARNING, "Could not bind resource set. Using different pipeline layouts");
         return;
     }
 

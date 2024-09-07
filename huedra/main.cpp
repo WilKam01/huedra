@@ -5,6 +5,7 @@
 #include "math/matrix_transform.hpp"
 #include "math/vec2.hpp"
 #include "math/vec3.hpp"
+#include "resources/mesh_loader.hpp"
 
 using namespace huedra;
 
@@ -19,31 +20,17 @@ int main()
     Ref<Window> window1 = Global::windowManager.addWindow("Hello", huedra::WindowInput(300, 300, 100, 100), window);
 
     // Draw data
-    std::array<vec3, 8> positions = {{{-1.0f, -1.0f, 1.0f},
-                                      {1.0f, -1.0f, 1.0f},
-                                      {1.0f, 1.0f, 1.0f},
-                                      {-1.0f, 1.0f, 1.0f},
-                                      {-1.0f, -1.0f, -1.0f},
-                                      {1.0f, -1.0f, -1.0f},
-                                      {1.0f, 1.0f, -1.0f},
-                                      {-1.0f, 1.0f, -1.0f}}};
-    std::array<vec3, 8> colors = {{{0.5f, 0.0f, 0.0f},
-                                   {0.0f, 0.5f, 0.0f},
-                                   {0.0f, 0.0f, 0.5f},
-                                   {0.5f, 0.5f, 0.5f},
-                                   {0.5f, 0.0f, 0.0f},
-                                   {0.0f, 0.5f, 0.0f},
-                                   {0.0f, 0.0f, 0.5f},
-                                   {0.5f, 0.5f, 0.5f}}};
-    std::array<u32, 36> indices = {0, 1, 2, 2, 3, 0, 4, 6, 5, 6, 4, 7, 4, 5, 1, 1, 0, 4,
-                                   3, 2, 6, 6, 7, 3, 1, 5, 6, 6, 2, 1, 4, 0, 3, 3, 7, 4};
+    std::vector<MeshData> meshes = loadObj("assets/mesh/untitled.obj");
 
-    Ref<Buffer> vertexPositionsBuffer = Global::graphicsManager.createBuffer(
-        BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER, sizeof(vec3) * 8, positions.data());
-    Ref<Buffer> vertexColorsBuffer = Global::graphicsManager.createBuffer(
-        BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER, sizeof(vec3) * 8, colors.data());
-    Ref<Buffer> indexBuffer = Global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_INDEX_BUFFER,
-                                                                   sizeof(u32) * 36, indices.data());
+    Ref<Buffer> vertexPositionsBuffer =
+        Global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER,
+                                             sizeof(vec3) * meshes[0].positions.size(), meshes[0].positions.data());
+    Ref<Buffer> vertexColorsBuffer =
+        Global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER,
+                                             sizeof(vec3) * meshes[0].normals.size(), meshes[0].normals.data());
+    Ref<Buffer> indexBuffer =
+        Global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_INDEX_BUFFER,
+                                             sizeof(u32) * meshes[0].indices.size(), meshes[0].indices.data());
 
     // Shader Resources
     WindowRect rect = window.get()->getRect();
@@ -57,7 +44,7 @@ int main()
     Ref<Buffer> viewProjBuffer = Global::graphicsManager.createBuffer(
         BufferType::DYNAMIC, HU_BUFFER_USAGE_UNIFORM_BUFFER, sizeof(viewProj), &viewProj);
 
-    std::array<u8, 4> textureData = {{0, 192, 128, 255}};
+    std::array<u8, 4> textureData = {{255, 255, 255, 255}};
     Ref<Texture> texture = Global::graphicsManager.createTexture(1, 1, GraphicsDataFormat::RGBA_8_UNORM, sizeof(u8) * 4,
                                                                  textureData.data());
 
@@ -65,8 +52,8 @@ int main()
 
     PipelineBuilder builder;
     builder.init(PipelineType::GRAPHICS)
-        .addShader(ShaderStage::VERTEX, "shaders/shader.vert")
-        .addShader(ShaderStage::FRAGMENT, "shaders/shader.frag")
+        .addShader(ShaderStage::VERTEX, "assets/shaders/shader.vert")
+        .addShader(ShaderStage::FRAGMENT, "assets/shaders/shader.frag")
         .addVertexInputStream({sizeof(vec3), VertexInputRate::VERTEX, {{GraphicsDataFormat::RGB_32_FLOAT, 0}}})
         .addVertexInputStream({sizeof(vec3), VertexInputRate::VERTEX, {{GraphicsDataFormat::RGB_32_FLOAT, 0}}})
         .addPushConstantRange(HU_SHADER_STAGE_VERTEX, sizeof(modelMatrix))
@@ -80,21 +67,24 @@ int main()
     RenderGraphBuilder graph;
     graph.init().addGraphicsPass(
         "Pass", builder, window.get()->getRenderTarget(),
-        [vertexPositionsBuffer, vertexColorsBuffer, indexBuffer, &resourseSet,
+        [&meshes, vertexPositionsBuffer, vertexColorsBuffer, indexBuffer, &resourseSet,
          &modelMatrix](RenderContext& renderContext) {
             renderContext.bindVertexBuffers({vertexPositionsBuffer, vertexColorsBuffer});
             renderContext.bindIndexBuffer(indexBuffer);
             renderContext.bindResourceSet(resourseSet);
             renderContext.pushConstants(HU_SHADER_STAGE_VERTEX, sizeof(modelMatrix), &modelMatrix);
-            renderContext.drawIndexed(36, 2, 0, 0);
+            renderContext.drawIndexed(static_cast<u32>(meshes[0].indices.size()), 1, 0, 0);
         },
         {}, settings);
 
     graph.addGraphicsPass("Pass1", builder, window1.get()->getRenderTarget(),
-                          [vertexPositionsBuffer, vertexColorsBuffer, indexBuffer](RenderContext& renderContext) {
+                          [&meshes, vertexPositionsBuffer, vertexColorsBuffer, indexBuffer, &resourseSet,
+                           &modelMatrix](RenderContext& renderContext) {
                               renderContext.bindVertexBuffers({vertexPositionsBuffer, vertexColorsBuffer});
                               renderContext.bindIndexBuffer(indexBuffer);
-                              renderContext.drawIndexed(36, 2, 0, 0);
+                              renderContext.bindResourceSet(resourseSet);
+                              renderContext.pushConstants(HU_SHADER_STAGE_VERTEX, sizeof(modelMatrix), &modelMatrix);
+                              renderContext.drawIndexed(static_cast<u32>(meshes[0].indices.size()), 1, 0, 0);
                           });
 
     Global::graphicsManager.setRenderGraph(graph);
