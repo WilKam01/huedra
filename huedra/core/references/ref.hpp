@@ -35,6 +35,7 @@ public:
     Ref<T>& operator=(Ref<T>&& rhs);
 
     T* get();
+    T* operator->();
     bool valid() override;
 
 private:
@@ -139,6 +140,12 @@ inline Ref<T>& Ref<T>::operator=(Ref<T>&& rhs)
 
 template <typename T>
 inline T* Ref<T>::get()
+{
+    return m_ptr;
+}
+
+template <typename T>
+inline T* Ref<T>::operator->()
 {
     return m_ptr;
 }

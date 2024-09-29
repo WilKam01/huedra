@@ -168,15 +168,6 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
                     channelSize == 1 ? GraphicsDataFormat::RGBA_8_UNORM : GraphicsDataFormat::RGBA_16_UNORM;
                 break;
             }
-
-            log(LogLevel::INFO, "Png Header: ");
-            log(LogLevel::INFO, "    Width: %u", header.width);
-            log(LogLevel::INFO, "    Height: %u", header.height);
-            log(LogLevel::INFO, "    Bit Depth: %u", header.bitDepth);
-            log(LogLevel::INFO, "    Color Type: %u", header.colorType);
-            log(LogLevel::INFO, "    Compression Method: %u", header.compressionMethod);
-            log(LogLevel::INFO, "    Filter Method: %u", header.filterMethod);
-            log(LogLevel::INFO, "    interlaced Method: %u", header.interlaceMethod);
         }
         // Color Palette
         else if (chunkType == "PLTE")

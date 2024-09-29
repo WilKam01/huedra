@@ -47,7 +47,7 @@ int main()
                                              sizeof(u32) * meshes[0].indices.size(), meshes[0].indices.data());
 
     // Shader Resources
-    WindowRect rect = window.get()->getRect();
+    WindowRect rect = window->getRect();
     matrix4 viewProj =
         perspective(radians(45.0f), static_cast<float>(rect.screenWidth) / static_cast<float>(rect.screenHeight),
                     vec2(0.1f, 100.0f)) *
@@ -83,7 +83,7 @@ int main()
 
     RenderGraphBuilder graph;
     graph.init().addGraphicsPass(
-        "Pass", builder, window.get()->getRenderTarget(),
+        "Pass", builder, window->getRenderTarget(),
         [&meshes, positionsBuffer, uvsBuffer, normalsBuffer, indexBuffer, &resourseSet,
          &modelMatrix](RenderContext& renderContext) {
             renderContext.bindVertexBuffers({positionsBuffer, uvsBuffer, normalsBuffer});
@@ -94,7 +94,7 @@ int main()
         },
         {}, settings);
 
-    graph.addGraphicsPass("Pass1", builder, window1.get()->getRenderTarget(),
+    graph.addGraphicsPass("Pass1", builder, window1->getRenderTarget(),
                           [&meshes, positionsBuffer, uvsBuffer, normalsBuffer, indexBuffer, &resourseSet,
                            &modelMatrix](RenderContext& renderContext) {
                               renderContext.bindVertexBuffers({positionsBuffer, uvsBuffer, normalsBuffer});
@@ -107,8 +107,8 @@ int main()
     Global::graphicsManager.setRenderGraph(graph);
 
     resourseSet = Global::graphicsManager.createResourceSet("Pass", 0);
-    resourseSet.get()->assignBuffer(viewProjBuffer, 0);
-    resourseSet.get()->assignTexture(texture, 1);
+    resourseSet->assignBuffer(viewProjBuffer, 0);
+    resourseSet->assignTexture(texture, 1);
 
     vec3 eye(0.0f, 0.0f, 5.0f);
     vec3 rot(0.0f);
@@ -134,13 +134,13 @@ int main()
                 static_cast<float>(Global::input.isKeyDown(Keys::S) - Global::input.isKeyDown(Keys::W)) * forward) *
                5.0f * Global::timer.dt();
 
-        rect = window.get()->getRect();
+        rect = window->getRect();
         matrix4 viewProj =
             perspective(radians(90.0f), static_cast<float>(rect.screenWidth) / static_cast<float>(rect.screenHeight),
                         vec2(0.1f, 100.0f)) *
             lookTo(eye, -forward, up);
 
-        viewProjBuffer.get()->write(sizeof(viewProj), &viewProj);
+        viewProjBuffer->write(sizeof(viewProj), &viewProj);
 
         Global::graphicsManager.render();
 

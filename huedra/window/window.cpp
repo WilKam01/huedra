@@ -16,11 +16,11 @@ void Window::cleanup()
     m_close = true;
     if (m_parent.valid())
     {
-        for (auto it = m_parent.get()->m_children.begin(); it != m_parent.get()->m_children.end(); it++)
+        for (auto it = m_parent->m_children.begin(); it != m_parent->m_children.end(); it++)
         {
             if (it->get() == this)
             {
-                m_parent.get()->m_children.erase(it);
+                m_parent->m_children.erase(it);
                 break;
             }
         }
@@ -29,7 +29,7 @@ void Window::cleanup()
     {
         if (window.valid())
         {
-            window.get()->cleanup();
+            window->cleanup();
         }
     }
 }
@@ -39,7 +39,7 @@ void Window::setParent(Ref<Window> parent)
     if (parent.valid())
     {
         m_parent = parent;
-        m_parent.get()->m_children.push_back(Ref<Window>(this));
+        m_parent->m_children.push_back(Ref<Window>(this));
     }
 }
 

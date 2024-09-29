@@ -77,7 +77,7 @@ void VulkanRenderContext::bindResourceSets(std::vector<Ref<ResourceSet>> resourc
         }
     }
 
-    u32 setOffset = resourceSets[0].get()->getSetIndex();
+    u32 setOffset = resourceSets[0]->getSetIndex();
     std::vector<VkDescriptorSet> descriptors(resourceSets.size());
     for (size_t i = 0; i < resourceSets.size(); ++i)
     {
@@ -97,7 +97,7 @@ void VulkanRenderContext::bindResourceSet(Ref<ResourceSet> resourceSet)
         return;
     }
 
-    if (!resourceSet.get()->isCompatible(p_renderPass->getPipeline().getBuilder()))
+    if (!resourceSet->isCompatible(p_renderPass->getPipeline().getBuilder()))
     {
         log(LogLevel::WARNING, "Could not bind resource set. Using different pipeline layouts");
         return;
