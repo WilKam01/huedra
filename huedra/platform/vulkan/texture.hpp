@@ -4,6 +4,7 @@
 #include "graphics/texture.hpp"
 #include "platform/vulkan/command_pool.hpp"
 #include "platform/vulkan/device.hpp"
+#include "resources/texture/data.hpp"
 
 namespace huedra {
 
@@ -13,8 +14,7 @@ public:
     VulkanTexture() = default;
     ~VulkanTexture() = default;
 
-    void init(Device& device, CommandPool& commandPool, GraphicsDataFormat format, u32 width, u32 height, u32 texelSize,
-              void* data);
+    void init(Device& device, CommandPool& commandPool, TextureData textureData);
     void init(Device& device, CommandPool& commandPool, TextureType type, GraphicsDataFormat format, u32 width,
               u32 height, u32 imageCount);
     void init(Device& device, CommandPool& commandPool, std::vector<VkImage> images, VkFormat format,

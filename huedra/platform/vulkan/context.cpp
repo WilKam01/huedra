@@ -152,10 +152,10 @@ Buffer* VulkanContext::createBuffer(BufferType type, BufferUsageFlags usage, u64
     return buffer;
 }
 
-Texture* VulkanContext::createTexture(u32 width, u32 height, GraphicsDataFormat format, u32 texelSize, void* data)
+Texture* VulkanContext::createTexture(TextureData textureData)
 {
     VulkanTexture* texture = new VulkanTexture();
-    texture->init(m_device, m_commandPool, format, width, height, texelSize, data);
+    texture->init(m_device, m_commandPool, textureData);
     m_textures.push_back(texture);
     return texture;
 }

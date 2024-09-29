@@ -5,6 +5,7 @@
 #include "graphics/context.hpp"
 #include "graphics/render_graph_builder.hpp"
 #include "graphics/resource_set.hpp"
+#include "resources/texture/data.hpp"
 #include "window/window.hpp"
 
 namespace huedra {
@@ -24,7 +25,7 @@ public:
     void render();
 
     Ref<Buffer> createBuffer(BufferType type, u32 usage, u64 size, void* data = nullptr);
-    Ref<Texture> createTexture(u32 width, u32 height, GraphicsDataFormat format, u32 texelSize, void* data);
+    Ref<Texture> createTexture(TextureData textureData);
     Ref<ResourceSet> createResourceSet(const std::string renderPass, u32 setIndex);
 
     void setRenderGraph(RenderGraphBuilder& builder);

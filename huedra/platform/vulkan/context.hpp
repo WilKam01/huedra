@@ -26,7 +26,7 @@ public:
     void removeSwapchain(size_t index) override;
 
     Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) override;
-    Texture* createTexture(u32 width, u32 height, GraphicsDataFormat format, u32 texelSize, void* data) override;
+    Texture* createTexture(TextureData textureData) override;
     ResourceSet* createResourceSet(const std::string& renderPass, u32 setIndex) override;
 
     void setRenderGraph(RenderGraphBuilder& builder) override;

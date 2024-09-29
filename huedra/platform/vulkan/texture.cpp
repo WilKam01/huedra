@@ -7,10 +7,9 @@
 
 namespace huedra {
 
-void VulkanTexture::init(Device& device, CommandPool& commandPool, GraphicsDataFormat format, u32 width, u32 height,
-                         u32 texelSize, void* data)
+void VulkanTexture::init(Device& device, CommandPool& commandPool, TextureData textureData)
 {
-    Texture::init(width, height, format, TextureType::COLOR);
+    Texture::init(textureData.width, textureData.height, textureData.format, TextureType::COLOR);
 
     p_device = &device;
     p_commandPool = &commandPool;
@@ -18,9 +17,9 @@ void VulkanTexture::init(Device& device, CommandPool& commandPool, GraphicsDataF
     m_multipleImages = false;
     m_createdSampler = true;
 
-    m_format = findFormat(TextureType::COLOR, format);
+    m_format = findFormat(TextureType::COLOR, textureData.format);
 
-    VkDeviceSize size = width * height * texelSize;
+    VkDeviceSize size = textureData.width * textureData.height * textureData.texelSize;
 
     m_images.resize(1);
     m_imageViews.resize(1);
@@ -28,7 +27,8 @@ void VulkanTexture::init(Device& device, CommandPool& commandPool, GraphicsDataF
 
     VulkanBuffer stagingBuffer;
     stagingBuffer.init(device, BufferType::STATIC, HU_BUFFER_USAGE_UNDEFINED, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, data);
+                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                       textureData.texels.data());
 
     createImages(VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -48,7 +48,7 @@ void VulkanTexture::init(Device& device, CommandPool& commandPool, GraphicsDataF
     region.imageSubresource.baseArrayLayer = 0;
     region.imageSubresource.layerCount = 1;
     region.imageOffset = {0, 0, 0};
-    region.imageExtent = {width, height, 1};
+    region.imageExtent = {textureData.width, textureData.height, 1};
 
     vkCmdCopyBufferToImage(commandBuffer, stagingBuffer.get(), m_images[0], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
                            &region);

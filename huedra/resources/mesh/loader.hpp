@@ -1,6 +1,6 @@
 #pragma once
 
-#include "resources/mesh_data.hpp"
+#include "resources/mesh/data.hpp"
 
 namespace huedra {
 

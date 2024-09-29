@@ -5,7 +5,8 @@
 #include "math/matrix_transform.hpp"
 #include "math/vec2.hpp"
 #include "math/vec3.hpp"
-#include "resources/mesh_loader.hpp"
+#include "resources/mesh/loader.hpp"
+#include "resources/texture/loader.hpp"
 
 using namespace huedra;
 
@@ -57,9 +58,11 @@ int main()
     Ref<Buffer> viewProjBuffer = Global::graphicsManager.createBuffer(
         BufferType::DYNAMIC, HU_BUFFER_USAGE_UNIFORM_BUFFER, sizeof(viewProj), &viewProj);
 
-    std::array<u8, 4> textureData = {{255, 255, 255, 255}};
-    Ref<Texture> texture = Global::graphicsManager.createTexture(1, 1, GraphicsDataFormat::RGBA_8_UNORM, sizeof(u8) * 4,
-                                                                 textureData.data());
+    TextureData png = loadPng("assets/textures/test.png", TexelChannelFormat::RGBA);
+
+    std::vector<u8> texData = {{0x11, 0xf1, 0x11, 0xf1, 0x11, 0xf1, 0xff, 0xff}};
+    TextureData textureData{1, 1, GraphicsDataFormat::RGBA_16_UNORM, sizeof(u8) * 8, texData};
+    Ref<Texture> texture = Global::graphicsManager.createTexture(png);
 
     Ref<ResourceSet> resourseSet(nullptr);
 
@@ -107,17 +110,17 @@ int main()
     resourseSet.get()->assignBuffer(viewProjBuffer, 0);
     resourseSet.get()->assignTexture(texture, 1);
 
-    vec3 eye(0.0f, 0.0f, -5.0f);
+    vec3 eye(0.0f, 0.0f, 5.0f);
     vec3 rot(0.0f);
     while (Global::windowManager.update())
     {
         Global::timer.update();
 
-        modelMatrix = rotateY(matrix4(1.0f), Global::timer.secondsElapsed());
+        modelMatrix = matrix4(1.0f);
 
         rot += vec3(Global::input.isKeyDown(Keys::K) - Global::input.isKeyDown(Keys::I),
                     Global::input.isKeyDown(Keys::J) - Global::input.isKeyDown(Keys::L),
-                    Global::input.isKeyDown(Keys::U) - Global::input.isKeyDown(Keys::O)) *
+                    Global::input.isKeyDown(Keys::O) - Global::input.isKeyDown(Keys::U)) *
                1.0f * Global::timer.dt();
 
         matrix3 rMat = rotateZ(matrix3(1.0f), rot.z) * rotateY(matrix3(1.0f), rot.y) * rotateX(matrix3(1.0f), rot.x);
@@ -126,16 +129,16 @@ int main()
         vec3 up = vec3(rMat(0, 1), rMat(1, 1), rMat(2, 1));
         vec3 forward = vec3(rMat(0, 2), rMat(1, 2), rMat(2, 2));
 
-        eye += (static_cast<float>(Global::input.isKeyDown(Keys::A) - Global::input.isKeyDown(Keys::D)) * right +
+        eye += (static_cast<float>(Global::input.isKeyDown(Keys::D) - Global::input.isKeyDown(Keys::A)) * right +
                 static_cast<float>(Global::input.isKeyDown(Keys::Q) - Global::input.isKeyDown(Keys::E)) * up +
-                static_cast<float>(Global::input.isKeyDown(Keys::W) - Global::input.isKeyDown(Keys::S)) * forward) *
+                static_cast<float>(Global::input.isKeyDown(Keys::S) - Global::input.isKeyDown(Keys::W)) * forward) *
                5.0f * Global::timer.dt();
 
         rect = window.get()->getRect();
         matrix4 viewProj =
             perspective(radians(90.0f), static_cast<float>(rect.screenWidth) / static_cast<float>(rect.screenHeight),
                         vec2(0.1f, 100.0f)) *
-            lookTo(eye, forward, up);
+            lookTo(eye, -forward, up);
 
         viewProjBuffer.get()->write(sizeof(viewProj), &viewProj);
 

@@ -1,4 +1,4 @@
-#include "mesh_loader.hpp"
+#include "loader.hpp"
 #include "core/file/utils.hpp"
 #include "core/string/utils.hpp"
 
@@ -36,7 +36,8 @@ std::vector<MeshData> loadObj(const std::string& path)
                 normals.push_back(vec3(std::stof(elements[1]), std::stof(elements[2]), std::stof(elements[3])));
                 break;
             case 't': // Uv
-                uvs.push_back(vec2(std::stof(elements[1]), std::stof(elements[2])));
+                uvs.push_back(vec2(std::stof(elements[1]),
+                                   1.0f - std::stof(elements[2]))); // TODO: Add option, 1.0f - y is only Vulkan
                 break;
 
             default: // Position

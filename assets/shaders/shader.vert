@@ -20,5 +20,5 @@ layout(location = 1) out vec3 fragColor;
 void main() {
     gl_Position = cameraBuffer.projView * pushConstantData.model * vec4(position, 1.0);
     uv = uvs;
-    fragColor = (normal + vec3(1)) / 2.0;
+    fragColor = vec3(uv, 0.0);
 }
