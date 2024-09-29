@@ -137,10 +137,14 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
             }
 
             header.interlaceMethod = bytes[i + 12];
-            if (header.interlaceMethod != 0 && header.interlaceMethod != 1)
+            if (header.interlaceMethod == 1)
             {
-                log(LogLevel::WARNING, "loadPng(): Incorrect interlaceMethod method in IHDR: %u",
-                    header.interlaceMethod);
+                log(LogLevel::WARNING, "loadPng(): Interlace method 1 (Adam7) not supported");
+                return TextureData();
+            }
+            if (header.interlaceMethod != 0)
+            {
+                log(LogLevel::WARNING, "loadPng(): Incorrect interlace method in IHDR: %u", header.interlaceMethod);
                 return TextureData();
             }
 
