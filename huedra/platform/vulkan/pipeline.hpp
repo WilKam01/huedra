@@ -23,7 +23,6 @@ public:
 private:
     void initLayout();
 
-    // TODO: Move byte reading to asset/io manager
     VkShaderModule loadShader(const std::string& path);
 
     Device* p_device;

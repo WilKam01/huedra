@@ -28,7 +28,21 @@ inline std::vector<u8> readBytes(const std::string& path)
     file.read(reinterpret_cast<char*>(buffer.data()), size);
     file.close();
 
-    return std::move(buffer);
+    return buffer;
+}
+
+inline bool writeBytes(const std::string& path, const std::vector<u8>& bytes)
+{
+    std::ofstream file(path);
+    if (!file.is_open())
+    {
+        log(LogLevel::ERR, "Failed to open file: \"%s\"!", path.c_str());
+        return false;
+    }
+
+    file.write(reinterpret_cast<const char*>(bytes.data()), bytes.size());
+    file.close();
+    return true;
 }
 
 } // namespace huedra

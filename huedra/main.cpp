@@ -1,5 +1,7 @@
+#include "core/file/utils.hpp"
 #include "core/global.hpp"
 #include "core/log.hpp"
+#include "core/serialization/json.hpp"
 #include "math/conversions.hpp"
 #include "math/matrix_projection.hpp"
 #include "math/matrix_transform.hpp"
@@ -16,8 +18,20 @@ int main()
     Global::windowManager.init();
     Global::graphicsManager.init();
 
-    Ref<Window> window =
-        Global::windowManager.addWindow("Hello Windows!", huedra::WindowInput(1278, 1360, -7, 0, false));
+    JsonObject json = parseJson(readBytes("assets/test.json"));
+
+    json["arr"][5] = 5;
+    json["strings"][4] = "test";
+    json["arrays"][3] = JsonArray();
+    json["arrays"][3][0] = 4;
+    json["arrays"][3][1] = 5;
+    json["arrays"][3][2] = 6;
+    json["objects"][3] = JsonObject();
+    json["objects"][3]["test1"] = 2;
+
+    writeBytes("assets/result.json", serializeJson(json));
+
+    Ref<Window> window = Global::windowManager.addWindow("Hello Windows!", huedra::WindowInput(1278, 1360, -7, 0));
     Ref<Window> window1 = Global::windowManager.addWindow("Hello", huedra::WindowInput(300, 300, 100, 100), window);
 
     // Draw data

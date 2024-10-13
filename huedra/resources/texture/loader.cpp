@@ -398,7 +398,7 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
         }
     }
 
-    return std::move(textureData);
+    return textureData;
 }
 
 } // namespace huedra

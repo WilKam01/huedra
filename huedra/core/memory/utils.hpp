@@ -351,7 +351,7 @@ constexpr std::vector<u8> inflate(const u8* bytes)
     }
 #endif
 
-    return std::move(retData);
+    return retData;
 }
 
 } // namespace huedra
