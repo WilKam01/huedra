@@ -252,6 +252,15 @@ JsonValue& JsonObject::operator[](const std::string& identifier)
 
 bool JsonObject::hasMember(const std::string& identifier) const { return m_members.contains(identifier); }
 
+bool JsonObject::hasMember(const std::string& identifier, JsonValue::Type type) const
+{
+    if (!m_members.contains(identifier))
+    {
+        return false;
+    }
+    return m_members.at(identifier).getType() == type;
+}
+
 std::string* JsonObject::addString(const std::string& value)
 {
     m_strings.push_back(std::make_shared<std::string>(value));
@@ -272,7 +281,19 @@ JsonObject* JsonObject::addObject(const JsonObject& value)
 
 JsonObject parseJson(const std::vector<u8>& bytes)
 {
-    if (bytes.front() != '{' || bytes.back() != '}')
+    u64 closeIndex = bytes.size();
+    for (i64 i = static_cast<i64>(bytes.size()) - 1; i >= 0; --i)
+    {
+        if (static_cast<char>(bytes[i]) != ' ' && static_cast<char>(bytes[i]) != '\n' &&
+            static_cast<char>(bytes[i]) != '\r' && static_cast<char>(bytes[i]) != '\t')
+        {
+            closeIndex = i;
+            break;
+        }
+    }
+
+    if (bytes.empty() || static_cast<char>(bytes.front()) != '{' || closeIndex == bytes.size() ||
+        static_cast<char>(bytes[closeIndex]) != '}')
     {
         log(LogLevel::WARNING, "parseJson(): json data is not encapsulated by an object => { ... }");
         return JsonObject();
@@ -296,7 +317,7 @@ JsonObject parseJson(const std::vector<u8>& bytes)
 
     u64 line = 1;
     u64 lineStart = 1;
-    for (u64 i = 1; i < bytes.size() - 1; ++i)
+    for (u64 i = 1; i < closeIndex; ++i)
     {
         switch (static_cast<char>(bytes[i]))
         {

@@ -96,6 +96,7 @@ public:
 
     JsonValue& operator[](const std::string& identifier);
     bool hasMember(const std::string& identifier) const;
+    bool hasMember(const std::string& identifier, JsonValue::Type type) const;
 
     std::vector<std::string> getMembers() const { return m_keys; }
 

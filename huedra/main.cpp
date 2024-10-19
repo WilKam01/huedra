@@ -35,7 +35,12 @@ int main()
     Ref<Window> window1 = Global::windowManager.addWindow("Hello", huedra::WindowInput(300, 300, 100, 100), window);
 
     // Draw data
-    std::vector<MeshData> meshes = loadObj("assets/mesh/untitled.obj");
+    std::vector<MeshData> meshes = loadGltf("assets/mesh/untitled.gltf");
+
+    if (meshes.empty())
+    {
+        log(LogLevel::ERR, "meshes array is empty");
+    }
 
     if (meshes[0].uvs.empty())
     {

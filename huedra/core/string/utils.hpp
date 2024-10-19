@@ -19,4 +19,26 @@ inline std::vector<std::string> splitByChar(const std::string& str, char delim)
     return tokens;
 }
 
+// Splits only string by the last instance of delim
+inline std::vector<std::string> splitLastByChar(const std::string& str, char delim)
+{
+    std::vector<std::string> tokens;
+    u64 i = str.length() - 1;
+    while (str[i--] != delim && i >= 0)
+    {
+    }
+
+    if (i < 0)
+    {
+        tokens.push_back(str);
+    }
+    else
+    {
+        tokens.push_back(str.substr(0, i));
+        tokens.push_back(str.substr(i + 1));
+    }
+
+    return tokens;
+}
+
 } // namespace huedra
