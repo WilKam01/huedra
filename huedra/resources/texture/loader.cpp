@@ -44,7 +44,7 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
          0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d}};
 
     // Check for png signature
-    constexpr u64 pngSignature = 0x89504E470D0A1A0A; // 137, 80, 78, 71, 13, 10, 26, 10
+    constexpr u64 pngSignature = 0x89504e470d0a1a0a; // 137, 80, 78, 71, 13, 10, 26, 10
     if (parseFromBytes<u64>(&bytes[0], std::endian::big) != pngSignature)
     {
         log(LogLevel::WARNING, "loadPng(): %s does not have a valid png signature", path.c_str());

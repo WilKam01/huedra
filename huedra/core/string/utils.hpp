@@ -34,8 +34,8 @@ inline std::vector<std::string> splitLastByChar(const std::string& str, char del
     }
     else
     {
-        tokens.push_back(str.substr(0, i));
-        tokens.push_back(str.substr(i + 1));
+        tokens.push_back(str.substr(0, i + 1));
+        tokens.push_back(str.substr(i + 2));
     }
 
     return tokens;

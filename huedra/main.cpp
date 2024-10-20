@@ -35,7 +35,7 @@ int main()
     Ref<Window> window1 = Global::windowManager.addWindow("Hello", huedra::WindowInput(300, 300, 100, 100), window);
 
     // Draw data
-    std::vector<MeshData> meshes = loadGltf("assets/mesh/untitled.gltf");
+    std::vector<MeshData> meshes = loadGlb("assets/mesh/untitled.glb");
 
     if (meshes.empty())
     {
