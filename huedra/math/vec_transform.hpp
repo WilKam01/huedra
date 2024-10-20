@@ -41,26 +41,6 @@ Vec3<T> cross(const Vec3<T>& lhs, const Vec3<T>& rhs)
     return Vec3(lhs.y * rhs.z - lhs.z * rhs.y, lhs.z * rhs.x - lhs.x * rhs.z, lhs.x * rhs.y - lhs.y * rhs.x);
 }
 
-// Squared Length
-
-template <typename T>
-T squaredLength(const Vec2<T>& vec)
-{
-    return dot(vec, vec);
-}
-
-template <typename T>
-T squaredLength(const Vec3<T>& vec)
-{
-    return dot(vec, vec);
-}
-
-template <typename T>
-T squaredLength(const Vec4<T>& vec)
-{
-    return dot(vec, vec);
-}
-
 // Length
 
 template <typename T>
@@ -208,9 +188,17 @@ Vec2<T> slerp(const Vec2<T>& start, const Vec2<T>& end, float t)
 {
     T cosTheta = dot(normalize(start), normalize(end));
     T theta = acos(cosTheta);
+
+    // Use lerp when vectors are near or identical
+    const float EPSILON = 0.001f;
+    if (fabs(theta) < EPSILON)
+    {
+        return lerp(start, end, t);
+    }
+
     T sinTheta = sin(theta);
 
-    return (sin(std::abs((1.0f - t) * theta)) / sinTheta) * start + (sin(std::abs(t * theta)) / sinTheta) * end;
+    return (sin((1.0f - t) * theta) / sinTheta) * start + (sin(t * theta) / sinTheta) * end;
 }
 
 template <typename T>
@@ -218,9 +206,17 @@ Vec3<T> slerp(const Vec3<T>& start, const Vec3<T>& end, float t)
 {
     T cosTheta = dot(normalize(start), normalize(end));
     T theta = acos(cosTheta);
+
+    // Use lerp when vectors are near or identical
+    const float EPSILON = 0.001f;
+    if (fabs(theta) < EPSILON)
+    {
+        return lerp(start, end, t);
+    }
+
     T sinTheta = sin(theta);
 
-    return (sin(std::abs((1.0f - t) * theta)) / sinTheta) * start + (sin(std::abs(t * theta)) / sinTheta) * end;
+    return (sin((1.0f - t) * theta) / sinTheta) * start + (sin(t * theta) / sinTheta) * end;
 }
 
 template <typename T>
@@ -228,9 +224,17 @@ Vec4<T> slerp(const Vec4<T>& start, const Vec4<T>& end, float t)
 {
     T cosTheta = dot(normalize(start), normalize(end));
     T theta = acos(cosTheta);
+
+    // Use lerp when vectors are near or identical
+    const float EPSILON = 0.001f;
+    if (fabs(theta) < EPSILON)
+    {
+        return lerp(start, end, t);
+    }
+
     T sinTheta = sin(theta);
 
-    return (sin(std::abs((1.0f - t) * theta)) / sinTheta) * start + (sin(std::abs(t * theta)) / sinTheta) * end;
+    return (sin((1.0f - t) * theta) / sinTheta) * start + (sin(t * theta) / sinTheta) * end;
 }
 
 } // namespace huedra
