@@ -176,9 +176,17 @@ ResourceSet* VulkanContext::createResourceSet(const std::string& renderPass, u32
 
 void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
 {
+    if (m_curGraph.getHash() == builder.getHash())
+    {
+        return;
+    }
+
+    m_curGraph = builder;
     m_device.waitIdle();
 
-    // Destroy all previous resource sets and render passes
+    log(LogLevel::INFO, "New render graph with hash: %llu", m_curGraph.getHash());
+
+    // Destroy all previous sets, passes and pipelines
     for (auto& resourceSet : m_resourceSets)
     {
         resourceSet->cleanup();
@@ -196,8 +204,7 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
     for (auto& [key, info] : builder.getRenderPasses())
     {
         VulkanRenderPass* renderPass = new VulkanRenderPass();
-        renderPass->init(m_device, info.pipeline, info.commands,
-                         static_cast<VulkanRenderTarget*>(info.renderTarget.get()), info.settings);
+        renderPass->init(m_device, info);
         m_renderPasses.insert(std::pair<std::string, VulkanRenderPass*>(key, renderPass));
     }
 }

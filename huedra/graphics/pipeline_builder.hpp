@@ -22,6 +22,11 @@ public:
     PipelineBuilder& addResourceSet();
     PipelineBuilder& addResourceBinding(u32 stage, ResourceType resource);
 
+    u64 generateHash();
+
+    bool empty() const { return !m_initialized; }
+    u64 getHash() const { return m_hash; }
+
     PipelineType getType() const { return m_type; }
     std::map<ShaderStage, std::string> getShaderStages() const { return m_shaderStages; }
     std::vector<std::vector<ResourceBinding>> getResources() const { return m_resources; }
@@ -32,14 +37,18 @@ public:
     std::vector<ShaderStageFlags> getPushConstantShaderStages() const { return m_pushConstantShaderStages; }
 
 private:
+    bool m_initialized{false};
+    u64 m_hash{0};
+
     PipelineType m_type;
     std::map<ShaderStage, std::string> m_shaderStages;
     std::vector<std::vector<ResourceBinding>> m_resources{};
 
-    std::vector<VertexInputStream> m_vertexStreams;
-
     std::vector<u32> m_pushConstantRanges{};
     std::vector<ShaderStageFlags> m_pushConstantShaderStages{};
+
+    // Graphics specific
+    std::vector<VertexInputStream> m_vertexStreams;
 };
 
 } // namespace huedra

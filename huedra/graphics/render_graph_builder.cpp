@@ -5,52 +5,56 @@ namespace huedra {
 
 RenderGraphBuilder& RenderGraphBuilder::init()
 {
-    m_renderPasses.clear();
+    m_passes.clear();
     return *this;
 }
 
-RenderGraphBuilder& RenderGraphBuilder::addGraphicsPass(const std::string& name, const PipelineBuilder& pipeline,
-                                                        Ref<RenderTarget> renderTarget, RenderCommands renderCommands,
-                                                        const std::vector<std::string>& dependencies,
-                                                        RenderPassSettings settings)
+RenderGraphBuilder& RenderGraphBuilder::addPass(const std::string& name, const RenderPassBuilder& pass)
 {
-    if (pipeline.getType() != PipelineType::GRAPHICS)
+    if (m_passes.contains(name))
     {
-        log(LogLevel::WARNING, "Could not add render pass, pipeline not a graphics pipeline");
+        log(LogLevel::WARNING, "Could not add render pass, %s already exists", name.c_str());
         return *this;
     }
 
-    if (!renderTarget.valid())
+    if (pass.empty())
     {
-        log(LogLevel::WARNING, "Could not add render pass, renderTarget not valid");
+        log(LogLevel::WARNING, "Could not add render pass, is empty");
         return *this;
     }
 
-    if (!renderCommands)
+    if (!pass.getCommands())
     {
-        log(LogLevel::WARNING, "Could not add render pass, no renderCommands present");
+        log(LogLevel::WARNING, "Could not add render pass, no commands set");
         return *this;
     }
 
-    if (m_renderPasses.contains(name))
+    if (pass.getType() == RenderPassType::GRAPHICS && pass.getRenderTargets().empty())
     {
-        log(LogLevel::WARNING, "Could not add render pass, render pass: %s already exists", name.c_str());
+        log(LogLevel::WARNING, "Could not add graphics render pass without any render targets");
         return *this;
     }
 
-    for (auto& dependency : dependencies)
-    {
-        if (!m_renderPasses.contains(dependency))
-        {
-            log(LogLevel::WARNING, "Could not add render pass, render pass dependency: %s not defined",
-                dependency.c_str());
-            return *this;
-        }
-    }
-
-    m_renderPasses.insert(
-        std::pair<std::string, RenderPassInfo>(name, {pipeline, renderTarget, renderCommands, dependencies, settings}));
+    m_passes.insert(std::pair<std::string, RenderPassBuilder>(name, pass));
     return *this;
+}
+
+u64 RenderGraphBuilder::generateHash()
+{
+    u64 fnvPrime = 0x00000100000001b3;
+    m_hash = 0xcbf29ce484222325;
+    auto combineHash = [this, fnvPrime](u64 val) { m_hash ^= val * fnvPrime; };
+    auto u64Hash = std::hash<u64>();
+    auto strHash = std::hash<std::string>();
+
+    combineHash(u64Hash(static_cast<u64>(m_passes.size())));
+    for (auto& [name, pass] : m_passes)
+    {
+        combineHash(strHash(name));
+        combineHash(pass.generateHash());
+    }
+
+    return m_hash;
 }
 
 } // namespace huedra

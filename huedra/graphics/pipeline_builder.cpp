@@ -1,10 +1,13 @@
 #include "pipeline_builder.hpp"
 #include "core/log.hpp"
 
+#include <functional>
+
 namespace huedra {
 
 PipelineBuilder& PipelineBuilder::init(PipelineType type)
 {
+    m_initialized = true;
     m_type = type;
     m_shaderStages.clear();
     m_resources.clear();
@@ -72,6 +75,57 @@ PipelineBuilder& PipelineBuilder::addResourceBinding(u32 stage, ResourceType res
 
     m_resources.back().push_back({static_cast<ShaderStageFlags>(stage), resource});
     return *this;
+}
+
+u64 PipelineBuilder::generateHash()
+{
+    u64 fnvPrime = 0x00000100000001b3;
+    m_hash = 0xcbf29ce484222325;
+    auto combineHash = [this, fnvPrime](u64 val) { m_hash ^= val * fnvPrime; };
+    auto u64Hash = std::hash<u64>();
+    auto u32Hash = std::hash<u32>();
+    auto strHash = std::hash<std::string>();
+
+    combineHash(u64Hash(static_cast<u64>(m_type)));
+    combineHash(u64Hash(m_shaderStages.size()));
+    for (auto& [stage, path] : m_shaderStages)
+    {
+        combineHash(u64Hash(static_cast<u64>(stage)));
+        combineHash(strHash(path));
+    }
+
+    combineHash(u64Hash(m_resources.size()));
+    for (auto& set : m_resources)
+    {
+        combineHash(u64Hash(set.size()));
+        for (auto& binding : set)
+        {
+            combineHash(u64Hash(static_cast<u64>(binding.shaderStage)));
+            combineHash(u64Hash(static_cast<u64>(binding.resource)));
+        }
+    }
+
+    combineHash(u64Hash(m_pushConstantRanges.size()));
+    for (u64 i = 0; i < m_pushConstantRanges.size(); ++i)
+    {
+        combineHash(u32Hash(m_pushConstantRanges[i]));
+        combineHash(u64Hash(static_cast<u64>(m_pushConstantShaderStages[i])));
+    }
+
+    combineHash(u64Hash(m_vertexStreams.size()));
+    for (auto& stream : m_vertexStreams)
+    {
+        combineHash(u64Hash(stream.size));
+        combineHash(u64Hash(static_cast<u64>(stream.inputRate)));
+        combineHash(u64Hash(stream.attributes.size()));
+        for (auto& attribute : stream.attributes)
+        {
+            combineHash(u64Hash(static_cast<u64>(attribute.format)));
+            combineHash(u32Hash(attribute.offset));
+        }
+    }
+
+    return m_hash;
 }
 
 } // namespace huedra

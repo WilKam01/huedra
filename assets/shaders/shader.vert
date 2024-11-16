@@ -7,18 +7,19 @@ layout(location = 2) in vec3 normal;
 layout(push_constant) uniform PushConstantData
 {
     mat4 model;
+    mat4 projView;
 } pushConstantData;
 
-layout(binding = 0) uniform CameraBuffer
-{
-    mat4 projView;
-} cameraBuffer;
+//layout(binding = 0) uniform CameraBuffer
+//{
+//    mat4 projView;
+//} cameraBuffer;
 
 layout(location = 0) out vec2 uv;
 layout(location = 1) out vec3 fragColor;
 
 void main() {
-    gl_Position = cameraBuffer.projView * pushConstantData.model * vec4(position, 1.0);
+    gl_Position = pushConstantData.projView * pushConstantData.model * vec4(position, 1.0);
     uv = uvs;
     fragColor = vec3(uv, 0.0);
 }

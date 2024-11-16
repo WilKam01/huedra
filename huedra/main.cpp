@@ -2,6 +2,7 @@
 #include "core/global.hpp"
 #include "core/log.hpp"
 #include "core/serialization/json.hpp"
+#include "graphics/render_pass_builder.hpp"
 #include "math/conversions.hpp"
 #include "math/matrix_projection.hpp"
 #include "math/matrix_transform.hpp"
@@ -92,48 +93,43 @@ int main()
         .addVertexInputStream({sizeof(vec3), VertexInputRate::VERTEX, {{GraphicsDataFormat::RGB_32_FLOAT, 0}}})
         .addVertexInputStream({sizeof(vec2), VertexInputRate::VERTEX, {{GraphicsDataFormat::RG_32_FLOAT, 0}}})
         .addVertexInputStream({sizeof(vec3), VertexInputRate::VERTEX, {{GraphicsDataFormat::RGB_32_FLOAT, 0}}})
-        .addPushConstantRange(HU_SHADER_STAGE_VERTEX, sizeof(modelMatrix))
+        .addPushConstantRange(HU_SHADER_STAGE_VERTEX, sizeof(matrix4) * 2)
         .addResourceSet()
         .addResourceBinding(HU_SHADER_STAGE_VERTEX, ResourceType::UNIFORM_BUFFER)
         .addResourceBinding(HU_SHADER_STAGE_FRAGMENT, ResourceType::TEXTURE);
 
-    RenderPassSettings settings;
-    settings.clearColor = {{0.2f, 0.2f, 0.2f}};
-
-    RenderGraphBuilder graph;
-    graph.init().addGraphicsPass(
-        "Pass", builder, window->getRenderTarget(),
-        [&meshes, positionsBuffer, uvsBuffer, normalsBuffer, indexBuffer, &resourseSet,
-         &modelMatrix](RenderContext& renderContext) {
-            renderContext.bindVertexBuffers({positionsBuffer, uvsBuffer, normalsBuffer});
-            renderContext.bindIndexBuffer(indexBuffer);
-            renderContext.bindResourceSet(resourseSet);
-            renderContext.pushConstants(HU_SHADER_STAGE_VERTEX, sizeof(modelMatrix), &modelMatrix);
-            renderContext.drawIndexed(static_cast<u32>(meshes[0].indices.size()), 1, 0, 0);
-        },
-        {}, settings);
-
-    graph.addGraphicsPass("Pass1", builder, window1->getRenderTarget(),
-                          [&meshes, positionsBuffer, uvsBuffer, normalsBuffer, indexBuffer, &resourseSet,
-                           &modelMatrix](RenderContext& renderContext) {
-                              renderContext.bindVertexBuffers({positionsBuffer, uvsBuffer, normalsBuffer});
-                              renderContext.bindIndexBuffer(indexBuffer);
-                              renderContext.bindResourceSet(resourseSet);
-                              renderContext.pushConstants(HU_SHADER_STAGE_VERTEX, sizeof(modelMatrix), &modelMatrix);
-                              renderContext.drawIndexed(static_cast<u32>(meshes[0].indices.size()), 1, 0, 0);
-                          });
-
-    Global::graphicsManager.setRenderGraph(graph);
-
-    resourseSet = Global::graphicsManager.createResourceSet("Pass", 0);
-    resourseSet->assignBuffer(viewProjBuffer, 0);
-    resourseSet->assignTexture(texture, 1);
+    RenderCommands commands = [&meshes, positionsBuffer, uvsBuffer, normalsBuffer, indexBuffer, &viewProj,
+                               &modelMatrix](RenderContext& renderContext) {
+        renderContext.bindVertexBuffers({positionsBuffer, uvsBuffer, normalsBuffer});
+        renderContext.bindIndexBuffer(indexBuffer);
+        std::array<matrix4, 2> matrices{modelMatrix, viewProj};
+        renderContext.pushConstants(HU_SHADER_STAGE_VERTEX, sizeof(matrix4) * 2, matrices.data());
+        renderContext.drawIndexed(static_cast<u32>(meshes[0].indices.size()), 1, 0, 0);
+    };
 
     vec3 eye(0.0f, 0.0f, 5.0f);
     vec3 rot(0.0f);
     while (Global::windowManager.update())
     {
         Global::timer.update();
+
+        RenderGraphBuilder renderGraph;
+        if (window.valid())
+        {
+            renderGraph.addPass("Pass1", RenderPassBuilder()
+                                             .init(RenderPassType::GRAPHICS, builder)
+                                             .addRenderTarget(window->getRenderTarget(), true, vec3(0.2f))
+                                             .setCommands(commands));
+        }
+        if (window1.valid())
+        {
+            renderGraph.addPass("Pass2", RenderPassBuilder()
+                                             .init(RenderPassType::GRAPHICS, builder)
+                                             .addRenderTarget(window1->getRenderTarget())
+                                             .setCommands(commands));
+        }
+
+        Global::graphicsManager.setRenderGraph(renderGraph);
 
         modelMatrix = matrix4(1.0f);
 
@@ -154,7 +150,7 @@ int main()
                5.0f * Global::timer.dt();
 
         rect = window->getRect();
-        matrix4 viewProj =
+        viewProj =
             perspective(radians(90.0f), static_cast<float>(rect.screenWidth) / static_cast<float>(rect.screenHeight),
                         vec2(0.1f, 100.0f)) *
             lookTo(eye, -forward, up);

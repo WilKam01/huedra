@@ -53,6 +53,7 @@ private:
     std::vector<VulkanTexture*> m_textures;
     std::vector<VulkanResourceSet*> m_resourceSets;
 
+    RenderGraphBuilder m_curGraph;
     std::map<std::string, VulkanRenderPass*> m_renderPasses;
 
     std::vector<VkFence> m_renderingInFlightFences;

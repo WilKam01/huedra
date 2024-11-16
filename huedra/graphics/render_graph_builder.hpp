@@ -4,6 +4,8 @@
 #include "core/types.hpp"
 #include "graphics/pipeline_builder.hpp"
 #include "graphics/render_target.hpp"
+#include "math/vec3.hpp"
+#include "render_pass_builder.hpp"
 
 #include <functional>
 
@@ -33,16 +35,17 @@ public:
     ~RenderGraphBuilder() = default;
 
     RenderGraphBuilder& init();
+    RenderGraphBuilder& addPass(const std::string& name, const RenderPassBuilder& pass);
 
-    RenderGraphBuilder& addGraphicsPass(const std::string& name, const PipelineBuilder& pipeline,
-                                        Ref<RenderTarget> renderTarget, RenderCommands renderCommands,
-                                        const std::vector<std::string>& dependencies = {},
-                                        RenderPassSettings settings = {});
+    u64 generateHash();
 
-    std::map<std::string, RenderPassInfo> getRenderPasses() const { return m_renderPasses; }
+    u64 getHash() const { return m_hash; }
+    std::map<std::string, RenderPassBuilder> getRenderPasses() const { return m_passes; }
 
 private:
-    std::map<std::string, RenderPassInfo> m_renderPasses;
+    u64 m_hash{0};
+
+    std::map<std::string, RenderPassBuilder> m_passes;
 };
 
 } // namespace huedra

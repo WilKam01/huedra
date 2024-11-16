@@ -4,18 +4,17 @@
 
 namespace huedra {
 
-void VulkanRenderPass::init(Device& device, const PipelineBuilder& builder, RenderCommands commands,
-                            VulkanRenderTarget* renderTarget, RenderPassSettings settings)
+void VulkanRenderPass::init(Device& device, const RenderPassBuilder& builder)
 {
     p_device = &device;
-    m_commands = commands;
-    p_renderTarget = Ref<RenderTarget>(renderTarget);
-    p_vkRenderTarget = renderTarget;
-    m_settings = settings;
+    m_builder = builder;
 
-    renderTarget->addRenderPass(this);
+    p_renderTarget = Ref<RenderTarget>(builder.getRenderTargets()[0].target);
+    p_vkRenderTarget = static_cast<VulkanRenderTarget*>(p_renderTarget.get());
+
+    p_vkRenderTarget->addRenderPass(this);
     createRenderPass();
-    m_pipeline.initGraphics(builder, device, m_renderPass);
+    m_pipeline.initGraphics(builder.getPipeline(), device, m_renderPass);
     createFramebuffers();
 }
 
@@ -95,12 +94,14 @@ void VulkanRenderPass::begin(VkCommandBuffer commandBuffer)
     renderPassInfo.pClearValues = nullptr;
 
     std::vector<VkClearValue> clearValues{};
-    if (m_settings.clearRenderTarget)
+    bool clearRenderTarget = m_builder.getRenderTargets()[0].clearTarget;
+    vec3 clearColor = m_builder.getRenderTargets()[0].clearColor;
+    if (clearRenderTarget)
     {
         if (p_vkRenderTarget->usesColor())
         {
             VkClearValue& value = clearValues.emplace_back();
-            value.color = {m_settings.clearColor[0], m_settings.clearColor[1], m_settings.clearColor[2], 1.0f};
+            value.color = {clearColor[0], clearColor[1], clearColor[2], 1.0f};
         }
         if (p_vkRenderTarget->usesDepth())
         {
@@ -127,7 +128,7 @@ void VulkanRenderPass::createRenderPass()
         colorAttachment.format = p_vkRenderTarget->getColorFormat();
         colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
         colorAttachment.loadOp =
-            m_settings.clearRenderTarget ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+            m_builder.getRenderTargets()[0].clearTarget ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
         colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -143,7 +144,7 @@ void VulkanRenderPass::createRenderPass()
         depthAttachment.format = p_vkRenderTarget->getDepthFormat();
         depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
         depthAttachment.loadOp =
-            m_settings.clearRenderTarget ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
+            m_builder.getRenderTargets()[0].clearTarget ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
         depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
         depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;

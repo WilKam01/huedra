@@ -70,7 +70,11 @@ Ref<ResourceSet> GraphicsManager::createResourceSet(const std::string renderPass
     return Ref<ResourceSet>(m_context->createResourceSet(renderPass, setIndex));
 }
 
-void GraphicsManager::setRenderGraph(RenderGraphBuilder& builder) { m_context->setRenderGraph(builder); }
+void GraphicsManager::setRenderGraph(RenderGraphBuilder& builder)
+{
+    builder.generateHash();
+    m_context->setRenderGraph(builder);
+}
 
 void GraphicsManager::createSwapchain(Window* window, bool renderDepth)
 {
