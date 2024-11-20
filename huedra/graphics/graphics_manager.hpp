@@ -21,12 +21,10 @@ public:
 
     void init();
     void cleanup();
-    void render();
+    void render(RenderGraphBuilder& builder);
 
     Ref<Buffer> createBuffer(BufferType type, u32 usage, u64 size, void* data = nullptr);
     Ref<Texture> createTexture(TextureData textureData);
-
-    void setRenderGraph(RenderGraphBuilder& builder);
 
     u32 getCurrentFrame() { return m_currentFrame; }
 

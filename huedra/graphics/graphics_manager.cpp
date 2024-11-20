@@ -22,8 +22,11 @@ void GraphicsManager::cleanup()
     delete m_context;
 }
 
-void GraphicsManager::render()
+void GraphicsManager::render(RenderGraphBuilder& builder)
 {
+    builder.generateHash();
+    m_context->setRenderGraph(builder);
+
     m_context->render();
     m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
@@ -63,12 +66,6 @@ Ref<Texture> GraphicsManager::createTexture(TextureData textureData)
         return Ref<Texture>(nullptr);
     }
     return Ref<Texture>(m_context->createTexture(textureData));
-}
-
-void GraphicsManager::setRenderGraph(RenderGraphBuilder& builder)
-{
-    builder.generateHash();
-    m_context->setRenderGraph(builder);
 }
 
 void GraphicsManager::createSwapchain(Window* window, bool renderDepth)

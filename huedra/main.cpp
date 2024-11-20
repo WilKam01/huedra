@@ -112,24 +112,6 @@ int main()
     {
         Global::timer.update();
 
-        RenderGraphBuilder renderGraph;
-        if (window.valid())
-        {
-            renderGraph.addPass("Pass1", RenderPassBuilder()
-                                             .init(RenderPassType::GRAPHICS, builder)
-                                             .addRenderTarget(window->getRenderTarget(), true, vec3(0.2f))
-                                             .setCommands(commands));
-        }
-        if (window1.valid())
-        {
-            renderGraph.addPass("Pass2", RenderPassBuilder()
-                                             .init(RenderPassType::GRAPHICS, builder)
-                                             .addRenderTarget(window1->getRenderTarget())
-                                             .setCommands(commands));
-        }
-
-        Global::graphicsManager.setRenderGraph(renderGraph);
-
         modelMatrix = matrix4(1.0f);
 
         rot += vec3(Global::input.isKeyDown(Keys::K) - Global::input.isKeyDown(Keys::I),
@@ -156,7 +138,23 @@ int main()
 
         viewProjBuffer->write(sizeof(viewProj), &viewProj);
 
-        Global::graphicsManager.render();
+        RenderGraphBuilder renderGraph;
+        if (window.valid())
+        {
+            renderGraph.addPass("Pass1", RenderPassBuilder()
+                                             .init(RenderPassType::GRAPHICS, builder)
+                                             .addRenderTarget(window->getRenderTarget(), true, vec3(0.2f))
+                                             .setCommands(commands));
+        }
+        if (window1.valid())
+        {
+            renderGraph.addPass("Pass2", RenderPassBuilder()
+                                             .init(RenderPassType::GRAPHICS, builder)
+                                             .addRenderTarget(window1->getRenderTarget())
+                                             .setCommands(commands));
+        }
+
+        Global::graphicsManager.render(renderGraph);
 
         if (Global::input.isKeyActive(KeyToggles::CAPS_LOCK))
         {
