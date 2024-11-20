@@ -4,7 +4,6 @@
 #include "graphics/buffer.hpp"
 #include "graphics/context.hpp"
 #include "graphics/render_graph_builder.hpp"
-#include "graphics/resource_set.hpp"
 #include "resources/texture/data.hpp"
 #include "window/window.hpp"
 
@@ -26,7 +25,6 @@ public:
 
     Ref<Buffer> createBuffer(BufferType type, u32 usage, u64 size, void* data = nullptr);
     Ref<Texture> createTexture(TextureData textureData);
-    Ref<ResourceSet> createResourceSet(const std::string renderPass, u32 setIndex);
 
     void setRenderGraph(RenderGraphBuilder& builder);
 

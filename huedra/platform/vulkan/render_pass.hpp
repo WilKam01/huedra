@@ -33,6 +33,8 @@ private:
 
     Device* p_device;
     RenderPassBuilder m_builder;
+
+    // TODO: add multiple target support
     Ref<RenderTarget> p_renderTarget{nullptr};
     VulkanRenderTarget* p_vkRenderTarget;
 

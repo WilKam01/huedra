@@ -3,7 +3,6 @@
 #include "core/types.hpp"
 #include "graphics/buffer.hpp"
 #include "graphics/render_graph_builder.hpp"
-#include "graphics/resource_set.hpp"
 #include "graphics/texture.hpp"
 #include "resources/texture/data.hpp"
 #include "window/window.hpp"
@@ -25,7 +24,6 @@ public:
 
     virtual Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) = 0;
     virtual Texture* createTexture(TextureData textureData) = 0;
-    virtual ResourceSet* createResourceSet(const std::string& renderPass, u32 setIndex) = 0;
 
     virtual void setRenderGraph(RenderGraphBuilder& builder) = 0;
     virtual void render() = 0;

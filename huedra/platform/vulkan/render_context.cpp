@@ -4,12 +4,15 @@
 
 namespace huedra {
 
-void VulkanRenderContext::init(VkCommandBuffer commandBuffer, VulkanRenderPass* renderPass)
+void VulkanRenderContext::init(VkCommandBuffer commandBuffer, VulkanRenderPass* renderPass,
+                               DescriptorHandler& descriptorHandler)
 {
     m_commandBuffer = commandBuffer;
     p_renderPass = renderPass;
+    p_descriptorHandler = &descriptorHandler;
     m_boundVertexBuffer = false;
     m_boundIndexBuffer = false;
+    p_descriptorHandler->resetSetInstance();
 }
 
 void VulkanRenderContext::bindVertexBuffers(std::vector<Ref<Buffer>> buffers)
@@ -53,61 +56,24 @@ void VulkanRenderContext::bindIndexBuffer(Ref<Buffer> buffer)
     m_boundIndexBuffer = true;
 }
 
-void VulkanRenderContext::bindResourceSets(std::vector<Ref<ResourceSet>> resourceSets)
+void VulkanRenderContext::bindBuffer(Ref<Buffer> buffer, u32 set, u32 binding)
 {
-    u32 resourceCount = p_renderPass->getPipeline().getBuilder().getResources().size();
-    if (resourceSets.size() > resourceCount)
+    if (!buffer.valid())
     {
-        log(LogLevel::WARNING, "Could not bind resource sets, pipeline supports %d sets but %d was provided",
-            resourceCount, resourceSets.size());
+        log(LogLevel::WARNING, "Could not bind buffer, reference invalid");
     }
 
-    for (size_t i = 0; i < resourceSets.size(); ++i)
-    {
-        if (!resourceSets[i].valid())
-        {
-            log(LogLevel::WARNING, "Could not bind resource set: %d. Not valid", i);
-            return;
-        }
-
-        if (&p_renderPass->getPipeline() != static_cast<VulkanResourceSet*>(resourceSets[i].get())->getPipeline())
-        {
-            log(LogLevel::WARNING, "Could not bind resource set: %d. Using different pipelines", i);
-            return;
-        }
-    }
-
-    u32 setOffset = resourceSets[0]->getSetIndex();
-    std::vector<VkDescriptorSet> descriptors(resourceSets.size());
-    for (size_t i = 0; i < resourceSets.size(); ++i)
-    {
-        descriptors[i] = static_cast<VulkanResourceSet*>(resourceSets[i].get())->get();
-    }
-
-    vkCmdBindDescriptorSets(m_commandBuffer, converter::convertPipelineType(p_renderPass->getPipelineType()),
-                            p_renderPass->getPipeline().getLayout(), setOffset, static_cast<u32>(descriptors.size()),
-                            descriptors.data(), 0, nullptr);
+    p_descriptorHandler->writeBuffer(*static_cast<VulkanBuffer*>(buffer.get()), set, binding);
 }
 
-void VulkanRenderContext::bindResourceSet(Ref<ResourceSet> resourceSet)
+void VulkanRenderContext::bindTexture(Ref<Texture> texture, u32 set, u32 binding)
 {
-    if (!resourceSet.valid())
+    if (!texture.valid())
     {
-        log(LogLevel::WARNING, "Could not bind resource set. Not valid");
-        return;
+        log(LogLevel::WARNING, "Could not bind texture, reference invalid");
     }
 
-    if (!resourceSet->isCompatible(p_renderPass->getPipeline().getBuilder()))
-    {
-        log(LogLevel::WARNING, "Could not bind resource set. Using different pipeline layouts");
-        return;
-    }
-
-    VulkanResourceSet* set = static_cast<VulkanResourceSet*>(resourceSet.get());
-    VkDescriptorSet descriptorSet = set->get();
-
-    vkCmdBindDescriptorSets(m_commandBuffer, converter::convertPipelineType(p_renderPass->getPipelineType()),
-                            p_renderPass->getPipeline().getLayout(), set->getSetIndex(), 1, &descriptorSet, 0, nullptr);
+    p_descriptorHandler->writeTexture(*static_cast<VulkanTexture*>(texture.get()), set, binding);
 }
 
 void VulkanRenderContext::pushConstants(ShaderStageFlags shaderStage, u32 size, void* data)
@@ -130,7 +96,9 @@ void VulkanRenderContext::draw(u32 vertexCount, u32 instanceCount, u32 vertexOff
         return;
     }
 
+    p_descriptorHandler->bindSets(m_commandBuffer);
     vkCmdDraw(m_commandBuffer, vertexCount, instanceCount, vertexOffset, instanceOffset);
+    p_descriptorHandler->updateSetInstance();
 }
 
 void VulkanRenderContext::drawIndexed(u32 indexCount, u32 instanceCount, u32 indexOffset, u32 instanceOffset)
@@ -153,7 +121,9 @@ void VulkanRenderContext::drawIndexed(u32 indexCount, u32 instanceCount, u32 ind
         return;
     }
 
+    p_descriptorHandler->bindSets(m_commandBuffer);
     vkCmdDrawIndexed(m_commandBuffer, indexCount, instanceCount, indexOffset, 0, instanceOffset);
+    p_descriptorHandler->updateSetInstance();
 }
 
 } // namespace huedra

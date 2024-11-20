@@ -18,6 +18,7 @@ public:
 
     VkPipeline get() { return m_pipeline; };
     VkPipelineLayout getLayout() { return m_pipelineLayout; };
+    std::vector<VkDescriptorSetLayout> getDescriptorLayouts() { return m_descriptorLayout; }
     VkDescriptorSetLayout getDescriptorLayout(size_t index) { return m_descriptorLayout[index]; }
 
 private:

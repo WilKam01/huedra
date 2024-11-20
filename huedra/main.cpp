@@ -84,8 +84,6 @@ int main()
     TextureData textureData{1, 1, GraphicsDataFormat::RGBA_16_UNORM, sizeof(u8) * 8, texData};
     Ref<Texture> texture = Global::graphicsManager.createTexture(png);
 
-    Ref<ResourceSet> resourseSet(nullptr);
-
     PipelineBuilder builder;
     builder.init(PipelineType::GRAPHICS)
         .addShader(ShaderStage::VERTEX, "assets/shaders/shader.vert")
@@ -93,17 +91,18 @@ int main()
         .addVertexInputStream({sizeof(vec3), VertexInputRate::VERTEX, {{GraphicsDataFormat::RGB_32_FLOAT, 0}}})
         .addVertexInputStream({sizeof(vec2), VertexInputRate::VERTEX, {{GraphicsDataFormat::RG_32_FLOAT, 0}}})
         .addVertexInputStream({sizeof(vec3), VertexInputRate::VERTEX, {{GraphicsDataFormat::RGB_32_FLOAT, 0}}})
-        .addPushConstantRange(HU_SHADER_STAGE_VERTEX, sizeof(matrix4) * 2)
+        .addPushConstantRange(HU_SHADER_STAGE_VERTEX, sizeof(matrix4))
         .addResourceSet()
         .addResourceBinding(HU_SHADER_STAGE_VERTEX, ResourceType::UNIFORM_BUFFER)
         .addResourceBinding(HU_SHADER_STAGE_FRAGMENT, ResourceType::TEXTURE);
 
-    RenderCommands commands = [&meshes, positionsBuffer, uvsBuffer, normalsBuffer, indexBuffer, &viewProj,
+    RenderCommands commands = [&meshes, positionsBuffer, uvsBuffer, normalsBuffer, indexBuffer, viewProjBuffer, texture,
                                &modelMatrix](RenderContext& renderContext) {
         renderContext.bindVertexBuffers({positionsBuffer, uvsBuffer, normalsBuffer});
         renderContext.bindIndexBuffer(indexBuffer);
-        std::array<matrix4, 2> matrices{modelMatrix, viewProj};
-        renderContext.pushConstants(HU_SHADER_STAGE_VERTEX, sizeof(matrix4) * 2, matrices.data());
+        renderContext.bindBuffer(viewProjBuffer, 0, 0);
+        renderContext.bindTexture(texture, 0, 1);
+        renderContext.pushConstants(HU_SHADER_STAGE_VERTEX, sizeof(matrix4), &modelMatrix);
         renderContext.drawIndexed(static_cast<u32>(meshes[0].indices.size()), 1, 0, 0);
     };
 

@@ -63,17 +63,15 @@ void VulkanContext::cleanup()
     }
     m_textures.clear();
 
-    for (auto& resourceSet : m_resourceSets)
-    {
-        resourceSet->cleanup();
-        delete resourceSet;
-    }
-    m_resourceSets.clear();
-
     for (auto& [name, renderPass] : m_renderPasses)
     {
-        renderPass->cleanup();
-        delete renderPass;
+        renderPass.pass->cleanup();
+        delete renderPass.pass;
+        for (auto& handler : renderPass.descriptorHandlers)
+        {
+            handler.cleanup();
+        }
+        vkDestroyDescriptorPool(m_device.getLogical(), renderPass.descriptorPool, nullptr);
     }
     m_renderPasses.clear();
 
@@ -160,20 +158,6 @@ Texture* VulkanContext::createTexture(TextureData textureData)
     return texture;
 }
 
-ResourceSet* VulkanContext::createResourceSet(const std::string& renderPass, u32 setIndex)
-{
-    if (!m_renderPasses.contains(renderPass))
-    {
-        log(LogLevel::ERR, "Could not create resource set, render pass: %s is not defined", renderPass.c_str());
-        return nullptr;
-    }
-
-    VulkanResourceSet* resourceSet = new VulkanResourceSet();
-    resourceSet->init(m_device, m_renderPasses[renderPass]->getPipeline(), setIndex);
-    m_resourceSets.push_back(resourceSet);
-    return resourceSet;
-}
-
 void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
 {
     if (m_curGraph.getHash() == builder.getHash())
@@ -186,26 +170,68 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
 
     log(LogLevel::INFO, "New render graph with hash: %llu", m_curGraph.getHash());
 
-    // Destroy all previous sets, passes and pipelines
-    for (auto& resourceSet : m_resourceSets)
-    {
-        resourceSet->cleanup();
-        delete resourceSet;
-    }
-    m_resourceSets.clear();
-
+    // Destroy all previous passes
     for (auto& [name, renderPass] : m_renderPasses)
     {
-        renderPass->cleanup();
-        delete renderPass;
+        renderPass.pass->cleanup();
+        delete renderPass.pass;
+        for (auto& handler : renderPass.descriptorHandlers)
+        {
+            handler.cleanup();
+        }
+        vkDestroyDescriptorPool(m_device.getLogical(), renderPass.descriptorPool, nullptr);
     }
     m_renderPasses.clear();
 
     for (auto& [key, info] : builder.getRenderPasses())
     {
-        VulkanRenderPass* renderPass = new VulkanRenderPass();
-        renderPass->init(m_device, info);
-        m_renderPasses.insert(std::pair<std::string, VulkanRenderPass*>(key, renderPass));
+        PassInfo passInfo;
+        passInfo.pass = new VulkanRenderPass();
+        passInfo.pass->init(m_device, info);
+
+        std::vector<std::vector<ResourceBinding>> sets = info.getPipeline().getResources();
+        std::vector<std::vector<VkDescriptorType>> bindingTypes(sets.size());
+        std::multiset<VkDescriptorType> poolSizeSet{};
+        for (u64 i = 0; i < sets.size(); ++i)
+        {
+            bindingTypes[i].resize(sets[i].size());
+            for (u64 j = 0; j < sets[i].size(); ++j)
+            {
+                bindingTypes[i][j] = converter::convertResourceType(sets[i][j].resource);
+                poolSizeSet.insert(bindingTypes[i][j]);
+            }
+        }
+
+        std::vector<VkDescriptorPoolSize> poolSizes;
+        for (auto& type : poolSizeSet)
+        {
+            VkDescriptorPoolSize poolSize;
+            poolSize.type = type;
+            // TODO: Add ability to decide multiple sets per frame. An estimation or actual?
+            poolSize.descriptorCount =
+                static_cast<u32>(poolSizeSet.count(type) * GraphicsManager::MAX_FRAMES_IN_FLIGHT);
+            poolSizes.push_back(poolSize);
+        }
+
+        VkDescriptorPoolCreateInfo poolInfo{};
+        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+        poolInfo.pPoolSizes = poolSizes.data();
+        poolInfo.poolSizeCount = static_cast<u32>(poolSizes.size());
+        // TODO: Add ability to decide multiple sets per frame. An estimation or actual?
+        poolInfo.maxSets = GraphicsManager::MAX_FRAMES_IN_FLIGHT;
+
+        if (vkCreateDescriptorPool(m_device.getLogical(), &poolInfo, nullptr, &passInfo.descriptorPool) != VK_SUCCESS)
+        {
+            log(LogLevel::ERR, "Failed to create descriptor pool!");
+        }
+
+        passInfo.descriptorHandlers.resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
+        for (auto& handler : passInfo.descriptorHandlers)
+        {
+            handler.init(m_device, *passInfo.pass, passInfo.descriptorPool, bindingTypes);
+        }
+
+        m_renderPasses.insert(std::pair<std::string, PassInfo>(key, passInfo));
     }
 }
 
@@ -215,14 +241,14 @@ void VulkanContext::render()
                     VK_TRUE, UINT64_MAX);
     m_recordedCommands = false;
 
-    for (auto& [name, renderPass] : m_renderPasses)
+    for (auto& [name, info] : m_renderPasses)
     {
-        if (!renderPass->getRenderTarget().valid())
+        if (!info.pass->getRenderTarget().valid())
         {
             continue;
         }
 
-        RenderTarget* renderTarget = renderPass->getRenderTarget().get();
+        RenderTarget* renderTarget = info.pass->getRenderTarget().get();
         renderTarget->prepareNextFrame(Global::graphicsManager.getCurrentFrame());
         if (renderTarget->isAvailable())
         {
@@ -235,13 +261,14 @@ void VulkanContext::render()
             }
 
             VkCommandBuffer commandBuffer = m_commandBuffer.get(Global::graphicsManager.getCurrentFrame());
-            renderPass->begin(commandBuffer);
+            info.pass->begin(commandBuffer);
 
             VulkanRenderContext renderContext;
-            renderContext.init(commandBuffer, static_cast<VulkanRenderPass*>(renderPass));
-            renderPass->getCommands()(renderContext);
+            renderContext.init(commandBuffer, info.pass,
+                               info.descriptorHandlers[Global::graphicsManager.getCurrentFrame()]);
+            info.pass->getCommands()(renderContext);
 
-            renderPass->end(commandBuffer);
+            info.pass->end(commandBuffer);
         }
     }
 

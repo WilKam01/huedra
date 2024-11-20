@@ -2,12 +2,12 @@
 
 #include "graphics/context.hpp"
 #include "platform/vulkan/buffer.hpp"
+#include "platform/vulkan/descriptor_handler.hpp"
 #include "platform/vulkan/device.hpp"
 #include "platform/vulkan/instance.hpp"
 #include "platform/vulkan/pipeline.hpp"
 #include "platform/vulkan/render_context.hpp"
 #include "platform/vulkan/render_pass.hpp"
-#include "platform/vulkan/resource_set.hpp"
 #include "platform/vulkan/swapchain.hpp"
 #include "window/window.hpp"
 
@@ -27,7 +27,6 @@ public:
 
     Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) override;
     Texture* createTexture(TextureData textureData) override;
-    ResourceSet* createResourceSet(const std::string& renderPass, u32 setIndex) override;
 
     void setRenderGraph(RenderGraphBuilder& builder) override;
     void render() override;
@@ -51,10 +50,15 @@ private:
     std::vector<VulkanSwapchain*> m_swapchains;
     std::vector<VulkanBuffer*> m_buffers;
     std::vector<VulkanTexture*> m_textures;
-    std::vector<VulkanResourceSet*> m_resourceSets;
 
     RenderGraphBuilder m_curGraph;
-    std::map<std::string, VulkanRenderPass*> m_renderPasses;
+    struct PassInfo
+    {
+        VulkanRenderPass* pass;
+        std::vector<DescriptorHandler> descriptorHandlers;
+        VkDescriptorPool descriptorPool;
+    };
+    std::map<std::string, PassInfo> m_renderPasses;
 
     std::vector<VkFence> m_renderingInFlightFences;
     std::vector<VkSemaphore> m_renderFinishedSemaphores;

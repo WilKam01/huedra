@@ -65,11 +65,6 @@ Ref<Texture> GraphicsManager::createTexture(TextureData textureData)
     return Ref<Texture>(m_context->createTexture(textureData));
 }
 
-Ref<ResourceSet> GraphicsManager::createResourceSet(const std::string renderPass, u32 setIndex)
-{
-    return Ref<ResourceSet>(m_context->createResourceSet(renderPass, setIndex));
-}
-
 void GraphicsManager::setRenderGraph(RenderGraphBuilder& builder)
 {
     builder.generateHash();
