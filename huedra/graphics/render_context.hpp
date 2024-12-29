@@ -1,12 +1,13 @@
 #pragma once
 
 #include "core/references/ref.hpp"
-#include "graphics/buffer.hpp"
-#include "graphics/texture.hpp"
+#include "graphics/pipeline_data.hpp"
 
 namespace huedra {
 
 class ResourceSet;
+class Buffer;
+class Texture;
 
 class RenderContext
 {

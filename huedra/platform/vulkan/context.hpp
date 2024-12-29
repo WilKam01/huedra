@@ -26,10 +26,16 @@ public:
     void removeSwapchain(size_t index) override;
 
     Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) override;
+    void readBuffer(u64 id, u64 size, void* data) override;
+    void writeToBuffer(u64 id, u64 size, void* data) override;
+
     Texture* createTexture(TextureData textureData) override;
 
     void setRenderGraph(RenderGraphBuilder& builder) override;
     void render() override;
+
+    VulkanBuffer* getBuffer(u64 id);
+    VulkanTexture* getTexture(u64 id);
 
 private:
     VkSurfaceKHR createSurface(Window* window);
@@ -48,8 +54,12 @@ private:
 
     std::vector<VkSurfaceKHR> m_surfaces;
     std::vector<VulkanSwapchain*> m_swapchains;
-    std::vector<VulkanBuffer*> m_buffers;
-    std::vector<VulkanTexture*> m_textures;
+
+    std::deque<VulkanBuffer> m_buffers;
+    std::deque<Buffer> m_bufferHandles;
+
+    std::deque<VulkanTexture> m_textures;
+    std::deque<Texture> m_textureHandles;
 
     RenderGraphBuilder m_curGraph;
     struct PassInfo

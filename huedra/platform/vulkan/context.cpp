@@ -51,17 +51,17 @@ void VulkanContext::cleanup()
 {
     for (auto& buffer : m_buffers)
     {
-        buffer->cleanup();
-        delete buffer;
+        buffer.cleanup();
     }
     m_buffers.clear();
+    m_bufferHandles.clear();
 
     for (auto& texture : m_textures)
     {
-        texture->cleanup();
-        delete texture;
+        texture.cleanup();
     }
     m_textures.clear();
+    m_textureHandles.clear();
 
     for (auto& [name, renderPass] : m_renderPasses)
     {
@@ -118,44 +118,72 @@ void VulkanContext::removeSwapchain(size_t index)
 
 Buffer* VulkanContext::createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data)
 {
-    VulkanBuffer* buffer = new VulkanBuffer();
+    VulkanBuffer& buffer = m_buffers.emplace_back();
     VkBufferUsageFlagBits bufferUsage = converter::convertBufferUsage(usage);
 
     if (type == BufferType::STATIC && data)
     {
-        m_stagingBuffer.init(m_device, BufferType::STATIC, HU_BUFFER_USAGE_UNDEFINED, size,
-                             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        m_stagingBuffer.init(m_device, BufferType::STATIC, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, data);
 
-        buffer->init(m_device, type, usage, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | bufferUsage,
-                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        buffer.init(m_device, type, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | bufferUsage,
+                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
         VkCommandBuffer commandBuffer = m_commandPool.beginSingleTimeCommand();
         VkBufferCopy copyRegion{};
         copyRegion.srcOffset = 0;
         copyRegion.dstOffset = 0;
         copyRegion.size = static_cast<VkDeviceSize>(size);
-        vkCmdCopyBuffer(commandBuffer, m_stagingBuffer.get(), buffer->get(), 1, &copyRegion);
+        vkCmdCopyBuffer(commandBuffer, m_stagingBuffer.get(), buffer.get(), 1, &copyRegion);
         m_commandPool.endSingleTimeCommand(commandBuffer);
 
         m_stagingBuffer.cleanup();
     }
     else
     {
-        buffer->init(m_device, type, usage, size, bufferUsage,
-                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, data);
+        buffer.init(m_device, type, size, bufferUsage,
+                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, data);
     }
 
-    m_buffers.push_back(buffer);
-    return buffer;
+    Buffer& buf = m_bufferHandles.emplace_back();
+    buf.init(type, usage, size, this);
+    buf.setId(m_buffers.size() - 1);
+    return &buf;
+}
+
+void VulkanContext::readBuffer(u64 id, u64 size, void* data)
+{
+    if (id >= m_buffers.size())
+    {
+        log(LogLevel::WARNING, "Could not read buffer, id: %llu invalid. Only %llu buffers exists", id,
+            m_buffers.size());
+        return;
+    }
+
+    m_buffers[id].read(size, data);
+}
+
+void VulkanContext::writeToBuffer(u64 id, u64 size, void* data)
+{
+    if (id >= m_buffers.size())
+    {
+        log(LogLevel::WARNING, "Could not write to buffer, id: %llu invalid. Only %llu buffers exists", id,
+            m_buffers.size());
+        return;
+    }
+
+    m_buffers[id].write(size, data);
 }
 
 Texture* VulkanContext::createTexture(TextureData textureData)
 {
-    VulkanTexture* texture = new VulkanTexture();
-    texture->init(m_device, m_commandPool, textureData);
-    m_textures.push_back(texture);
-    return texture;
+    VulkanTexture& texture = m_textures.emplace_back();
+    texture.init(m_device, m_commandPool, textureData);
+
+    Texture& tex = m_textureHandles.emplace_back();
+    tex.init(textureData.width, textureData.height, textureData.format, TextureType::COLOR, this);
+    tex.setId(m_textures.size() - 1);
+    return &tex;
 }
 
 void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
@@ -264,7 +292,7 @@ void VulkanContext::render()
             info.pass->begin(commandBuffer);
 
             VulkanRenderContext renderContext;
-            renderContext.init(commandBuffer, info.pass,
+            renderContext.init(commandBuffer, this, info.pass,
                                info.descriptorHandlers[Global::graphicsManager.getCurrentFrame()]);
             info.pass->getCommands()(renderContext);
 
@@ -277,6 +305,28 @@ void VulkanContext::render()
         submitGraphicsQueue();
         presentSwapchains();
     }
+}
+
+VulkanBuffer* VulkanContext::getBuffer(u64 id)
+{
+    if (id >= m_buffers.size())
+    {
+        log(LogLevel::WARNING, "Could not get buffer, id: %llu invalid. Only %llu buffers exists", id,
+            m_buffers.size());
+        return nullptr;
+    }
+    return &m_buffers[id];
+}
+
+VulkanTexture* VulkanContext::getTexture(u64 id)
+{
+    if (id >= m_textures.size())
+    {
+        log(LogLevel::WARNING, "Could not get texture, id: %llu invalid. Only %llu textures exists", id,
+            m_textures.size());
+        return nullptr;
+    }
+    return &m_textures[id];
 }
 
 VkSurfaceKHR VulkanContext::createSurface(Window* window)

@@ -4,15 +4,11 @@
 
 namespace huedra {
 
-void VulkanBuffer::init(Device& device, BufferType type, BufferUsageFlags usage, u64 size,
-                        VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, void* data)
+void VulkanBuffer::init(Device& device, BufferType type, u64 size, VkBufferUsageFlags usageFlags,
+                        VkMemoryPropertyFlags memoryPropertyFlags, void* data)
 {
-    Buffer::init(type, usage, size);
     p_device = &device;
-
-    m_buffers.clear();
-    m_memories.clear();
-    m_mapped.clear();
+    m_type = type;
 
     VkBufferCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -102,7 +98,7 @@ void VulkanBuffer::cleanup()
 {
     for (size_t i = 0; i < m_buffers.size(); ++i)
     {
-        if (getType() == BufferType::DYNAMIC)
+        if (m_type == BufferType::DYNAMIC)
         {
             unmap(i);
         }
@@ -113,7 +109,7 @@ void VulkanBuffer::cleanup()
 
 void VulkanBuffer::write(u64 size, void* data)
 {
-    bool isStatic = getType() == BufferType::STATIC;
+    bool isStatic = m_type == BufferType::STATIC;
     u32 index = isStatic ? 1 : Global::graphicsManager.getCurrentFrame();
 
     if (isStatic)
@@ -136,7 +132,7 @@ void VulkanBuffer::write(u64 size, void* data)
 
 void VulkanBuffer::read(u64 size, void* data)
 {
-    bool isStatic = getType() == BufferType::STATIC;
+    bool isStatic = m_type == BufferType::STATIC;
     u32 index = isStatic ? 1 : Global::graphicsManager.getCurrentFrame();
 
     if (isStatic)
@@ -159,7 +155,7 @@ void VulkanBuffer::read(u64 size, void* data)
 
 VkBuffer VulkanBuffer::get()
 {
-    return m_buffers[getType() == BufferType::STATIC ? 0 : Global::graphicsManager.getCurrentFrame()];
+    return m_buffers[m_type == BufferType::STATIC ? 0 : Global::graphicsManager.getCurrentFrame()];
 }
 
 bool VulkanBuffer::map(size_t index)

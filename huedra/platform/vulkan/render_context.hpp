@@ -7,13 +7,16 @@
 
 namespace huedra {
 
+class VulkanContext;
+
 class VulkanRenderContext : public RenderContext
 {
 public:
     VulkanRenderContext() = default;
     ~VulkanRenderContext() = default;
 
-    void init(VkCommandBuffer commandBuffer, VulkanRenderPass* renderPass, DescriptorHandler& descriptorHandler);
+    void init(VkCommandBuffer commandBuffer, VulkanContext* context, VulkanRenderPass* renderPass,
+              DescriptorHandler& descriptorHandler);
 
     void bindVertexBuffers(std::vector<Ref<Buffer>> buffers) override;
     void bindIndexBuffer(Ref<Buffer> buffer) override;
@@ -27,6 +30,7 @@ public:
 
 private:
     VkCommandBuffer m_commandBuffer;
+    VulkanContext* p_context;
     VulkanRenderPass* p_renderPass;
     DescriptorHandler* p_descriptorHandler;
 

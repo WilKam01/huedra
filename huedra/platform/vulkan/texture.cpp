@@ -9,7 +9,9 @@ namespace huedra {
 
 void VulkanTexture::init(Device& device, CommandPool& commandPool, TextureData textureData)
 {
-    Texture::init(textureData.width, textureData.height, textureData.format, TextureType::COLOR);
+    m_width = textureData.width;
+    m_height = textureData.height;
+    m_type = TextureType::COLOR;
 
     p_device = &device;
     p_commandPool = &commandPool;
@@ -17,7 +19,7 @@ void VulkanTexture::init(Device& device, CommandPool& commandPool, TextureData t
     m_multipleImages = false;
     m_createdSampler = true;
 
-    m_format = findFormat(TextureType::COLOR, textureData.format);
+    m_format = findFormat(m_type, textureData.format);
 
     VkDeviceSize size = textureData.width * textureData.height * textureData.texelSize;
 
@@ -26,7 +28,7 @@ void VulkanTexture::init(Device& device, CommandPool& commandPool, TextureData t
     m_memories.resize(1);
 
     VulkanBuffer stagingBuffer;
-    stagingBuffer.init(device, BufferType::STATIC, HU_BUFFER_USAGE_UNDEFINED, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+    stagingBuffer.init(device, BufferType::STATIC, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                        textureData.texels.data());
 
@@ -96,7 +98,9 @@ void VulkanTexture::init(Device& device, CommandPool& commandPool, TextureData t
 void VulkanTexture::init(Device& device, CommandPool& commandPool, TextureType type, GraphicsDataFormat format,
                          u32 width, u32 height, u32 imageCount)
 {
-    Texture::init(width, height, format, type);
+    m_width = width;
+    m_height = height;
+    m_type = type;
 
     p_device = &device;
     p_commandPool = &commandPool;
@@ -127,7 +131,9 @@ void VulkanTexture::init(Device& device, CommandPool& commandPool, TextureType t
 void VulkanTexture::init(Device& device, CommandPool& commandPool, std::vector<VkImage> images, VkFormat format,
                          VkExtent2D extent)
 {
-    Texture::init(extent.width, extent.height, converter::convertVkFormat(format), TextureType::COLOR);
+    m_width = extent.width;
+    m_height = extent.height;
+    m_type = TextureType::COLOR;
 
     p_device = &device;
     p_commandPool = &commandPool;
@@ -192,8 +198,8 @@ void VulkanTexture::createImages(VkImageTiling tiling, VkImageUsageFlags usage, 
         VkImageCreateInfo imageInfo{};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         imageInfo.imageType = VK_IMAGE_TYPE_2D;
-        imageInfo.extent.width = getWidth();
-        imageInfo.extent.height = getHeight();
+        imageInfo.extent.width = m_width;
+        imageInfo.extent.height = m_height;
         imageInfo.extent.depth = 1;
         imageInfo.mipLevels = 1;
         imageInfo.arrayLayers = 1;

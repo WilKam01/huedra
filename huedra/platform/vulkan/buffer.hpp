@@ -1,22 +1,22 @@
 #pragma once
 
-#include "graphics/buffer.hpp"
+#include "graphics/pipeline_data.hpp"
 #include "platform/vulkan/device.hpp"
 
 namespace huedra {
 
-class VulkanBuffer : public Buffer
+class VulkanBuffer
 {
 public:
     VulkanBuffer() = default;
     ~VulkanBuffer() = default;
 
-    void init(Device& device, BufferType type, BufferUsageFlags usage, u64 size, VkBufferUsageFlags usageFlags,
+    void init(Device& device, BufferType type, u64 size, VkBufferUsageFlags usageFlags,
               VkMemoryPropertyFlags memoryPropertyFlags, void* data = nullptr);
-    void cleanup() override;
+    void cleanup();
 
-    void write(u64 size, void* data) override;
-    void read(u64 size, void* data) override;
+    void write(u64 size, void* data);
+    void read(u64 size, void* data);
 
     VkBuffer get();
 
@@ -25,6 +25,7 @@ private:
     void unmap(size_t index);
 
     Device* p_device;
+    BufferType m_type{BufferType::STATIC};
     std::vector<VkBuffer> m_buffers;
     std::vector<VkDeviceMemory> m_memories;
     std::vector<void*> m_mapped{};
