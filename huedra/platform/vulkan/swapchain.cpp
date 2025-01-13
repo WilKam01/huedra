@@ -13,8 +13,6 @@ void VulkanSwapchain::init(Window* window, Device& device, CommandPool& commandP
     m_surface = surface;
     m_renderDepth = renderDepth;
 
-    createSyncObjects();
-
     create();
     p_window->setRenderTarget(&m_renderTarget);
 }
@@ -23,48 +21,52 @@ void VulkanSwapchain::cleanup()
 {
     p_device->waitIdle();
 
-    VkDevice device = p_device->getLogical();
-
-    for (size_t i = 0; i < GraphicsManager::MAX_FRAMES_IN_FLIGHT; i++)
-    {
-        vkDestroySemaphore(device, m_imageAvailableSemaphores[i], nullptr);
-    }
-
     partialCleanup();
     m_renderTarget.cleanup();
 }
 
-std::optional<u32> VulkanSwapchain::aquireNextImage(u32 frameIndex)
+void VulkanSwapchain::aquireNextImage()
 {
-    m_canPresent = false;
     if (p_window->isMinimized())
     {
-        return std::nullopt;
+        m_renderTarget.setAvailability(false);
+        return;
     }
 
-    u32 imageIndex;
-    VkResult result = vkAcquireNextImageKHR(p_device->getLogical(), m_swapchain, UINT64_MAX,
-                                            m_imageAvailableSemaphores[frameIndex], VK_NULL_HANDLE, &imageIndex);
+    if (m_alreadyAquiredFrame)
+    {
+        m_renderTarget.setAvailability(true);
+        return;
+    }
+
+    m_renderTarget.setAvailability(false);
+
+    VkResult result =
+        vkAcquireNextImageKHR(p_device->getLogical(), m_swapchain, UINT64_MAX,
+                              m_imageAvailableSemaphores[m_semaphoreIndex], VK_NULL_HANDLE, &m_imageIndex);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
         recreate();
-        return std::nullopt;
     }
     else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
     {
         log(LogLevel::ERR, "Failed to acquire swap chain image!");
     }
-
-    m_canPresent = true;
-    return imageIndex;
+    else
+    {
+        m_alreadyAquiredFrame = true;
+        m_renderTarget.setAvailability(true);
+    }
+    return;
 }
 
 void VulkanSwapchain::handlePresentResult(VkResult result)
 {
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || p_window->isMinimized())
+    m_alreadyAquiredFrame = false;
+    m_semaphoreIndex = (m_semaphoreIndex + 1) % m_imageAvailableSemaphores.size();
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
     {
-        m_canPresent = false;
         recreate();
     }
 }
@@ -114,16 +116,21 @@ void VulkanSwapchain::partialCleanup()
 {
     m_renderTarget.partialCleanup();
     vkDestroySwapchainKHR(p_device->getLogical(), m_swapchain, nullptr);
+
+    for (u32 i = 0; i < m_imageAvailableSemaphores.size(); i++)
+    {
+        vkDestroySemaphore(p_device->getLogical(), m_imageAvailableSemaphores[i], nullptr);
+    }
 }
 
-void VulkanSwapchain::createSyncObjects()
+void VulkanSwapchain::create()
 {
-    m_imageAvailableSemaphores.resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
+    m_imageAvailableSemaphores.resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT + 1);
 
     VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-    for (size_t i = 0; i < GraphicsManager::MAX_FRAMES_IN_FLIGHT; i++)
+    for (size_t i = 0; i < m_imageAvailableSemaphores.size(); i++)
     {
         if (vkCreateSemaphore(p_device->getLogical(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) !=
             VK_SUCCESS)
@@ -131,10 +138,7 @@ void VulkanSwapchain::createSyncObjects()
             log(LogLevel::ERR, "Failed to create swap chain synchronization objects!");
         }
     }
-}
 
-void VulkanSwapchain::create()
-{
     VulkanSurfaceSupport surfaceSupport = p_device->querySurfaceSupport(p_device->getPhysical(), m_surface);
     VkSurfaceFormatKHR surfaceFormat = p_device->chooseSurfaceFormat(surfaceSupport.formats);
     VkPresentModeKHR presentMode = choosePresentMode(surfaceSupport.presentModes);

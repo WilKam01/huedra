@@ -29,6 +29,7 @@ public:
 
     virtual Texture* createTexture(TextureData textureData) = 0;
 
+    virtual void prepareSwapchains() = 0;
     virtual void setRenderGraph(RenderGraphBuilder& builder) = 0;
     virtual void render() = 0;
 

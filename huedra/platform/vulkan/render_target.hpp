@@ -21,15 +21,14 @@ public:
     void cleanup() override;
     void partialCleanup();
 
-    void prepareNextFrame(u32 frameIndex) override;
-
     void addRenderPass(VulkanRenderPass* renderPass);
+    void removeRenderPass(VulkanRenderPass* renderPass);
 
+    VulkanSwapchain* getSwapchain() { return p_swapchain; }
     VulkanTexture& getColorTexture() { return m_texture; }
     VulkanTexture& getDepthTexture() { return m_depthTexture; }
     VkFormat getColorFormat() { return m_texture.getFormat(); }
     VkFormat getDepthFormat() { return m_depthTexture.getFormat(); }
-    u32 getImageIndex() { return m_currentImageIndex; }
     u32 getImageCount() { return m_imageCount; }
     VkExtent2D getExtent() { return m_extent; }
 
@@ -41,7 +40,6 @@ private:
     VulkanTexture m_texture;
     VulkanTexture m_depthTexture;
 
-    u32 m_currentImageIndex{0};
     u32 m_imageCount{0};
     VkExtent2D m_extent;
 };

@@ -16,15 +16,16 @@ public:
     void init(Window* window, Device& device, CommandPool& commandPool, VkSurfaceKHR surface, bool renderDepth);
     void cleanup();
 
-    std::optional<u32> aquireNextImage(u32 frameIndex);
+    void aquireNextImage();
     void handlePresentResult(VkResult result);
 
     VkSwapchainKHR get() { return m_swapchain; }
     VkSurfaceKHR getSurface() { return m_surface; }
     VulkanRenderTarget& getRenderTarget() { return m_renderTarget; }
-    VkSemaphore getImageAvailableSemaphore(size_t i) { return m_imageAvailableSemaphores[i]; }
+    VkSemaphore getImageAvailableSemaphore() { return m_imageAvailableSemaphores[m_semaphoreIndex]; }
     bool renderDepth() { return m_renderDepth; }
-    bool canPresent() { return m_canPresent; }
+    bool canPresent() { return m_renderTarget.isAvailable(); }
+    u32 getImageIndex() { return m_imageIndex; }
 
 private:
     VkPresentModeKHR choosePresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
@@ -32,7 +33,6 @@ private:
 
     void recreate();
     void partialCleanup();
-    void createSyncObjects();
 
     void create();
 
@@ -46,7 +46,9 @@ private:
     bool m_renderDepth;
 
     std::vector<VkSemaphore> m_imageAvailableSemaphores;
-    bool m_canPresent{false};
+    bool m_alreadyAquiredFrame{false};
+    u32 m_imageIndex{0};
+    u32 m_semaphoreIndex{0};
 };
 
 } // namespace huedra

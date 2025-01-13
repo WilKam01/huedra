@@ -29,9 +29,6 @@ public:
     bool usesColor() { return m_type == RenderTargetType::COLOR || m_type == RenderTargetType::COLOR_AND_DEPTH; }
     bool usesDepth() { return m_type == RenderTargetType::DEPTH || m_type == RenderTargetType::COLOR_AND_DEPTH; }
 
-    virtual void prepareNextFrame(u32 frameIndex) = 0;
-
-protected:
     void setAvailability(bool available);
 
 private:

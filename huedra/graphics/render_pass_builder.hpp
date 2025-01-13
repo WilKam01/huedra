@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/references/ref.hpp"
 #include "core/types.hpp"
 #include "graphics/pipeline_builder.hpp"
 #include "graphics/render_target.hpp"
@@ -39,7 +40,8 @@ public:
     RenderPassBuilder& init(RenderPassType type, const PipelineBuilder& pipeline = {});
     RenderPassBuilder& setCommands(const RenderCommands& commands);
 
-    RenderPassBuilder& addResource(ResourceAccessType access);
+    RenderPassBuilder& addResource(ResourceAccessType access, Ref<Buffer> buffer);
+    RenderPassBuilder& addResource(ResourceAccessType access, Ref<Texture> texture);
     RenderPassBuilder& addRenderTarget(Ref<RenderTarget> renderTarget, bool clearTarget = true,
                                        vec3 clearColor = vec3(0.0f));
 
@@ -60,7 +62,14 @@ private:
 
     struct RenderPassReference
     {
-        ResourceAccessType access;
+        ResourceAccessType access{ResourceAccessType::READ};
+        Ref<Buffer> buffer{nullptr};
+        Ref<Texture> texture{nullptr};
+        enum class ResourceType
+        {
+            BUFFER,
+            TEXTURE,
+        } type{ResourceType::BUFFER};
     };
 
     std::vector<RenderPassReference> m_inputs;

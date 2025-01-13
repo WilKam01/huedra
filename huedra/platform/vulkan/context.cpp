@@ -22,8 +22,9 @@ void VulkanContext::init()
     m_commandPool.init(m_device, VK_PIPELINE_BIND_POINT_GRAPHICS);
     m_commandBuffer.init(m_device, m_commandPool, GraphicsManager::MAX_FRAMES_IN_FLIGHT);
 
-    m_renderingInFlightFences.resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
-    m_renderFinishedSemaphores.resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
+    m_frameInFlightFences.resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
+    m_graphicsSyncSemaphores[0].resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
+    m_graphicsSyncSemaphores[1].resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
 
     VkFenceCreateInfo fenceInfo{};
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -32,10 +33,12 @@ void VulkanContext::init()
     VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-    for (size_t i = 0; i < GraphicsManager::MAX_FRAMES_IN_FLIGHT; i++)
+    for (u32 i = 0; i < GraphicsManager::MAX_FRAMES_IN_FLIGHT; i++)
     {
-        if (vkCreateFence(m_device.getLogical(), &fenceInfo, nullptr, &m_renderingInFlightFences[i]) != VK_SUCCESS ||
-            vkCreateSemaphore(m_device.getLogical(), &semaphoreInfo, nullptr, &m_renderFinishedSemaphores[i]) !=
+        if (vkCreateFence(m_device.getLogical(), &fenceInfo, nullptr, &m_frameInFlightFences[i]) != VK_SUCCESS ||
+            vkCreateSemaphore(m_device.getLogical(), &semaphoreInfo, nullptr, &m_graphicsSyncSemaphores[0][i]) !=
+                VK_SUCCESS ||
+            vkCreateSemaphore(m_device.getLogical(), &semaphoreInfo, nullptr, &m_graphicsSyncSemaphores[1][i]) !=
                 VK_SUCCESS)
         {
             log(LogLevel::ERR, "Failed to create render fences and semaphores!");
@@ -63,17 +66,21 @@ void VulkanContext::cleanup()
     m_textures.clear();
     m_textureHandles.clear();
 
-    for (auto& [name, renderPass] : m_renderPasses)
+    for (auto& batch : m_passBatches)
     {
-        renderPass.pass->cleanup();
-        delete renderPass.pass;
-        for (auto& handler : renderPass.descriptorHandlers)
+        for (auto& renderPass : batch.passes)
         {
-            handler.cleanup();
+            renderPass.pass->cleanup();
+            delete renderPass.pass;
+            for (auto& handler : renderPass.descriptorHandlers)
+            {
+                handler.cleanup();
+            }
+            vkDestroyDescriptorPool(m_device.getLogical(), renderPass.descriptorPool, nullptr);
         }
-        vkDestroyDescriptorPool(m_device.getLogical(), renderPass.descriptorPool, nullptr);
     }
-    m_renderPasses.clear();
+    m_passBatches.clear();
+    m_activeSwapchains.clear();
 
     for (auto& swapchain : m_swapchains)
     {
@@ -84,8 +91,9 @@ void VulkanContext::cleanup()
 
     for (u32 i = 0; i < GraphicsManager::MAX_FRAMES_IN_FLIGHT; ++i)
     {
-        vkDestroySemaphore(m_device.getLogical(), m_renderFinishedSemaphores[i], nullptr);
-        vkDestroyFence(m_device.getLogical(), m_renderingInFlightFences[i], nullptr);
+        vkDestroySemaphore(m_device.getLogical(), m_graphicsSyncSemaphores[0][i], nullptr);
+        vkDestroySemaphore(m_device.getLogical(), m_graphicsSyncSemaphores[1][i], nullptr);
+        vkDestroyFence(m_device.getLogical(), m_frameInFlightFences[i], nullptr);
     }
 
     m_commandBuffer.cleanup();
@@ -186,6 +194,14 @@ Texture* VulkanContext::createTexture(TextureData textureData)
     return &tex;
 }
 
+void VulkanContext::prepareSwapchains()
+{
+    for (auto& swapchain : m_swapchains)
+    {
+        swapchain->aquireNextImage();
+    }
+}
+
 void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
 {
     if (m_curGraph.getHash() == builder.getHash())
@@ -198,19 +214,24 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
 
     log(LogLevel::INFO, "New render graph with hash: %llu", m_curGraph.getHash());
 
-    // Destroy all previous passes
-    for (auto& [name, renderPass] : m_renderPasses)
+    // Destroy all previous batches
+    for (auto& batch : m_passBatches)
     {
-        renderPass.pass->cleanup();
-        delete renderPass.pass;
-        for (auto& handler : renderPass.descriptorHandlers)
+        for (auto& renderPass : batch.passes)
         {
-            handler.cleanup();
+            renderPass.pass->cleanup();
+            delete renderPass.pass;
+            for (auto& handler : renderPass.descriptorHandlers)
+            {
+                handler.cleanup();
+            }
+            vkDestroyDescriptorPool(m_device.getLogical(), renderPass.descriptorPool, nullptr);
         }
-        vkDestroyDescriptorPool(m_device.getLogical(), renderPass.descriptorPool, nullptr);
     }
-    m_renderPasses.clear();
+    m_passBatches.clear();
+    m_activeSwapchains.clear();
 
+    m_passBatches.emplace_back(); // At least one batch
     for (auto& [key, info] : builder.getRenderPasses())
     {
         PassInfo passInfo;
@@ -259,35 +280,33 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
             handler.init(m_device, *passInfo.pass, passInfo.descriptorPool, bindingTypes);
         }
 
-        m_renderPasses.insert(std::pair<std::string, PassInfo>(key, passInfo));
+        m_passBatches.back().passes.push_back(passInfo);
+
+        for (auto& target : info.getRenderTargets())
+        {
+            VulkanRenderTarget* vulkanTarget = static_cast<VulkanRenderTarget*>(target.target.get());
+            if (vulkanTarget->getSwapchain() != nullptr)
+            {
+                m_passBatches.back().swapchains.insert(vulkanTarget->getSwapchain());
+                m_activeSwapchains.insert(vulkanTarget->getSwapchain());
+            }
+        }
     }
 }
 
 void VulkanContext::render()
 {
-    vkWaitForFences(m_device.getLogical(), 1, &m_renderingInFlightFences[Global::graphicsManager.getCurrentFrame()],
+    vkWaitForFences(m_device.getLogical(), 1, &m_frameInFlightFences[Global::graphicsManager.getCurrentFrame()],
                     VK_TRUE, UINT64_MAX);
-    m_recordedCommands = false;
+    m_curGraphicsSemphoreIndex = 0;
 
-    for (auto& [name, info] : m_renderPasses)
+    vkResetFences(m_device.getLogical(), 1, &m_frameInFlightFences[Global::graphicsManager.getCurrentFrame()]);
+    m_commandBuffer.begin(Global::graphicsManager.getCurrentFrame());
+
+    for (u32 i = 0; i < m_passBatches.size(); ++i)
     {
-        if (!info.pass->getRenderTarget().valid())
+        for (auto& info : m_passBatches[i].passes)
         {
-            continue;
-        }
-
-        RenderTarget* renderTarget = info.pass->getRenderTarget().get();
-        renderTarget->prepareNextFrame(Global::graphicsManager.getCurrentFrame());
-        if (renderTarget->isAvailable())
-        {
-            if (!m_recordedCommands)
-            {
-                vkResetFences(m_device.getLogical(), 1,
-                              &m_renderingInFlightFences[Global::graphicsManager.getCurrentFrame()]);
-                m_commandBuffer.begin(Global::graphicsManager.getCurrentFrame());
-                m_recordedCommands = true;
-            }
-
             VkCommandBuffer commandBuffer = m_commandBuffer.get(Global::graphicsManager.getCurrentFrame());
             info.pass->begin(commandBuffer);
 
@@ -298,11 +317,12 @@ void VulkanContext::render()
 
             info.pass->end(commandBuffer);
         }
+
+        submitGraphicsQueue(i);
     }
 
-    if (m_recordedCommands)
+    if (!m_activeSwapchains.empty())
     {
-        submitGraphicsQueue();
         presentSwapchains();
     }
 }
@@ -349,140 +369,71 @@ VkSurfaceKHR VulkanContext::createSurface(Window* window)
     return surface;
 }
 
-VkRenderPass VulkanContext::createRenderPass(VkFormat format, VkFormat depthFormat)
-{
-    VkRenderPass renderPass;
-
-    VkAttachmentDescription colorAttachment{};
-    colorAttachment.format = format;
-    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-    VkAttachmentReference colorAttachmentRef{};
-    colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    VkAttachmentDescription depthAttachment{};
-    depthAttachment.format = depthFormat;
-    depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    VkAttachmentReference depthAttachmentRef{};
-    depthAttachmentRef.attachment = 1;
-    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    VkSubpassDescription subpass{};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
-    subpass.pDepthStencilAttachment = &depthAttachmentRef;
-    subpass.pResolveAttachments = nullptr;
-
-    VkSubpassDependency dependency{};
-    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-    dependency.dstSubpass = 0;
-    dependency.srcStageMask =
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    dependency.dstStageMask =
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    dependency.srcAccessMask = 0;
-
-    std::array<VkAttachmentDescription, 2> attachments = {colorAttachment, depthAttachment};
-    VkRenderPassCreateInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = static_cast<u32>(attachments.size());
-    renderPassInfo.pAttachments = attachments.data();
-    renderPassInfo.subpassCount = 1;
-    renderPassInfo.pSubpasses = &subpass;
-    renderPassInfo.dependencyCount = 1;
-    renderPassInfo.pDependencies = &dependency;
-
-    if (vkCreateRenderPass(m_device.getLogical(), &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS)
-    {
-        log(LogLevel::ERR, "Failed to create render pass!");
-    }
-
-    return renderPass;
-}
-
-void VulkanContext::submitGraphicsQueue()
+void VulkanContext::submitGraphicsQueue(u32 batchIndex)
 {
     m_commandBuffer.end(Global::graphicsManager.getCurrentFrame());
 
     std::vector<VkSemaphore> waitSemaphores;
-    for (auto& swapchain : m_swapchains)
-    {
-        if (swapchain->canPresent())
-        {
-            waitSemaphores.push_back(swapchain->getImageAvailableSemaphore(Global::graphicsManager.getCurrentFrame()));
-        }
-    }
+    std::vector<VkPipelineStageFlags> waitStages;
 
-    if (waitSemaphores.empty())
+    for (auto& swapchain : m_passBatches[batchIndex].swapchains)
     {
-        return;
+        waitSemaphores.push_back(swapchain->getImageAvailableSemaphore());
+        waitStages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
     }
-
-    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
-                                         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    if (batchIndex != 0) // Should wait on queue if it's not the first batch
+    {
+        waitSemaphores.push_back(
+            m_graphicsSyncSemaphores[1 - m_curGraphicsSemphoreIndex][Global::graphicsManager.getCurrentFrame()]);
+        waitStages.push_back(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+    }
     submitInfo.waitSemaphoreCount = static_cast<u32>(waitSemaphores.size());
     submitInfo.pWaitSemaphores = waitSemaphores.data();
-    submitInfo.pWaitDstStageMask = waitStages;
+    submitInfo.pWaitDstStageMask = waitStages.data();
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &m_commandBuffer.get(Global::graphicsManager.getCurrentFrame());
 
-    VkSemaphore signalSemaphores[] = {m_renderFinishedSemaphores[Global::graphicsManager.getCurrentFrame()]};
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = signalSemaphores;
-
-    if (vkQueueSubmit(m_device.getGraphicsQueue(), 1, &submitInfo,
-                      m_renderingInFlightFences[Global::graphicsManager.getCurrentFrame()]) != VK_SUCCESS)
+    // Should not signal last batch, EXCEPT for existence of active swapchains
+    if (batchIndex != m_passBatches.size() - 1 || !m_activeSwapchains.empty())
     {
-        log(LogLevel::ERR, "Failed to submit draw command buffer!");
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores =
+            &m_graphicsSyncSemaphores[m_curGraphicsSemphoreIndex][Global::graphicsManager.getCurrentFrame()];
     }
+
+    VkFence fence{};
+    if (batchIndex == m_passBatches.size() - 1)
+    {
+        fence = m_frameInFlightFences[Global::graphicsManager.getCurrentFrame()];
+    }
+    if (vkQueueSubmit(m_device.getGraphicsQueue(), 1, &submitInfo, fence) != VK_SUCCESS)
+    {
+        log(LogLevel::ERR, "Failed to submit graphics queue!");
+    }
+
+    m_curGraphicsSemphoreIndex = 1 - m_curGraphicsSemphoreIndex;
 }
 
 void VulkanContext::presentSwapchains()
 {
-    VkSemaphore waitSemaphores[] = {m_renderFinishedSemaphores[Global::graphicsManager.getCurrentFrame()]};
+    std::vector<VkSwapchainKHR> swapchains;
+    std::vector<u32> imageIndices;
+    std::vector<VkResult> results;
+    for (auto& swapchain : m_activeSwapchains)
+    {
+        swapchains.push_back(swapchain->get());
+        imageIndices.push_back(swapchain->getImageIndex());
+        results.push_back(VK_SUCCESS);
+    }
 
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = waitSemaphores;
-
-    std::vector<VkSwapchainKHR> swapchains;
-    std::vector<u32> imageIndices;
-    std::vector<VkResult> results;
-    for (auto& swapchain : m_swapchains)
-    {
-        if (swapchain->canPresent())
-        {
-            swapchains.push_back(swapchain->get());
-            imageIndices.push_back(swapchain->getRenderTarget().getImageIndex());
-            results.push_back(VK_SUCCESS);
-        }
-    }
-
-    if (swapchains.empty())
-    {
-        return;
-    }
-
+    presentInfo.pWaitSemaphores =
+        &m_graphicsSyncSemaphores[1 - m_curGraphicsSemphoreIndex][Global::graphicsManager.getCurrentFrame()];
     presentInfo.swapchainCount = static_cast<u32>(swapchains.size());
     presentInfo.pSwapchains = swapchains.data();
     presentInfo.pImageIndices = imageIndices.data();
@@ -496,12 +447,9 @@ void VulkanContext::presentSwapchains()
     }
 
     u32 index = 0;
-    for (auto& swapchain : m_swapchains)
+    for (auto& swapchain : m_activeSwapchains)
     {
-        if (swapchain->canPresent())
-        {
-            swapchain->handlePresentResult(results[index++]);
-        }
+        swapchain->handlePresentResult(results[index++]);
     }
 }
 

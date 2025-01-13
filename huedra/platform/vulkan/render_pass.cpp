@@ -1,6 +1,7 @@
 #include "render_pass.hpp"
 #include "core/global.hpp"
 #include "core/log.hpp"
+#include "platform/vulkan/swapchain.hpp"
 
 namespace huedra {
 
@@ -23,6 +24,7 @@ void VulkanRenderPass::cleanup()
     cleanupFramebuffers();
     m_pipeline.cleanup();
     vkDestroyRenderPass(p_device->getLogical(), m_renderPass, nullptr);
+    p_vkRenderTarget->removeRenderPass(this);
 }
 
 void VulkanRenderPass::createFramebuffers()
@@ -87,7 +89,14 @@ void VulkanRenderPass::begin(VkCommandBuffer commandBuffer)
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = m_renderPass;
-    renderPassInfo.framebuffer = m_framebuffers[p_vkRenderTarget->getImageIndex()];
+    if (p_vkRenderTarget->getSwapchain() != nullptr)
+    {
+        renderPassInfo.framebuffer = m_framebuffers[p_vkRenderTarget->getSwapchain()->getImageIndex()];
+    }
+    else
+    {
+        renderPassInfo.framebuffer = m_framebuffers[Global::graphicsManager.getCurrentFrame()];
+    }
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = extent;
     renderPassInfo.clearValueCount = 0;

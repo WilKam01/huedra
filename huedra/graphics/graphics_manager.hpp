@@ -21,6 +21,7 @@ public:
 
     void init();
     void cleanup();
+    void update();
     void render(RenderGraphBuilder& builder);
 
     Ref<Buffer> createBuffer(BufferType type, u32 usage, u64 size, void* data = nullptr);

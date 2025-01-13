@@ -22,13 +22,18 @@ void GraphicsManager::cleanup()
     delete m_context;
 }
 
+void GraphicsManager::update() { m_context->prepareSwapchains(); }
+
 void GraphicsManager::render(RenderGraphBuilder& builder)
 {
-    builder.generateHash();
-    m_context->setRenderGraph(builder);
+    if (!builder.empty())
+    {
+        builder.generateHash();
+        m_context->setRenderGraph(builder);
 
-    m_context->render();
-    m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+        m_context->render();
+        m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    }
 }
 
 Ref<Buffer> GraphicsManager::createBuffer(BufferType type, u32 usage, u64 size, void* data)

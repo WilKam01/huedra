@@ -1,11 +1,15 @@
 #include "render_graph_builder.hpp"
 #include "core/log.hpp"
+#include "graphics/buffer.hpp"
+#include "graphics/texture.hpp"
 
 namespace huedra {
 
 RenderGraphBuilder& RenderGraphBuilder::init()
 {
     m_passes.clear();
+    m_buffers.clear();
+    m_textures.clear();
     return *this;
 }
 
@@ -37,6 +41,22 @@ RenderGraphBuilder& RenderGraphBuilder::addPass(const std::string& name, const R
 
     m_passes.insert(std::pair<std::string, RenderPassBuilder>(name, pass));
     return *this;
+}
+
+Ref<Buffer> RenderGraphBuilder::addBufferResource(BufferUsageFlags usage, u64 size)
+{
+    Buffer* buffer = new Buffer();
+    buffer->init(BufferType::STATIC, usage, size, nullptr);
+    m_buffers.push_back(std::shared_ptr<Buffer>(buffer));
+    return Ref<Buffer>(buffer);
+}
+
+Ref<Texture> RenderGraphBuilder::addTextureResource(u32 width, u32 height, GraphicsDataFormat format)
+{
+    Texture* texture = new Texture();
+    texture->init(width, height, format, TextureType::COLOR, nullptr);
+    m_textures.push_back(std::shared_ptr<Texture>(texture));
+    return Ref<Texture>(texture);
 }
 
 u64 RenderGraphBuilder::generateHash()

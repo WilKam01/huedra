@@ -81,24 +81,15 @@ void VulkanRenderTarget::partialCleanup()
     }
 }
 
-void VulkanRenderTarget::prepareNextFrame(u32 frameIndex)
+void VulkanRenderTarget::addRenderPass(VulkanRenderPass* renderPass) { p_renderPasses.push_back(renderPass); }
+
+void VulkanRenderTarget::removeRenderPass(VulkanRenderPass* renderPass)
 {
-    if (p_swapchain)
+    auto it = std::find(p_renderPasses.begin(), p_renderPasses.end(), renderPass);
+    if (it != p_renderPasses.end())
     {
-        std::optional index = p_swapchain->aquireNextImage(frameIndex);
-        if (index.has_value())
-        {
-            m_currentImageIndex = index.value();
-        }
-        setAvailability(index.has_value());
-    }
-    else
-    {
-        m_currentImageIndex = Global::graphicsManager.getCurrentFrame();
-        setAvailability(true);
+        p_renderPasses.erase(it);
     }
 }
-
-void VulkanRenderTarget::addRenderPass(VulkanRenderPass* renderPass) { p_renderPasses.push_back(renderPass); }
 
 } // namespace huedra

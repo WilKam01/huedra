@@ -37,15 +37,23 @@ public:
     RenderGraphBuilder& init();
     RenderGraphBuilder& addPass(const std::string& name, const RenderPassBuilder& pass);
 
+    Ref<Buffer> addBufferResource(BufferUsageFlags usage, u64 size);
+    Ref<Texture> addTextureResource(u32 width, u32 height, GraphicsDataFormat format);
+
     u64 generateHash();
 
+    bool empty() const { return m_passes.empty(); }
     u64 getHash() const { return m_hash; }
     std::map<std::string, RenderPassBuilder> getRenderPasses() const { return m_passes; }
+    std::vector<std::shared_ptr<Buffer>> getBuffers() const { return m_buffers; }
+    std::vector<std::shared_ptr<Texture>> getTextures() const { return m_textures; }
 
 private:
     u64 m_hash{0};
 
     std::map<std::string, RenderPassBuilder> m_passes;
+    std::vector<std::shared_ptr<Buffer>> m_buffers;
+    std::vector<std::shared_ptr<Texture>> m_textures;
 };
 
 } // namespace huedra

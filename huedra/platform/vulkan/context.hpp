@@ -31,6 +31,7 @@ public:
 
     Texture* createTexture(TextureData textureData) override;
 
+    void prepareSwapchains() override;
     void setRenderGraph(RenderGraphBuilder& builder) override;
     void render() override;
 
@@ -39,9 +40,8 @@ public:
 
 private:
     VkSurfaceKHR createSurface(Window* window);
-    VkRenderPass createRenderPass(VkFormat format, VkFormat depthFormat);
 
-    void submitGraphicsQueue();
+    void submitGraphicsQueue(u32 batchIndex);
     void presentSwapchains();
 
     Instance m_instance;
@@ -50,10 +50,9 @@ private:
     CommandBuffer m_commandBuffer;
     VulkanBuffer m_stagingBuffer;
 
-    bool m_recordedCommands{false};
-
     std::vector<VkSurfaceKHR> m_surfaces;
     std::vector<VulkanSwapchain*> m_swapchains;
+    std::set<VulkanSwapchain*> m_activeSwapchains;
 
     std::deque<VulkanBuffer> m_buffers;
     std::deque<Buffer> m_bufferHandles;
@@ -68,10 +67,16 @@ private:
         std::vector<DescriptorHandler> descriptorHandlers;
         VkDescriptorPool descriptorPool;
     };
-    std::map<std::string, PassInfo> m_renderPasses;
+    struct PassBatch
+    {
+        std::vector<PassInfo> passes;
+        std::set<VulkanSwapchain*> swapchains;
+    };
+    std::vector<PassBatch> m_passBatches;
 
-    std::vector<VkFence> m_renderingInFlightFences;
-    std::vector<VkSemaphore> m_renderFinishedSemaphores;
+    std::vector<VkFence> m_frameInFlightFences;
+    std::array<std::vector<VkSemaphore>, 2> m_graphicsSyncSemaphores;
+    u32 m_curGraphicsSemphoreIndex{0};
 };
 
 } // namespace huedra

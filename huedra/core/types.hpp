@@ -6,6 +6,7 @@
 #include <deque>
 #include <limits>
 #include <map>
+#include <memory>
 #include <optional>
 #include <set>
 #include <string>

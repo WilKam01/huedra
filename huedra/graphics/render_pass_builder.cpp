@@ -29,10 +29,44 @@ RenderPassBuilder& RenderPassBuilder::init(RenderPassType type, const PipelineBu
     return *this;
 }
 
-RenderPassBuilder& RenderPassBuilder::addResource(ResourceAccessType access)
+RenderPassBuilder& RenderPassBuilder::addResource(ResourceAccessType access, Ref<Buffer> buffer)
 {
+    if (!buffer.valid())
+    {
+        log(LogLevel::WARNING, "RenderPassBuilder: buffer invalid");
+        return *this;
+    }
+
     RenderPassReference reference;
     reference.access = access;
+    reference.buffer = buffer;
+    reference.type = RenderPassReference::ResourceType::BUFFER;
+
+    if (access == ResourceAccessType::READ || access == ResourceAccessType::READ_WRITE)
+    {
+        m_inputs.push_back(reference);
+    }
+
+    if (access == ResourceAccessType::WRITE || access == ResourceAccessType::READ_WRITE)
+    {
+        m_outputs.push_back(reference);
+    }
+
+    return *this;
+}
+
+RenderPassBuilder& RenderPassBuilder::addResource(ResourceAccessType access, Ref<Texture> texture)
+{
+    if (!texture.valid())
+    {
+        log(LogLevel::WARNING, "RenderPassBuilder: texture invalid");
+        return *this;
+    }
+
+    RenderPassReference reference;
+    reference.access = access;
+    reference.texture = texture;
+    reference.type = RenderPassReference::ResourceType::TEXTURE;
 
     if (access == ResourceAccessType::READ || access == ResourceAccessType::READ_WRITE)
     {
@@ -55,10 +89,9 @@ RenderPassBuilder& RenderPassBuilder::setCommands(const RenderCommands& commands
 
 RenderPassBuilder& RenderPassBuilder::addRenderTarget(Ref<RenderTarget> renderTarget, bool clearTarget, vec3 clearColor)
 {
-
-    if (!renderTarget.valid())
+    if (!renderTarget.valid() || !renderTarget->isAvailable())
     {
-        log(LogLevel::WARNING, "RenderPassBuilder: render target invalid");
+        log(LogLevel::WARNING, "RenderPassBuilder: render target not available");
         return *this;
     }
 
