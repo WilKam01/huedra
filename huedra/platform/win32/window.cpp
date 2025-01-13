@@ -338,7 +338,7 @@ Keys Win32Window::convertKey(i64 code)
 
     if (key == Keys::NONE && letter >= '0' && letter <= '9')
     {
-        return static_cast<Keys>(static_cast<u32>(Keys::K0) + static_cast<u32>(letter - '0'));
+        return static_cast<Keys>(static_cast<u32>(Keys::_0) + static_cast<u32>(letter - '0'));
     }
 
     return key;

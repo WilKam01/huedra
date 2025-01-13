@@ -145,21 +145,21 @@ int main()
 
         RenderGraphBuilder renderGraph;
         Ref<Buffer> testBuffer = renderGraph.addBufferResource(HU_BUFFER_USAGE_STORAGE_BUFFER, 64);
-        static Keys selectedWindow{Keys::K0};
-        if (Global::input.isKeyPressed(Keys::K0))
+        static Keys selectedWindow{Keys::_0};
+        if (Global::input.isKeyPressed(Keys::_0))
         {
-            selectedWindow = Keys::K0;
+            selectedWindow = Keys::_0;
         }
-        else if (Global::input.isKeyPressed(Keys::K1))
+        else if (Global::input.isKeyPressed(Keys::_1))
         {
-            selectedWindow = Keys::K1;
+            selectedWindow = Keys::_1;
         }
-        else if (Global::input.isKeyPressed(Keys::K2))
+        else if (Global::input.isKeyPressed(Keys::_2))
         {
-            selectedWindow = Keys::K2;
+            selectedWindow = Keys::_2;
         }
 
-        if (window.valid() && window->getRenderTarget()->isAvailable() && selectedWindow != Keys::K2)
+        if (window.valid() && window->getRenderTarget()->isAvailable() && selectedWindow != Keys::_2)
         {
             renderGraph.addPass("Pass1", RenderPassBuilder()
                                              .init(RenderPassType::GRAPHICS, builder)
@@ -169,7 +169,7 @@ int main()
                                              .addRenderTarget(window->getRenderTarget(), true, vec3(0.2f))
                                              .setCommands(commands));
         }
-        if (window1.valid() && window1->getRenderTarget()->isAvailable() && selectedWindow != Keys::K1)
+        if (window1.valid() && window1->getRenderTarget()->isAvailable() && selectedWindow != Keys::_1)
         {
             renderGraph.addPass("Pass2", RenderPassBuilder()
                                              .init(RenderPassType::GRAPHICS, builder)
