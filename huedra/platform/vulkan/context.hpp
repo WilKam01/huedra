@@ -26,9 +26,6 @@ public:
     void removeSwapchain(size_t index) override;
 
     Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) override;
-    void readBuffer(u64 id, u64 size, void* data) override;
-    void writeToBuffer(u64 id, u64 size, void* data) override;
-
     Texture* createTexture(TextureData textureData) override;
 
     void prepareSwapchains() override;
@@ -55,10 +52,7 @@ private:
     std::set<VulkanSwapchain*> m_activeSwapchains;
 
     std::deque<VulkanBuffer> m_buffers;
-    std::deque<Buffer> m_bufferHandles;
-
     std::deque<VulkanTexture> m_textures;
-    std::deque<Texture> m_textureHandles;
 
     RenderGraphBuilder m_curGraph;
     struct PassInfo

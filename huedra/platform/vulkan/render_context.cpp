@@ -34,7 +34,7 @@ void VulkanRenderContext::bindVertexBuffers(std::vector<Ref<Buffer>> buffers)
         {
             log(LogLevel::ERR, "Could not bind vertex buffer: %d. Not valid", i);
         }
-        vkBuffers[i] = p_context->getBuffer(buffers[i]->getId())->get();
+        vkBuffers[i] = static_cast<VulkanBuffer*>(buffers[i].get())->get();
     }
 
     vkCmdBindVertexBuffers(m_commandBuffer, 0, static_cast<u32>(vkBuffers.size()), vkBuffers.data(), offsets.data());
@@ -54,7 +54,7 @@ void VulkanRenderContext::bindIndexBuffer(Ref<Buffer> buffer)
         log(LogLevel::ERR, "Could not bind index buffer. Not valid");
     }
 
-    VkBuffer vkBuffer = p_context->getBuffer(buffer->getId())->get();
+    VkBuffer vkBuffer = static_cast<VulkanBuffer*>(buffer.get())->get();
     vkCmdBindIndexBuffer(m_commandBuffer, vkBuffer, 0, VK_INDEX_TYPE_UINT32);
     m_boundIndexBuffer = true;
 }
@@ -66,7 +66,7 @@ void VulkanRenderContext::bindBuffer(Ref<Buffer> buffer, u32 set, u32 binding)
         log(LogLevel::WARNING, "Could not bind buffer, reference invalid");
     }
 
-    p_descriptorHandler->writeBuffer(*p_context->getBuffer(buffer->getId()), set, binding);
+    p_descriptorHandler->writeBuffer(*static_cast<VulkanBuffer*>(buffer.get()), set, binding);
 }
 
 void VulkanRenderContext::bindTexture(Ref<Texture> texture, u32 set, u32 binding)
@@ -76,7 +76,7 @@ void VulkanRenderContext::bindTexture(Ref<Texture> texture, u32 set, u32 binding
         log(LogLevel::WARNING, "Could not bind texture, reference invalid");
     }
 
-    p_descriptorHandler->writeTexture(*p_context->getTexture(texture->getId()), set, binding);
+    p_descriptorHandler->writeTexture(*static_cast<VulkanTexture*>(texture.get()), set, binding);
 }
 
 void VulkanRenderContext::pushConstants(ShaderStageFlags shaderStage, u32 size, void* data)

@@ -143,8 +143,6 @@ int main()
 
         viewProjBuffer->write(sizeof(viewProj), &viewProj);
 
-        RenderGraphBuilder renderGraph;
-        Ref<Buffer> testBuffer = renderGraph.addBufferResource(HU_BUFFER_USAGE_STORAGE_BUFFER, 64);
         static Keys selectedWindow{Keys::_0};
         if (Global::input.isKeyPressed(Keys::_0))
         {
@@ -159,11 +157,13 @@ int main()
             selectedWindow = Keys::_2;
         }
 
+        RenderGraphBuilder renderGraph;
+        Ref<Buffer> testBuffer = renderGraph.addBufferResource(HU_BUFFER_USAGE_STORAGE_BUFFER, 64);
         if (window.valid() && window->getRenderTarget()->isAvailable() && selectedWindow != Keys::_2)
         {
             renderGraph.addPass("Pass1", RenderPassBuilder()
                                              .init(RenderPassType::GRAPHICS, builder)
-                                             .addResource(ResourceAccessType::WRITE, testBuffer)
+                                             //.addResource(ResourceAccessType::WRITE, testBuffer)
                                              .addResource(ResourceAccessType::READ, viewProjBuffer)
                                              .addResource(ResourceAccessType::READ, texture)
                                              .addRenderTarget(window->getRenderTarget(), true, vec3(0.2f))
@@ -173,7 +173,7 @@ int main()
         {
             renderGraph.addPass("Pass2", RenderPassBuilder()
                                              .init(RenderPassType::GRAPHICS, builder)
-                                             .addResource(ResourceAccessType::READ, testBuffer)
+                                             //.addResource(ResourceAccessType::READ, testBuffer)
                                              .addResource(ResourceAccessType::READ, viewProjBuffer)
                                              .addResource(ResourceAccessType::READ, texture)
                                              .addRenderTarget(window1->getRenderTarget(), true, vec3(0.2f, 0.0f, 0.2f))

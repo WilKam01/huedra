@@ -8,7 +8,7 @@
 
 namespace huedra {
 
-class VulkanTexture
+class VulkanTexture : public Texture
 {
 public:
     VulkanTexture() = default;
@@ -19,9 +19,7 @@ public:
               u32 height, u32 imageCount);
     void init(Device& device, CommandPool& commandPool, std::vector<VkImage> images, VkFormat format,
               VkExtent2D extent);
-    void cleanup();
-
-    TextureType getType() { return m_type; }
+    void cleanup() override;
 
     VkImage get(size_t index = 0) { return m_images[index]; }
     VkImageView getView(size_t index = 0) { return m_imageViews[index]; }
@@ -33,10 +31,6 @@ private:
 
     void createImages(VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties);
     void createImageViews(VkImageAspectFlags aspectFlags);
-
-    u32 m_width{0};
-    u32 m_height{0};
-    TextureType m_type{TextureType::COLOR};
 
     Device* p_device;
     CommandPool* p_commandPool;

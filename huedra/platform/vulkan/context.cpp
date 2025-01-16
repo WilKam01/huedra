@@ -57,14 +57,12 @@ void VulkanContext::cleanup()
         buffer.cleanup();
     }
     m_buffers.clear();
-    m_bufferHandles.clear();
 
     for (auto& texture : m_textures)
     {
         texture.cleanup();
     }
     m_textures.clear();
-    m_textureHandles.clear();
 
     for (auto& batch : m_passBatches)
     {
@@ -131,10 +129,11 @@ Buffer* VulkanContext::createBuffer(BufferType type, BufferUsageFlags usage, u64
 
     if (type == BufferType::STATIC && data)
     {
-        m_stagingBuffer.init(m_device, BufferType::STATIC, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        m_stagingBuffer.init(m_device, BufferType::STATIC, size, HU_BUFFER_USAGE_UNDEFINED,
+                             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, data);
 
-        buffer.init(m_device, type, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | bufferUsage,
+        buffer.init(m_device, type, size, usage, VK_BUFFER_USAGE_TRANSFER_DST_BIT | bufferUsage,
                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
         VkCommandBuffer commandBuffer = m_commandPool.beginSingleTimeCommand();
@@ -149,38 +148,11 @@ Buffer* VulkanContext::createBuffer(BufferType type, BufferUsageFlags usage, u64
     }
     else
     {
-        buffer.init(m_device, type, size, bufferUsage,
+        buffer.init(m_device, type, size, usage, bufferUsage,
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, data);
     }
 
-    Buffer& buf = m_bufferHandles.emplace_back();
-    buf.init(type, usage, size, this);
-    buf.setId(m_buffers.size() - 1);
-    return &buf;
-}
-
-void VulkanContext::readBuffer(u64 id, u64 size, void* data)
-{
-    if (id >= m_buffers.size())
-    {
-        log(LogLevel::WARNING, "Could not read buffer, id: %llu invalid. Only %llu buffers exists", id,
-            m_buffers.size());
-        return;
-    }
-
-    m_buffers[id].read(size, data);
-}
-
-void VulkanContext::writeToBuffer(u64 id, u64 size, void* data)
-{
-    if (id >= m_buffers.size())
-    {
-        log(LogLevel::WARNING, "Could not write to buffer, id: %llu invalid. Only %llu buffers exists", id,
-            m_buffers.size());
-        return;
-    }
-
-    m_buffers[id].write(size, data);
+    return &buffer;
 }
 
 Texture* VulkanContext::createTexture(TextureData textureData)
@@ -188,10 +160,7 @@ Texture* VulkanContext::createTexture(TextureData textureData)
     VulkanTexture& texture = m_textures.emplace_back();
     texture.init(m_device, m_commandPool, textureData);
 
-    Texture& tex = m_textureHandles.emplace_back();
-    tex.init(textureData.width, textureData.height, textureData.format, TextureType::COLOR, this);
-    tex.setId(m_textures.size() - 1);
-    return &tex;
+    return &texture;
 }
 
 void VulkanContext::prepareSwapchains()

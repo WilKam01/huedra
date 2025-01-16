@@ -45,18 +45,20 @@ RenderGraphBuilder& RenderGraphBuilder::addPass(const std::string& name, const R
 
 Ref<Buffer> RenderGraphBuilder::addBufferResource(BufferUsageFlags usage, u64 size)
 {
-    Buffer* buffer = new Buffer();
+    /*Buffer* buffer = new Buffer();
     buffer->init(BufferType::STATIC, usage, size, nullptr);
     m_buffers.push_back(std::shared_ptr<Buffer>(buffer));
-    return Ref<Buffer>(buffer);
+    return Ref<Buffer>(buffer);*/
+    return nullptr;
 }
 
 Ref<Texture> RenderGraphBuilder::addTextureResource(u32 width, u32 height, GraphicsDataFormat format)
 {
-    Texture* texture = new Texture();
+    /*Texture* texture = new Texture();
     texture->init(width, height, format, TextureType::COLOR, nullptr);
     m_textures.push_back(std::shared_ptr<Texture>(texture));
-    return Ref<Texture>(texture);
+    return Ref<Texture>(texture);*/
+    return nullptr;
 }
 
 u64 RenderGraphBuilder::generateHash()

@@ -24,9 +24,6 @@ public:
     virtual void removeSwapchain(size_t index) = 0;
 
     virtual Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) = 0;
-    virtual void readBuffer(u64 id, u64 size, void* data) = 0;
-    virtual void writeToBuffer(u64 id, u64 size, void* data) = 0;
-
     virtual Texture* createTexture(TextureData textureData) = 0;
 
     virtual void prepareSwapchains() = 0;
