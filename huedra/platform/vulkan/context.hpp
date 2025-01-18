@@ -28,12 +28,12 @@ public:
     Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) override;
     Texture* createTexture(TextureData textureData) override;
 
+    void removeBuffer(Buffer* buffer) override;
+    void removeTexture(Texture* texture) override;
+
     void prepareSwapchains() override;
     void setRenderGraph(RenderGraphBuilder& builder) override;
     void render() override;
-
-    VulkanBuffer* getBuffer(u64 id);
-    VulkanTexture* getTexture(u64 id);
 
 private:
     VkSurfaceKHR createSurface(Window* window);

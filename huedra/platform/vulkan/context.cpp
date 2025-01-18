@@ -184,6 +184,22 @@ Texture* VulkanContext::createTexture(TextureData textureData)
     return &texture;
 }
 
+void VulkanContext::removeBuffer(Buffer* buffer)
+{
+    auto it =
+        std::find_if(m_buffers.begin(), m_buffers.end(), [&](VulkanBuffer& vkBuffer) { return &vkBuffer == buffer; });
+    it->cleanup();
+    m_buffers.erase(it);
+}
+
+void VulkanContext::removeTexture(Texture* texture)
+{
+    auto it = std::find_if(m_textures.begin(), m_textures.end(),
+                           [&](VulkanTexture& vkTexture) { return &vkTexture == texture; });
+    it->cleanup();
+    m_textures.erase(it);
+}
+
 void VulkanContext::prepareSwapchains()
 {
     for (auto& swapchain : m_swapchains)
@@ -363,28 +379,6 @@ void VulkanContext::render()
     {
         presentSwapchains();
     }
-}
-
-VulkanBuffer* VulkanContext::getBuffer(u64 id)
-{
-    if (id >= m_buffers.size())
-    {
-        log(LogLevel::WARNING, "Could not get buffer, id: %llu invalid. Only %llu buffers exists", id,
-            m_buffers.size());
-        return nullptr;
-    }
-    return &m_buffers[id];
-}
-
-VulkanTexture* VulkanContext::getTexture(u64 id)
-{
-    if (id >= m_textures.size())
-    {
-        log(LogLevel::WARNING, "Could not get texture, id: %llu invalid. Only %llu textures exists", id,
-            m_textures.size());
-        return nullptr;
-    }
-    return &m_textures[id];
 }
 
 VkSurfaceKHR VulkanContext::createSurface(Window* window)

@@ -231,6 +231,10 @@ int main()
         Global::input.update();
     }
 
+    Global::graphicsManager.removeBuffer(computeBuffer);
+    Global::graphicsManager.removeTexture(texture);
+    Global::graphicsManager.removeBuffer(viewProjBuffer);
+
     Global::graphicsManager.cleanup();
     Global::windowManager.cleanup();
 

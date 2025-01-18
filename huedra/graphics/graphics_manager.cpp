@@ -73,6 +73,28 @@ Ref<Texture> GraphicsManager::createTexture(TextureData textureData)
     return Ref<Texture>(m_context->createTexture(textureData));
 }
 
+void GraphicsManager::removeBuffer(Ref<Buffer> buffer)
+{
+    if (!buffer.valid())
+    {
+        log(LogLevel::WARNING, "Could not remove buffer, ref is invalid");
+        return;
+    }
+
+    m_context->removeBuffer(buffer.get());
+}
+
+void GraphicsManager::removeTexture(Ref<Texture> texture)
+{
+    if (!texture.valid())
+    {
+        log(LogLevel::WARNING, "Could not remove texture, ref is invalid");
+        return;
+    }
+
+    m_context->removeTexture(texture.get());
+}
+
 void GraphicsManager::createSwapchain(Window* window, bool renderDepth)
 {
     m_context->createSwapchain(window, renderDepth);

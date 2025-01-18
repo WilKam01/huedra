@@ -19,7 +19,7 @@ public:
               u32 height, u32 imageCount);
     void init(Device& device, CommandPool& commandPool, std::vector<VkImage> images, VkFormat format,
               VkExtent2D extent);
-    void cleanup() override;
+    void cleanup();
 
     VkImage get(size_t index = 0) { return m_images[index]; }
     VkImageView getView(size_t index = 0) { return m_imageViews[index]; }

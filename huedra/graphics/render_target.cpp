@@ -18,6 +18,4 @@ void RenderTarget::init(RenderTargetType type, GraphicsDataFormat format, u32 wi
     m_available = true;
 }
 
-void RenderTarget::setAvailability(bool available) { m_available = available; }
-
 } // namespace huedra

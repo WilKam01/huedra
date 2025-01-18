@@ -13,7 +13,7 @@ public:
 
     void init(Device& device, BufferType type, u64 size, BufferUsageFlags usage, VkBufferUsageFlags usageFlags,
               VkMemoryPropertyFlags memoryPropertyFlags, void* data = nullptr);
-    void cleanup() override;
+    void cleanup();
 
     void write(u64 size, void* data) override;
     void read(u64 size, void* data) override;

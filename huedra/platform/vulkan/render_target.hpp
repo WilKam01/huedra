@@ -18,7 +18,7 @@ public:
     void init(Device& device, CommandPool& commandPool, VulkanSwapchain& swapchain, VkFormat format, VkExtent2D extent);
     void init(Device& device, CommandPool& commandPool, RenderTargetType type, GraphicsDataFormat format, u32 width,
               u32 height);
-    void cleanup() override;
+    void cleanup();
     void partialCleanup();
 
     void addRenderPass(VulkanRenderPass* renderPass);
@@ -31,6 +31,8 @@ public:
     VkFormat getDepthFormat() { return m_depthTexture.getFormat(); }
     u32 getImageCount() { return m_imageCount; }
     VkExtent2D getExtent() { return m_extent; }
+
+    void setAvailability(bool available);
 
 private:
     Device* p_device{nullptr};

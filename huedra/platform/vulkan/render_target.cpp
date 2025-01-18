@@ -92,4 +92,6 @@ void VulkanRenderTarget::removeRenderPass(VulkanRenderPass* renderPass)
     }
 }
 
+void VulkanRenderTarget::setAvailability(bool available) { m_available = available; }
+
 } // namespace huedra
