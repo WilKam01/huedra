@@ -19,12 +19,18 @@ void VulkanContext::init()
 
     m_device.init(m_instance, surface);
 
-    m_commandPool.init(m_device, VK_PIPELINE_BIND_POINT_GRAPHICS);
-    m_commandBuffer.init(m_device, m_commandPool, GraphicsManager::MAX_FRAMES_IN_FLIGHT);
+    m_graphicsCommandPool.init(m_device, VK_PIPELINE_BIND_POINT_GRAPHICS);
+    m_computeCommandPool.init(m_device, VK_PIPELINE_BIND_POINT_COMPUTE);
 
-    m_frameInFlightFences.resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
+    m_graphicsCommandBuffer.init(m_device, m_graphicsCommandPool, GraphicsManager::MAX_FRAMES_IN_FLIGHT);
+    m_computeCommandBuffer.init(m_device, m_computeCommandPool, GraphicsManager::MAX_FRAMES_IN_FLIGHT);
+
+    m_graphicsFrameInFlightFences.resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
+    m_computeFrameInFlightFences.resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
     m_graphicsSyncSemaphores[0].resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
     m_graphicsSyncSemaphores[1].resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
+    m_computeSyncSemaphores[0].resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
+    m_computeSyncSemaphores[1].resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
 
     VkFenceCreateInfo fenceInfo{};
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -35,10 +41,16 @@ void VulkanContext::init()
 
     for (u32 i = 0; i < GraphicsManager::MAX_FRAMES_IN_FLIGHT; i++)
     {
-        if (vkCreateFence(m_device.getLogical(), &fenceInfo, nullptr, &m_frameInFlightFences[i]) != VK_SUCCESS ||
+        if (vkCreateFence(m_device.getLogical(), &fenceInfo, nullptr, &m_graphicsFrameInFlightFences[i]) !=
+                VK_SUCCESS ||
+            vkCreateFence(m_device.getLogical(), &fenceInfo, nullptr, &m_computeFrameInFlightFences[i]) != VK_SUCCESS ||
             vkCreateSemaphore(m_device.getLogical(), &semaphoreInfo, nullptr, &m_graphicsSyncSemaphores[0][i]) !=
                 VK_SUCCESS ||
             vkCreateSemaphore(m_device.getLogical(), &semaphoreInfo, nullptr, &m_graphicsSyncSemaphores[1][i]) !=
+                VK_SUCCESS ||
+            vkCreateSemaphore(m_device.getLogical(), &semaphoreInfo, nullptr, &m_computeSyncSemaphores[0][i]) !=
+                VK_SUCCESS ||
+            vkCreateSemaphore(m_device.getLogical(), &semaphoreInfo, nullptr, &m_computeSyncSemaphores[1][i]) !=
                 VK_SUCCESS)
         {
             log(LogLevel::ERR, "Failed to create render fences and semaphores!");
@@ -79,6 +91,8 @@ void VulkanContext::cleanup()
     }
     m_passBatches.clear();
     m_activeSwapchains.clear();
+    m_usingGraphicsQueue = false;
+    m_usingComputeQueue = false;
 
     for (auto& swapchain : m_swapchains)
     {
@@ -89,13 +103,20 @@ void VulkanContext::cleanup()
 
     for (u32 i = 0; i < GraphicsManager::MAX_FRAMES_IN_FLIGHT; ++i)
     {
+        vkDestroySemaphore(m_device.getLogical(), m_computeSyncSemaphores[0][i], nullptr);
+        vkDestroySemaphore(m_device.getLogical(), m_computeSyncSemaphores[1][i], nullptr);
         vkDestroySemaphore(m_device.getLogical(), m_graphicsSyncSemaphores[0][i], nullptr);
         vkDestroySemaphore(m_device.getLogical(), m_graphicsSyncSemaphores[1][i], nullptr);
-        vkDestroyFence(m_device.getLogical(), m_frameInFlightFences[i], nullptr);
+        vkDestroyFence(m_device.getLogical(), m_computeFrameInFlightFences[i], nullptr);
+        vkDestroyFence(m_device.getLogical(), m_graphicsFrameInFlightFences[i], nullptr);
     }
 
-    m_commandBuffer.cleanup();
-    m_commandPool.cleanup();
+    m_computeCommandBuffer.cleanup();
+    m_graphicsCommandBuffer.cleanup();
+
+    m_computeCommandPool.cleanup();
+    m_graphicsCommandPool.cleanup();
+
     m_device.cleanup();
     m_instance.cleanup();
 }
@@ -104,7 +125,7 @@ void VulkanContext::createSwapchain(Window* window, bool renderDepth)
 {
     VulkanSwapchain* swapchain = new VulkanSwapchain();
     VkSurfaceKHR surface = createSurface(window);
-    swapchain->init(window, m_device, m_commandPool, surface, renderDepth);
+    swapchain->init(window, m_device, m_graphicsCommandPool, surface, renderDepth);
 
     m_swapchains.push_back(swapchain);
     m_surfaces.push_back(surface);
@@ -136,13 +157,13 @@ Buffer* VulkanContext::createBuffer(BufferType type, BufferUsageFlags usage, u64
         buffer.init(m_device, type, size, usage, VK_BUFFER_USAGE_TRANSFER_DST_BIT | bufferUsage,
                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-        VkCommandBuffer commandBuffer = m_commandPool.beginSingleTimeCommand();
+        VkCommandBuffer commandBuffer = m_graphicsCommandPool.beginSingleTimeCommand();
         VkBufferCopy copyRegion{};
         copyRegion.srcOffset = 0;
         copyRegion.dstOffset = 0;
         copyRegion.size = static_cast<VkDeviceSize>(size);
         vkCmdCopyBuffer(commandBuffer, m_stagingBuffer.get(), buffer.get(), 1, &copyRegion);
-        m_commandPool.endSingleTimeCommand(commandBuffer);
+        m_graphicsCommandPool.endSingleTimeCommand(commandBuffer);
 
         m_stagingBuffer.cleanup();
     }
@@ -158,7 +179,7 @@ Buffer* VulkanContext::createBuffer(BufferType type, BufferUsageFlags usage, u64
 Texture* VulkanContext::createTexture(TextureData textureData)
 {
     VulkanTexture& texture = m_textures.emplace_back();
-    texture.init(m_device, m_commandPool, textureData);
+    texture.init(m_device, m_graphicsCommandPool, textureData);
 
     return &texture;
 }
@@ -199,6 +220,8 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
     }
     m_passBatches.clear();
     m_activeSwapchains.clear();
+    m_usingGraphicsQueue = false;
+    m_usingComputeQueue = false;
 
     m_passBatches.emplace_back(); // At least one batch
     for (auto& [key, info] : builder.getRenderPasses())
@@ -251,6 +274,18 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
 
         m_passBatches.back().passes.push_back(passInfo);
 
+        switch (info.getType())
+        {
+        case RenderPassType::GRAPHICS:
+            m_passBatches.back().useGraphicsQueue = true;
+            m_usingGraphicsQueue = true;
+            break;
+        case RenderPassType::COMPUTE:
+            m_passBatches.back().useComputeQueue = true;
+            m_usingComputeQueue = true;
+            break;
+        }
+
         for (auto& target : info.getRenderTargets())
         {
             VulkanRenderTarget* vulkanTarget = static_cast<VulkanRenderTarget*>(target.target.get());
@@ -265,18 +300,45 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
 
 void VulkanContext::render()
 {
-    vkWaitForFences(m_device.getLogical(), 1, &m_frameInFlightFences[Global::graphicsManager.getCurrentFrame()],
-                    VK_TRUE, UINT64_MAX);
     m_curGraphicsSemphoreIndex = 0;
+    m_curComputeSemphoreIndex = 0;
 
-    vkResetFences(m_device.getLogical(), 1, &m_frameInFlightFences[Global::graphicsManager.getCurrentFrame()]);
-    m_commandBuffer.begin(Global::graphicsManager.getCurrentFrame());
+    std::vector<VkFence> fences{};
+    if (m_usingGraphicsQueue)
+    {
+        fences.push_back(m_graphicsFrameInFlightFences[Global::graphicsManager.getCurrentFrame()]);
+    }
+    if (m_usingComputeQueue)
+    {
+        fences.push_back(m_computeFrameInFlightFences[Global::graphicsManager.getCurrentFrame()]);
+    }
+    vkWaitForFences(m_device.getLogical(), static_cast<u32>(fences.size()), fences.data(), VK_TRUE, UINT64_MAX);
+    vkResetFences(m_device.getLogical(), static_cast<u32>(fences.size()), fences.data());
 
     for (u32 i = 0; i < m_passBatches.size(); ++i)
     {
+        if (m_passBatches[i].useGraphicsQueue)
+        {
+            m_graphicsCommandBuffer.begin(Global::graphicsManager.getCurrentFrame());
+        }
+        if (m_passBatches[i].useComputeQueue)
+        {
+            m_computeCommandBuffer.begin(Global::graphicsManager.getCurrentFrame());
+        }
+
         for (auto& info : m_passBatches[i].passes)
         {
-            VkCommandBuffer commandBuffer = m_commandBuffer.get(Global::graphicsManager.getCurrentFrame());
+            VkCommandBuffer commandBuffer;
+            switch (info.pass->getPipelineType())
+            {
+            case PipelineType::GRAPHICS:
+                commandBuffer = m_graphicsCommandBuffer.get(Global::graphicsManager.getCurrentFrame());
+                break;
+            case PipelineType::COMPUTE:
+                commandBuffer = m_computeCommandBuffer.get(Global::graphicsManager.getCurrentFrame());
+                break;
+            }
+
             info.pass->begin(commandBuffer);
 
             VulkanRenderContext renderContext;
@@ -287,7 +349,14 @@ void VulkanContext::render()
             info.pass->end(commandBuffer);
         }
 
-        submitGraphicsQueue(i);
+        if (m_passBatches[i].useGraphicsQueue)
+        {
+            submitGraphicsQueue(i);
+        }
+        if (m_passBatches[i].useComputeQueue)
+        {
+            submitComputeQueue(i);
+        }
     }
 
     if (!m_activeSwapchains.empty())
@@ -340,7 +409,7 @@ VkSurfaceKHR VulkanContext::createSurface(Window* window)
 
 void VulkanContext::submitGraphicsQueue(u32 batchIndex)
 {
-    m_commandBuffer.end(Global::graphicsManager.getCurrentFrame());
+    m_graphicsCommandBuffer.end(Global::graphicsManager.getCurrentFrame());
 
     std::vector<VkSemaphore> waitSemaphores;
     std::vector<VkPipelineStageFlags> waitStages;
@@ -355,15 +424,24 @@ void VulkanContext::submitGraphicsQueue(u32 batchIndex)
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     if (batchIndex != 0) // Should wait on queue if it's not the first batch
     {
-        waitSemaphores.push_back(
-            m_graphicsSyncSemaphores[1 - m_curGraphicsSemphoreIndex][Global::graphicsManager.getCurrentFrame()]);
-        waitStages.push_back(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+        if (m_passBatches[batchIndex - 1].useGraphicsQueue)
+        {
+            waitSemaphores.push_back(
+                m_graphicsSyncSemaphores[1 - m_curGraphicsSemphoreIndex][Global::graphicsManager.getCurrentFrame()]);
+            waitStages.push_back(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+        }
+        if (m_passBatches[batchIndex - 1].useComputeQueue)
+        {
+            waitSemaphores.push_back(
+                m_computeSyncSemaphores[1 - m_curComputeSemphoreIndex][Global::graphicsManager.getCurrentFrame()]);
+            waitStages.push_back(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+        }
     }
     submitInfo.waitSemaphoreCount = static_cast<u32>(waitSemaphores.size());
     submitInfo.pWaitSemaphores = waitSemaphores.data();
     submitInfo.pWaitDstStageMask = waitStages.data();
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &m_commandBuffer.get(Global::graphicsManager.getCurrentFrame());
+    submitInfo.pCommandBuffers = &m_graphicsCommandBuffer.get(Global::graphicsManager.getCurrentFrame());
 
     // Should not signal last batch, EXCEPT for existence of active swapchains
     if (batchIndex != m_passBatches.size() - 1 || !m_activeSwapchains.empty())
@@ -376,7 +454,7 @@ void VulkanContext::submitGraphicsQueue(u32 batchIndex)
     VkFence fence{};
     if (batchIndex == m_passBatches.size() - 1)
     {
-        fence = m_frameInFlightFences[Global::graphicsManager.getCurrentFrame()];
+        fence = m_graphicsFrameInFlightFences[Global::graphicsManager.getCurrentFrame()];
     }
     if (vkQueueSubmit(m_device.getGraphicsQueue(), 1, &submitInfo, fence) != VK_SUCCESS)
     {
@@ -384,6 +462,57 @@ void VulkanContext::submitGraphicsQueue(u32 batchIndex)
     }
 
     m_curGraphicsSemphoreIndex = 1 - m_curGraphicsSemphoreIndex;
+}
+
+void VulkanContext::submitComputeQueue(u32 batchIndex)
+{
+    m_computeCommandBuffer.end(Global::graphicsManager.getCurrentFrame());
+
+    std::vector<VkSemaphore> waitSemaphores;
+    std::vector<VkPipelineStageFlags> waitStages;
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    if (batchIndex != 0) // Should wait on queue if it's not the first batch
+    {
+        if (m_passBatches[batchIndex - 1].useGraphicsQueue)
+        {
+            waitSemaphores.push_back(
+                m_graphicsSyncSemaphores[1 - m_curGraphicsSemphoreIndex][Global::graphicsManager.getCurrentFrame()]);
+            waitStages.push_back(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+        }
+        if (m_passBatches[batchIndex - 1].useComputeQueue)
+        {
+            waitSemaphores.push_back(
+                m_computeSyncSemaphores[1 - m_curComputeSemphoreIndex][Global::graphicsManager.getCurrentFrame()]);
+            waitStages.push_back(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+        }
+    }
+    submitInfo.waitSemaphoreCount = static_cast<u32>(waitSemaphores.size());
+    submitInfo.pWaitSemaphores = waitSemaphores.data();
+    submitInfo.pWaitDstStageMask = waitStages.data();
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &m_computeCommandBuffer.get(Global::graphicsManager.getCurrentFrame());
+
+    // Should not signal last batch
+    if (batchIndex != m_passBatches.size() - 1)
+    {
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.pSignalSemaphores =
+            &m_computeSyncSemaphores[m_curComputeSemphoreIndex][Global::graphicsManager.getCurrentFrame()];
+    }
+
+    VkFence fence{};
+    if (batchIndex == m_passBatches.size() - 1)
+    {
+        fence = m_computeFrameInFlightFences[Global::graphicsManager.getCurrentFrame()];
+    }
+    if (vkQueueSubmit(m_device.getComputeQueue(), 1, &submitInfo, fence) != VK_SUCCESS)
+    {
+        log(LogLevel::ERR, "Failed to submit compute queue!");
+    }
+
+    m_curComputeSemphoreIndex = 1 - m_curComputeSemphoreIndex;
 }
 
 void VulkanContext::presentSwapchains()

@@ -1,0 +1,18 @@
+#version 450
+
+layout(set = 0, binding = 0) buffer Buf 
+{
+    uint data[];
+};
+
+layout(local_size_x = 32) in;
+
+void main() {
+
+    if(gl_GlobalInvocationID.x > data.length())
+    {
+        return;
+    } 
+
+    data[gl_GlobalInvocationID.x] = gl_GlobalInvocationID.x * 2 + 1;
+}

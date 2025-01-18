@@ -8,6 +8,8 @@ VkPipelineBindPoint convertPipelineType(PipelineType type)
     {
     case PipelineType::GRAPHICS:
         return VK_PIPELINE_BIND_POINT_GRAPHICS;
+    case PipelineType::COMPUTE:
+        return VK_PIPELINE_BIND_POINT_COMPUTE;
     };
 }
 
@@ -32,6 +34,11 @@ VkShaderStageFlagBits convertShaderStage(PipelineType type, ShaderStageFlags sha
             result |= VK_SHADER_STAGE_FRAGMENT_BIT;
         }
         break;
+    case PipelineType::COMPUTE:
+        if (shaderStage & HU_SHADER_STAGE_COMPUTE)
+        {
+            return VK_SHADER_STAGE_COMPUTE_BIT;
+        }
     };
 
     return static_cast<VkShaderStageFlagBits>(result);

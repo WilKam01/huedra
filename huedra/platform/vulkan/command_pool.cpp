@@ -5,7 +5,6 @@ namespace huedra {
 
 void CommandPool::init(Device& device, VkPipelineBindPoint pipeline)
 {
-
     p_device = &device;
     m_pipeline = pipeline;
 

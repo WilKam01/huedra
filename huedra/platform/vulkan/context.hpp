@@ -39,12 +39,11 @@ private:
     VkSurfaceKHR createSurface(Window* window);
 
     void submitGraphicsQueue(u32 batchIndex);
+    void submitComputeQueue(u32 batchIndex);
     void presentSwapchains();
 
     Instance m_instance;
     Device m_device;
-    CommandPool m_commandPool;
-    CommandBuffer m_commandBuffer;
     VulkanBuffer m_stagingBuffer;
 
     std::vector<VkSurfaceKHR> m_surfaces;
@@ -65,12 +64,24 @@ private:
     {
         std::vector<PassInfo> passes;
         std::set<VulkanSwapchain*> swapchains;
+        bool useGraphicsQueue{false};
+        bool useComputeQueue{false};
     };
     std::vector<PassBatch> m_passBatches;
+    bool m_usingGraphicsQueue{false};
+    bool m_usingComputeQueue{false};
 
-    std::vector<VkFence> m_frameInFlightFences;
+    CommandPool m_graphicsCommandPool;
+    CommandBuffer m_graphicsCommandBuffer;
     std::array<std::vector<VkSemaphore>, 2> m_graphicsSyncSemaphores;
     u32 m_curGraphicsSemphoreIndex{0};
+    std::vector<VkFence> m_graphicsFrameInFlightFences;
+
+    CommandPool m_computeCommandPool;
+    CommandBuffer m_computeCommandBuffer;
+    std::array<std::vector<VkSemaphore>, 2> m_computeSyncSemaphores;
+    u32 m_curComputeSemphoreIndex{0};
+    std::vector<VkFence> m_computeFrameInFlightFences;
 };
 
 } // namespace huedra

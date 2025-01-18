@@ -15,6 +15,7 @@ using RenderCommands = std::function<void(RenderContext&)>;
 enum class RenderPassType
 {
     GRAPHICS,
+    COMPUTE,
 };
 
 enum class ResourceAccessType
@@ -37,7 +38,7 @@ public:
     RenderPassBuilder() = default;
     virtual ~RenderPassBuilder() = default;
 
-    RenderPassBuilder& init(RenderPassType type, const PipelineBuilder& pipeline = {});
+    RenderPassBuilder& init(RenderPassType type, const PipelineBuilder& pipeline);
     RenderPassBuilder& setCommands(const RenderCommands& commands);
 
     RenderPassBuilder& addResource(ResourceAccessType access, Ref<Buffer> buffer);

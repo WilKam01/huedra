@@ -19,6 +19,12 @@ PipelineBuilder& PipelineBuilder::init(PipelineType type)
 
 PipelineBuilder& PipelineBuilder::addShader(ShaderStage stage, std::string shader)
 {
+    if (m_type == PipelineType::COMPUTE && stage != ShaderStage::COMPUTE)
+    {
+        log(LogLevel::WARNING, "Could not add non compute shader to compute pipoeline");
+        return *this;
+    }
+
     if (m_shaderStages.contains(stage))
     {
         m_shaderStages[stage] = shader;

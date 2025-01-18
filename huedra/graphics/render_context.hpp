@@ -24,6 +24,7 @@ public:
 
     virtual void draw(u32 vertexCount, u32 instanceCount, u32 vertexOffset, u32 instanceOffset) = 0;
     virtual void drawIndexed(u32 indexCount, u32 instanceCount, u32 indexOffset, u32 instanceOffset) = 0;
+    virtual void dispatch(u32 groupX, u32 groupY, u32 groupZ) = 0;
 
 private:
 };

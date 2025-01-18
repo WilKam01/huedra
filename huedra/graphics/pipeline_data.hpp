@@ -6,13 +6,15 @@ namespace huedra {
 
 enum class PipelineType
 {
-    GRAPHICS
+    GRAPHICS,
+    COMPUTE
 };
 
 enum class ShaderStage
 {
     VERTEX,
-    FRAGMENT
+    FRAGMENT,
+    COMPUTE
 };
 
 typedef enum ShaderStageFlags
@@ -22,6 +24,8 @@ typedef enum ShaderStageFlags
     HU_SHADER_STAGE_VERTEX = 0x0001,
     HU_SHADER_STAGE_FRAGMENT = 0x0002,
     HU_SHADER_STAGE_GRAPHICS_ALL = 0x0003,
+
+    HU_SHADER_STAGE_COMPUTE = 0x0004,
 
     HU_SHADER_STAGE_ALL = 0xFFFF
 } ShaderStageFlags;

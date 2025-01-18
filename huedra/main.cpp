@@ -106,6 +106,22 @@ int main()
         renderContext.drawIndexed(static_cast<u32>(meshes[0].indices.size()), 1, 0, 0);
     };
 
+    // Compute pipeline and info
+    PipelineBuilder computeBuilder;
+    computeBuilder.init(PipelineType::COMPUTE)
+        .addShader(ShaderStage::COMPUTE, "assets/shaders/shader.comp")
+        .addResourceSet()
+        .addResourceBinding(HU_SHADER_STAGE_COMPUTE, ResourceType::STORAGE_BUFFER);
+
+    const u32 computeBufferSize = 64;
+    Ref<Buffer> computeBuffer = Global::graphicsManager.createBuffer(
+        BufferType::DYNAMIC, HU_BUFFER_USAGE_STORAGE_BUFFER, sizeof(u32) * computeBufferSize, nullptr);
+
+    RenderCommands computeCommands = [&computeBuffer](RenderContext& renderContext) {
+        renderContext.bindBuffer(computeBuffer, 0, 0);
+        renderContext.dispatch((computeBufferSize + 31) / 32, 1, 1);
+    };
+
     vec3 eye(0.0f, 0.0f, 5.0f);
     vec3 rot(0.0f);
     while (Global::windowManager.update())
@@ -159,6 +175,12 @@ int main()
 
         RenderGraphBuilder renderGraph;
         Ref<Buffer> testBuffer = renderGraph.addBufferResource(HU_BUFFER_USAGE_STORAGE_BUFFER, 64);
+
+        renderGraph.addPass("Compute", RenderPassBuilder()
+                                           .init(RenderPassType::COMPUTE, computeBuilder)
+                                           .addResource(ResourceAccessType::READ_WRITE, computeBuffer)
+                                           .setCommands(computeCommands));
+
         if (window.valid() && window->getRenderTarget()->isAvailable() && selectedWindow != Keys::_2)
         {
             renderGraph.addPass("Pass1", RenderPassBuilder()
@@ -181,6 +203,9 @@ int main()
         }
 
         Global::graphicsManager.render(renderGraph);
+
+        std::array<u32, computeBufferSize> computeData{};
+        computeBuffer.get()->read(computeBufferSize, computeData.data());
 
         if (Global::input.isKeyActive(KeyToggles::CAPS_LOCK))
         {

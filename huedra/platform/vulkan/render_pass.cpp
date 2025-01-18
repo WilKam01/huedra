@@ -10,21 +10,47 @@ void VulkanRenderPass::init(Device& device, const RenderPassBuilder& builder)
     p_device = &device;
     m_builder = builder;
 
-    p_renderTarget = Ref<RenderTarget>(builder.getRenderTargets()[0].target);
-    p_vkRenderTarget = static_cast<VulkanRenderTarget*>(p_renderTarget.get());
+    if (builder.getType() == RenderPassType::GRAPHICS)
+    {
+        p_renderTarget = Ref<RenderTarget>(builder.getRenderTargets()[0].target);
+        p_vkRenderTarget = static_cast<VulkanRenderTarget*>(p_renderTarget.get());
+        p_vkRenderTarget->addRenderPass(this);
 
-    p_vkRenderTarget->addRenderPass(this);
-    createRenderPass();
-    m_pipeline.initGraphics(builder.getPipeline(), device, m_renderPass);
-    createFramebuffers();
+        createRenderPass();
+        switch (builder.getType())
+        {
+        case RenderPassType::GRAPHICS:
+            m_pipeline.initGraphics(builder.getPipeline(), device, m_renderPass);
+            break;
+        case RenderPassType::COMPUTE:
+            m_pipeline.initCompute(builder.getPipeline(), device);
+            break;
+        }
+        createFramebuffers();
+    }
+    else
+    {
+        switch (builder.getType())
+        {
+        case RenderPassType::GRAPHICS:
+            m_pipeline.initGraphics(builder.getPipeline(), device, m_renderPass);
+            break;
+        case RenderPassType::COMPUTE:
+            m_pipeline.initCompute(builder.getPipeline(), device);
+            break;
+        }
+    }
 }
 
 void VulkanRenderPass::cleanup()
 {
-    cleanupFramebuffers();
+    if (m_builder.getType() == RenderPassType::GRAPHICS)
+    {
+        cleanupFramebuffers();
+        vkDestroyRenderPass(p_device->getLogical(), m_renderPass, nullptr);
+        p_vkRenderTarget->removeRenderPass(this);
+    }
     m_pipeline.cleanup();
-    vkDestroyRenderPass(p_device->getLogical(), m_renderPass, nullptr);
-    p_vkRenderTarget->removeRenderPass(this);
 }
 
 void VulkanRenderPass::createFramebuffers()
@@ -69,6 +95,12 @@ void VulkanRenderPass::cleanupFramebuffers()
 
 void VulkanRenderPass::begin(VkCommandBuffer commandBuffer)
 {
+    if (m_builder.getType() == RenderPassType::COMPUTE)
+    {
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, m_pipeline.get());
+        return;
+    }
+
     VkExtent2D extent = p_vkRenderTarget->getExtent();
 
     VkViewport viewport;
@@ -125,7 +157,13 @@ void VulkanRenderPass::begin(VkCommandBuffer commandBuffer)
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.get());
 }
 
-void VulkanRenderPass::end(VkCommandBuffer commandBuffer) { vkCmdEndRenderPass(commandBuffer); }
+void VulkanRenderPass::end(VkCommandBuffer commandBuffer)
+{
+    if (m_builder.getType() == RenderPassType::GRAPHICS)
+    {
+        vkCmdEndRenderPass(commandBuffer);
+    }
+}
 
 void VulkanRenderPass::createRenderPass()
 {

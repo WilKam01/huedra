@@ -108,7 +108,7 @@ void VulkanRenderContext::drawIndexed(u32 indexCount, u32 instanceCount, u32 ind
 {
     if (p_renderPass->getPipelineType() != PipelineType::GRAPHICS)
     {
-        log(LogLevel::WARNING, "Could not execute draw command, not using a graphics pipeline");
+        log(LogLevel::WARNING, "Could not execute draw call, not using a graphics pipeline");
         return;
     }
 
@@ -126,6 +126,19 @@ void VulkanRenderContext::drawIndexed(u32 indexCount, u32 instanceCount, u32 ind
 
     p_descriptorHandler->bindSets(m_commandBuffer);
     vkCmdDrawIndexed(m_commandBuffer, indexCount, instanceCount, indexOffset, 0, instanceOffset);
+    p_descriptorHandler->updateSetInstance();
+}
+
+void VulkanRenderContext::dispatch(u32 groupX, u32 groupY, u32 groupZ)
+{
+    if (p_renderPass->getPipelineType() != PipelineType::COMPUTE)
+    {
+        log(LogLevel::WARNING, "Could not execute dispatch call, not using a compute pipeline");
+        return;
+    }
+
+    p_descriptorHandler->bindSets(m_commandBuffer);
+    vkCmdDispatch(m_commandBuffer, groupX, groupY, groupZ);
     p_descriptorHandler->updateSetInstance();
 }
 

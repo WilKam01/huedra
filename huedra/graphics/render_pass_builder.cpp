@@ -25,6 +25,11 @@ RenderPassBuilder& RenderPassBuilder::init(RenderPassType type, const PipelineBu
         log(LogLevel::WARNING, "RenderPassBuilder: pipeline invalid, not a graphics pipeline");
         return *this;
     }
+    else if (type == RenderPassType::COMPUTE && pipeline.getType() != PipelineType::COMPUTE)
+    {
+        log(LogLevel::WARNING, "RenderPassBuilder: pipeline invalid, not a compute pipeline");
+        return *this;
+    }
 
     return *this;
 }

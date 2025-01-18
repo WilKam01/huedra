@@ -12,11 +12,6 @@ void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device
     initLayout();
 
     std::map<ShaderStage, std::string> shaders = pipelineBuilder.getShaderStages();
-    if (!shaders.contains(ShaderStage::VERTEX))
-    {
-        log(LogLevel::ERR, "Could not create graphics pipeline, vertex shader not present!");
-    }
-
     std::vector<VkPipelineShaderStageCreateInfo> shaderCreateInfos{};
     std::vector<VkShaderModule> shaderModules{};
 
@@ -171,6 +166,33 @@ void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device
     {
         vkDestroyShaderModule(p_device->getLogical(), module, nullptr);
     }
+}
+
+void VulkanPipeline::initCompute(const PipelineBuilder& pipelineBuilder, Device& device)
+{
+    p_device = &device;
+    m_builder = pipelineBuilder;
+    initLayout();
+
+    VkShaderModule shaderModule{loadShader(pipelineBuilder.getShaderStages()[ShaderStage::COMPUTE])};
+    VkPipelineShaderStageCreateInfo shaderStageInfo{};
+    shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    shaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    shaderStageInfo.pName = "main";
+    shaderStageInfo.module = shaderModule;
+
+    VkComputePipelineCreateInfo pipelineInfo{};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    pipelineInfo.layout = m_pipelineLayout;
+    pipelineInfo.stage = shaderStageInfo;
+
+    if (vkCreateComputePipelines(p_device->getLogical(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) !=
+        VK_SUCCESS)
+    {
+        log(LogLevel::ERR, "Failed to create compute pipeline!");
+    }
+
+    vkDestroyShaderModule(p_device->getLogical(), shaderModule, nullptr);
 }
 
 void VulkanPipeline::cleanup()

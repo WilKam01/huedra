@@ -15,7 +15,7 @@ public:
     virtual void cleanup() = 0;
 
     virtual void write(u64 size, void* data) = 0;
-    virtual void read(u64 size, void* datae) = 0;
+    virtual void read(u64 size, void* data) = 0;
 
     BufferType getType() { return m_type; }
     BufferUsageFlags getBufferUsage() { return m_usage; }

@@ -27,6 +27,7 @@ public:
 
     void draw(u32 vertexCount, u32 instanceCount, u32 vertexOffset, u32 instanceOffset) override;
     void drawIndexed(u32 indexCount, u32 instanceCount, u32 indexOffset, u32 instanceOffset) override;
+    void dispatch(u32 groupX, u32 groupY, u32 groupZ) override;
 
 private:
     VkCommandBuffer m_commandBuffer;
