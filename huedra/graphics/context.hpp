@@ -25,9 +25,12 @@ public:
 
     virtual Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) = 0;
     virtual Texture* createTexture(TextureData textureData) = 0;
+    virtual RenderTarget* createRenderTarget(RenderTargetType type, GraphicsDataFormat format, u32 width,
+                                             u32 height) = 0;
 
     virtual void removeBuffer(Buffer* buffer) = 0;
     virtual void removeTexture(Texture* texture) = 0;
+    virtual void removeRenderTarget(RenderTarget* renderTarget) = 0;
 
     virtual void prepareSwapchains() = 0;
     virtual void setRenderGraph(RenderGraphBuilder& builder) = 0;

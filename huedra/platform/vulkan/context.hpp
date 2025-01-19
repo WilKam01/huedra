@@ -27,9 +27,11 @@ public:
 
     Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) override;
     Texture* createTexture(TextureData textureData) override;
+    RenderTarget* createRenderTarget(RenderTargetType type, GraphicsDataFormat format, u32 width, u32 height) override;
 
     void removeBuffer(Buffer* buffer) override;
     void removeTexture(Texture* texture) override;
+    void removeRenderTarget(RenderTarget* renderTarget) override;
 
     void prepareSwapchains() override;
     void setRenderGraph(RenderGraphBuilder& builder) override;
@@ -52,6 +54,7 @@ private:
 
     std::deque<VulkanBuffer> m_buffers;
     std::deque<VulkanTexture> m_textures;
+    std::deque<VulkanRenderTarget> m_renderTargets;
 
     RenderGraphBuilder m_curGraph;
     struct PassInfo

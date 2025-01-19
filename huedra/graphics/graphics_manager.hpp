@@ -26,9 +26,11 @@ public:
 
     Ref<Buffer> createBuffer(BufferType type, u32 usage, u64 size, void* data = nullptr);
     Ref<Texture> createTexture(TextureData textureData);
+    Ref<RenderTarget> createRenderTarget(RenderTargetType type, GraphicsDataFormat format, u32 width, u32 height);
 
     void removeBuffer(Ref<Buffer> buffer);
     void removeTexture(Ref<Texture> texture);
+    void removeRenderTarget(Ref<RenderTarget> renderTarget);
 
     u32 getCurrentFrame() { return m_currentFrame; }
 

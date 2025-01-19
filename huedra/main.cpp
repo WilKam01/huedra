@@ -33,7 +33,6 @@ int main()
     writeBytes("assets/result.json", serializeJson(json));
 
     Ref<Window> window = Global::windowManager.addWindow("Hello Windows!", huedra::WindowInput(1278, 1360, -7, 0));
-    Ref<Window> window1 = Global::windowManager.addWindow("Hello", huedra::WindowInput(300, 300, 100, 100), window);
 
     // Draw data
     std::vector<MeshData> meshes = loadGlb("assets/mesh/untitled.glb");
@@ -148,10 +147,6 @@ int main()
                5.0f * Global::timer.dt();
 
         rect = window->getRect();
-        if (window->isMinimized())
-        {
-            rect = window1->getRect();
-        }
         viewProj =
             perspective(radians(90.0f), static_cast<float>(rect.screenWidth) / static_cast<float>(rect.screenHeight),
                         vec2(0.1f, 100.0f)) *
@@ -174,7 +169,6 @@ int main()
         }
 
         RenderGraphBuilder renderGraph;
-        Ref<Buffer> testBuffer = renderGraph.addBufferResource(HU_BUFFER_USAGE_STORAGE_BUFFER, 64);
 
         renderGraph.addPass("Compute", RenderPassBuilder()
                                            .init(RenderPassType::COMPUTE, computeBuilder)
@@ -185,20 +179,9 @@ int main()
         {
             renderGraph.addPass("Pass1", RenderPassBuilder()
                                              .init(RenderPassType::GRAPHICS, builder)
-                                             //.addResource(ResourceAccessType::WRITE, testBuffer)
                                              .addResource(ResourceAccessType::READ, viewProjBuffer)
                                              .addResource(ResourceAccessType::READ, texture)
-                                             .addRenderTarget(window->getRenderTarget(), true, vec3(0.2f))
-                                             .setCommands(commands));
-        }
-        if (window1.valid() && window1->getRenderTarget()->isAvailable() && selectedWindow != Keys::_1)
-        {
-            renderGraph.addPass("Pass2", RenderPassBuilder()
-                                             .init(RenderPassType::GRAPHICS, builder)
-                                             //.addResource(ResourceAccessType::READ, testBuffer)
-                                             .addResource(ResourceAccessType::READ, viewProjBuffer)
-                                             .addResource(ResourceAccessType::READ, texture)
-                                             .addRenderTarget(window1->getRenderTarget(), true, vec3(0.2f, 0.0f, 0.2f))
+                                             .addRenderTarget(window->getRenderTarget(), vec3(0.2f))
                                              .setCommands(commands));
         }
 

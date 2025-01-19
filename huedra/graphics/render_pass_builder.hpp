@@ -29,7 +29,6 @@ struct RenderTargetInfo
 {
     Ref<RenderTarget> target;
     vec3 clearColor;
-    bool clearTarget;
 };
 
 class RenderPassBuilder
@@ -40,11 +39,11 @@ public:
 
     RenderPassBuilder& init(RenderPassType type, const PipelineBuilder& pipeline);
     RenderPassBuilder& setCommands(const RenderCommands& commands);
+    RenderPassBuilder& setClearRenderTargets(bool clearRenderTargets);
 
     RenderPassBuilder& addResource(ResourceAccessType access, Ref<Buffer> buffer);
     RenderPassBuilder& addResource(ResourceAccessType access, Ref<Texture> texture);
-    RenderPassBuilder& addRenderTarget(Ref<RenderTarget> renderTarget, bool clearTarget = true,
-                                       vec3 clearColor = vec3(0.0f));
+    RenderPassBuilder& addRenderTarget(Ref<RenderTarget> renderTarget, vec3 clearColor = vec3(0.0f));
 
     u64 generateHash();
 
@@ -52,6 +51,7 @@ public:
     RenderPassType getType() const { return m_type; }
     PipelineBuilder getPipeline() const { return m_pipeline; }
     RenderCommands getCommands() const { return m_commands; }
+    bool getClearRenderTargets() const { return m_clearTargets; }
     std::vector<RenderTargetInfo> getRenderTargets() const { return m_renderTargets; }
 
 private:
@@ -60,6 +60,7 @@ private:
     RenderPassType m_type;
     PipelineBuilder m_pipeline;
     RenderCommands m_commands{nullptr};
+    bool m_clearTargets{true};
 
     struct RenderPassReference
     {

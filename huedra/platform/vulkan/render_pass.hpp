@@ -24,7 +24,6 @@ public:
 
     VkRenderPass get() { return m_renderPass; }
     RenderCommands getCommands() { return m_builder.getCommands(); };
-    Ref<RenderTarget> getRenderTarget() { return p_renderTarget; }
     VulkanPipeline& getPipeline() { return m_pipeline; }
     PipelineType getPipelineType() { return m_pipeline.getBuilder().getType(); }
 
@@ -34,9 +33,8 @@ private:
     Device* p_device;
     RenderPassBuilder m_builder;
 
-    // TODO: add multiple target support
-    Ref<RenderTarget> p_renderTarget{nullptr};
-    VulkanRenderTarget* p_vkRenderTarget;
+    std::vector<VulkanRenderTarget*> p_renderTargets;
+    VulkanRenderTarget* p_swapchainTarget{nullptr};
 
     VulkanPipeline m_pipeline;
     VkRenderPass m_renderPass;

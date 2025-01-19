@@ -92,7 +92,13 @@ RenderPassBuilder& RenderPassBuilder::setCommands(const RenderCommands& commands
     return *this;
 }
 
-RenderPassBuilder& RenderPassBuilder::addRenderTarget(Ref<RenderTarget> renderTarget, bool clearTarget, vec3 clearColor)
+RenderPassBuilder& RenderPassBuilder::setClearRenderTargets(bool clearRenderTargets)
+{
+    m_clearTargets = clearRenderTargets;
+    return *this;
+}
+
+RenderPassBuilder& RenderPassBuilder::addRenderTarget(Ref<RenderTarget> renderTarget, vec3 clearColor)
 {
     if (!renderTarget.valid() || !renderTarget->isAvailable())
     {
@@ -105,7 +111,14 @@ RenderPassBuilder& RenderPassBuilder::addRenderTarget(Ref<RenderTarget> renderTa
         log(LogLevel::WARNING, "RenderPassBuilder: could not add render target to non graphics render pass");
         return *this;
     }
-    m_renderTargets.push_back({renderTarget, clearColor, clearTarget});
+
+    if (!m_renderTargets.empty() && renderTarget->getType() != m_renderTargets.back().target->getType())
+    {
+        log(LogLevel::WARNING, "RenderPassBuilder: could not add render target to render pass. Type mismatch");
+        return *this;
+    }
+
+    m_renderTargets.push_back({renderTarget, clearColor});
     return *this;
 }
 
@@ -115,7 +128,7 @@ u64 RenderPassBuilder::generateHash()
     u64 hash = 0xcbf29ce484222325;
     auto combineHash = [&hash, fnvPrime](u64 val) { hash ^= val * fnvPrime; };
     auto u64Hash = std::hash<u64>();
-    auto u32Hash = std::hash<u32>();
+    auto floatHash = std::hash<float>();
     auto ptrHash = std::hash<void*>();
 
     combineHash(u64Hash(static_cast<u64>(m_type)));
@@ -137,7 +150,9 @@ u64 RenderPassBuilder::generateHash()
     for (auto& renderTarget : m_renderTargets)
     {
         combineHash(ptrHash((renderTarget.target.get())));
-        combineHash(u64Hash(static_cast<u64>(renderTarget.clearTarget)));
+        combineHash(floatHash(renderTarget.clearColor.x));
+        combineHash(floatHash(renderTarget.clearColor.y));
+        combineHash(floatHash(renderTarget.clearColor.z));
     }
 
     return hash;

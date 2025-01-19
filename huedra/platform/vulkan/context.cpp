@@ -76,6 +76,12 @@ void VulkanContext::cleanup()
     }
     m_textures.clear();
 
+    for (auto& renderTarget : m_renderTargets)
+    {
+        renderTarget.cleanup();
+    }
+    m_renderTargets.clear();
+
     for (auto& batch : m_passBatches)
     {
         for (auto& renderPass : batch.passes)
@@ -180,24 +186,47 @@ Texture* VulkanContext::createTexture(TextureData textureData)
 {
     VulkanTexture& texture = m_textures.emplace_back();
     texture.init(m_device, m_graphicsCommandPool, textureData);
-
     return &texture;
+}
+
+RenderTarget* VulkanContext::createRenderTarget(RenderTargetType type, GraphicsDataFormat format, u32 width, u32 height)
+{
+    VulkanRenderTarget& renderTarget = m_renderTargets.emplace_back();
+    renderTarget.init(m_device, m_graphicsCommandPool, type, format, width, height);
+    return &renderTarget;
 }
 
 void VulkanContext::removeBuffer(Buffer* buffer)
 {
     auto it =
         std::find_if(m_buffers.begin(), m_buffers.end(), [&](VulkanBuffer& vkBuffer) { return &vkBuffer == buffer; });
-    it->cleanup();
-    m_buffers.erase(it);
+    if (it != m_buffers.end())
+    {
+        it->cleanup();
+        m_buffers.erase(it);
+    }
 }
 
 void VulkanContext::removeTexture(Texture* texture)
 {
     auto it = std::find_if(m_textures.begin(), m_textures.end(),
                            [&](VulkanTexture& vkTexture) { return &vkTexture == texture; });
-    it->cleanup();
-    m_textures.erase(it);
+    if (it != m_textures.end())
+    {
+        it->cleanup();
+        m_textures.erase(it);
+    }
+}
+
+void VulkanContext::removeRenderTarget(RenderTarget* renderTarget)
+{
+    auto it = std::find_if(m_renderTargets.begin(), m_renderTargets.end(),
+                           [&](VulkanRenderTarget& vkRenderTarget) { return &vkRenderTarget == renderTarget; });
+    if (it != m_renderTargets.end())
+    {
+        it->cleanup();
+        m_renderTargets.erase(it);
+    }
 }
 
 void VulkanContext::prepareSwapchains()

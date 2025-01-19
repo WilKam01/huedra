@@ -73,6 +73,23 @@ Ref<Texture> GraphicsManager::createTexture(TextureData textureData)
     return Ref<Texture>(m_context->createTexture(textureData));
 }
 
+Ref<RenderTarget> GraphicsManager::createRenderTarget(RenderTargetType type, GraphicsDataFormat format, u32 width,
+                                                      u32 height)
+{
+    if (width == 0 || height == 0)
+    {
+        log(LogLevel::WARNING, "Could not create render target, width and height can't be 0");
+        return Ref<RenderTarget>(nullptr);
+    }
+    if (format == GraphicsDataFormat::UNDEFINED)
+    {
+        log(LogLevel::WARNING, "Could not create render target, format has be defined");
+        return Ref<RenderTarget>(nullptr);
+    }
+
+    return Ref<RenderTarget>(m_context->createRenderTarget(type, format, width, height));
+}
+
 void GraphicsManager::removeBuffer(Ref<Buffer> buffer)
 {
     if (!buffer.valid())
@@ -93,6 +110,17 @@ void GraphicsManager::removeTexture(Ref<Texture> texture)
     }
 
     m_context->removeTexture(texture.get());
+}
+
+void GraphicsManager::removeRenderTarget(Ref<RenderTarget> renderTarget)
+{
+    if (!renderTarget.valid())
+    {
+        log(LogLevel::WARNING, "Could not remove render target, ref is invalid");
+        return;
+    }
+
+    m_context->removeRenderTarget(renderTarget.get());
 }
 
 void GraphicsManager::createSwapchain(Window* window, bool renderDepth)
