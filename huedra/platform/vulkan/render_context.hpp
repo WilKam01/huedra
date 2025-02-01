@@ -21,7 +21,7 @@ public:
     void bindVertexBuffers(std::vector<Ref<Buffer>> buffers) override;
     void bindIndexBuffer(Ref<Buffer> buffer) override;
     void bindBuffer(Ref<Buffer> buffer, u32 set, u32 binding) override;
-    void bindTexture(Ref<Texture> texture, u32 set, u32 binding) override;
+    void bindTexture(Ref<Texture> texture, u32 set, u32 binding, const SamplerSettings& sampler) override;
 
     void pushConstants(ShaderStageFlags shaderStage, u32 size, void* data) override;
 

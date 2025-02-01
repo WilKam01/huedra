@@ -18,7 +18,7 @@ public:
     virtual void bindVertexBuffers(std::vector<Ref<Buffer>> buffers) = 0;
     virtual void bindIndexBuffer(Ref<Buffer> buffer) = 0;
     virtual void bindBuffer(Ref<Buffer> buffer, u32 set, u32 binding) = 0;
-    virtual void bindTexture(Ref<Texture> texture, u32 set, u32 binding) = 0;
+    virtual void bindTexture(Ref<Texture> texture, u32 set, u32 binding, const SamplerSettings& sampler) = 0;
 
     virtual void pushConstants(ShaderStageFlags shaderStage, u32 size, void* data) = 0;
 

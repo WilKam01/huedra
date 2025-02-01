@@ -16,7 +16,6 @@ void VulkanTexture::init(Device& device, const TextureData& textureData, VkForma
 
     p_device = &device;
     m_externallyCreated = false;
-    m_createdSampler = true;
     m_format = format;
 
     m_images.push_back(image);
@@ -26,7 +25,6 @@ void VulkanTexture::init(Device& device, const TextureData& textureData, VkForma
     m_layoutStages.resize(1, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
     createImageViews(VK_IMAGE_ASPECT_COLOR_BIT);
-    createSampler();
 }
 
 void VulkanTexture::init(Device& device, TextureType type, GraphicsDataFormat format, u32 width, u32 height,
@@ -50,15 +48,12 @@ void VulkanTexture::init(Device& device, TextureType type, GraphicsDataFormat fo
         createImages(VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         createImageViews(VK_IMAGE_ASPECT_COLOR_BIT);
-        m_createdSampler = true;
-        createSampler();
     }
     else
     {
         createImages(VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         createImageViews(VK_IMAGE_ASPECT_DEPTH_BIT);
-        m_createdSampler = false;
     }
 }
 
@@ -70,7 +65,6 @@ void VulkanTexture::init(Device& device, std::vector<VkImage> images, VkFormat f
     p_device = &device;
     p_renderTarget = &renderTarget;
     m_externallyCreated = true;
-    m_createdSampler = false;
     m_format = format;
 
     m_images = images;
@@ -84,11 +78,6 @@ void VulkanTexture::init(Device& device, std::vector<VkImage> images, VkFormat f
 
 void VulkanTexture::cleanup()
 {
-    if (m_createdSampler)
-    {
-        vkDestroySampler(p_device->getLogical(), m_sampler, nullptr);
-    }
-
     for (size_t i = 0; i < m_images.size(); ++i)
     {
         vkDestroyImageView(p_device->getLogical(), m_imageViews[i], nullptr);
@@ -133,37 +122,6 @@ VkFormat VulkanTexture::findFormat(TextureType type, GraphicsDataFormat format)
 
     log(LogLevel::ERR, "Failed to find supported format!");
     return VK_FORMAT_UNDEFINED;
-}
-
-void VulkanTexture::createSampler()
-{
-    VkSamplerCreateInfo samplerInfo{};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-
-    VkPhysicalDeviceProperties properties{};
-    vkGetPhysicalDeviceProperties(p_device->getPhysical(), &properties);
-
-    samplerInfo.anisotropyEnable = VK_TRUE;
-    samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-    samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-    samplerInfo.unnormalizedCoordinates = VK_FALSE;
-    samplerInfo.compareEnable = VK_FALSE;
-    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-    samplerInfo.minLod = 0.0f;
-    samplerInfo.maxLod = 0.0f;
-    samplerInfo.mipLodBias = 0.0f;
-
-    if (vkCreateSampler(p_device->getLogical(), &samplerInfo, nullptr, &m_sampler) != VK_SUCCESS)
-    {
-        log(LogLevel::ERR, "Failed to create sampler!");
-    }
 }
 
 void VulkanTexture::createImages(VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties)

@@ -101,7 +101,7 @@ void DescriptorHandler::writeBuffer(VulkanBuffer& buffer, u32 set, u32 binding)
     vkUpdateDescriptorSets(p_device->getLogical(), 1, &descriptorWrite, 0, nullptr);
 }
 
-void DescriptorHandler::writeTexture(VulkanTexture& texture, u32 set, u32 binding)
+void DescriptorHandler::writeTexture(VulkanTexture& texture, VkSampler sampler, u32 set, u32 binding)
 {
     if (set >= m_sets.size())
     {
@@ -119,7 +119,7 @@ void DescriptorHandler::writeTexture(VulkanTexture& texture, u32 set, u32 bindin
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = texture.getLayout();
     imageInfo.imageView = texture.getView();
-    imageInfo.sampler = texture.getSampler();
+    imageInfo.sampler = sampler;
 
     if (m_sets[set].curIndex == m_sets[set].instances.size())
     {

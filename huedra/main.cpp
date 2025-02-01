@@ -110,7 +110,7 @@ int main()
         renderContext.bindVertexBuffers({positionsBuffer, uvsBuffer, normalsBuffer});
         renderContext.bindIndexBuffer(indexBuffer);
         renderContext.bindBuffer(viewProjBuffer, 0, 0);
-        renderContext.bindTexture(texture, 0, 1);
+        renderContext.bindTexture(texture, 0, 1, SAMPLER_LINEAR);
         renderContext.pushConstants(HU_SHADER_STAGE_VERTEX, sizeof(matrix4), &modelMatrix);
         renderContext.drawIndexed(static_cast<u32>(meshes[0].indices.size()), 1, 0, 0);
     };
@@ -141,10 +141,10 @@ int main()
     RenderCommands computeCommands = [&gBuffers, &computeBuffer, &window](RenderContext& renderContext) {
         for (u32 i = 0; i < gBufferCount; ++i)
         {
-            renderContext.bindTexture(gBuffers[i]->getColorTexture(), 0, i);
+            renderContext.bindTexture(gBuffers[i]->getColorTexture(), 0, i, SAMPLER_NEAR);
         }
         renderContext.bindBuffer(computeBuffer, 0, gBufferCount);
-        renderContext.bindTexture(window->getRenderTarget()->getColorTexture(), 0, gBufferCount + 1);
+        renderContext.bindTexture(window->getRenderTarget()->getColorTexture(), 0, gBufferCount + 1, SAMPLER_NEAR);
         WindowRect rect = window->getRect();
         renderContext.dispatch((rect.width + 31) / 32, (rect.height + 31) / 32, 1);
     };

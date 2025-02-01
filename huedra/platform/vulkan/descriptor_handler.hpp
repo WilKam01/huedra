@@ -21,7 +21,7 @@ public:
     void bindSets(VkCommandBuffer commandBuffer);
 
     void writeBuffer(VulkanBuffer& buffer, u32 set, u32 binding);
-    void writeTexture(VulkanTexture& texture, u32 set, u32 binding);
+    void writeTexture(VulkanTexture& texture, VkSampler sampler, u32 set, u32 binding);
 
 private:
     VkDescriptorSet createDescriptorSet(u32 set);

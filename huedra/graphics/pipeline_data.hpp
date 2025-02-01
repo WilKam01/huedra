@@ -147,4 +147,46 @@ struct VertexInputStream
     std::vector<VertexInputAttribute> attributes;
 };
 
+enum class SamplerFilter
+{
+    NEAREST,
+    LINEAR
+};
+
+enum class SamplerAddressMode
+{
+    REPEAT,
+    MIRROR_REPEAT,
+    CLAMP_EDGE,
+    CLAMP_COLOR,
+};
+
+enum class SamplerColor
+{
+    WHITE,
+    BLACK,
+    ZERO_ALPHA
+};
+
+struct SamplerSettings
+{
+    SamplerFilter filter{SamplerFilter::NEAREST};
+    SamplerAddressMode adressModeU{SamplerAddressMode::REPEAT};
+    SamplerAddressMode adressModeV{SamplerAddressMode::REPEAT};
+    SamplerAddressMode adressModeW{SamplerAddressMode::REPEAT};
+    SamplerColor color{SamplerColor::WHITE}; // Only relevant when address mode CLAMP_COLOR is used
+
+    bool operator==(const SamplerSettings& rhs) const
+    {
+        return filter == rhs.filter && adressModeU == rhs.adressModeU && adressModeV == rhs.adressModeV &&
+               adressModeW == rhs.adressModeW && color == rhs.color;
+    }
+};
+
+constexpr SamplerSettings SAMPLER_NEAR{SamplerFilter::NEAREST, SamplerAddressMode::REPEAT, SamplerAddressMode::REPEAT,
+                                       SamplerAddressMode::REPEAT, SamplerColor::WHITE};
+
+constexpr SamplerSettings SAMPLER_LINEAR{SamplerFilter::LINEAR, SamplerAddressMode::REPEAT, SamplerAddressMode::REPEAT,
+                                         SamplerAddressMode::REPEAT, SamplerColor::WHITE};
+
 } // namespace huedra

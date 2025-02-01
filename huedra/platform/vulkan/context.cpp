@@ -101,6 +101,12 @@ void VulkanContext::cleanup()
     m_usingGraphicsQueue = false;
     m_usingComputeQueue = false;
 
+    for (auto& info : m_samplers)
+    {
+        vkDestroySampler(m_device.getLogical(), info.sampler, nullptr);
+    }
+    m_samplers.clear();
+
     for (auto& swapchain : m_swapchains)
     {
         swapchain->cleanup();
@@ -338,6 +344,12 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
     m_activeSwapchains.clear();
     m_usingGraphicsQueue = false;
     m_usingComputeQueue = false;
+
+    for (auto& info : m_samplers)
+    {
+        vkDestroySampler(m_device.getLogical(), info.sampler, nullptr);
+    }
+    m_samplers.clear();
 
     struct VersionData
     {
@@ -722,6 +734,19 @@ void VulkanContext::render()
     }
 }
 
+VkSampler VulkanContext::getSampler(const SamplerSettings& settings)
+{
+    auto it = std::find_if(m_samplers.begin(), m_samplers.end(),
+                           [&](const SamplerInfo& info) { return info.settings == settings; });
+    if (it != m_samplers.end())
+    {
+        return it->sampler;
+    }
+
+    createSampler(settings);
+    return m_samplers.back().sampler;
+}
+
 VkSurfaceKHR VulkanContext::createSurface(Window* window)
 {
     VkSurfaceKHR surface;
@@ -784,6 +809,70 @@ void VulkanContext::createDescriptorHandlers(const RenderPassBuilder& builder, P
     {
         handler.init(m_device, *passInfo.pass, passInfo.descriptorPool, bindingTypes);
     }
+}
+
+void VulkanContext::createSampler(const SamplerSettings& settings)
+{
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+
+    VkFilter filter = settings.filter == SamplerFilter::NEAREST ? VK_FILTER_NEAREST : VK_FILTER_LINEAR;
+    samplerInfo.magFilter = filter;
+    samplerInfo.minFilter = filter;
+
+    constexpr auto convertAddressMode = [](SamplerAddressMode addressMode) -> VkSamplerAddressMode {
+        switch (addressMode)
+        {
+        case SamplerAddressMode::REPEAT:
+            return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        case SamplerAddressMode::MIRROR_REPEAT:
+            return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+        case SamplerAddressMode::CLAMP_EDGE:
+            return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        case SamplerAddressMode::CLAMP_COLOR:
+            return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+        default:
+            return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        };
+        return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    };
+    samplerInfo.addressModeU = convertAddressMode(settings.adressModeU);
+    samplerInfo.addressModeV = convertAddressMode(settings.adressModeV);
+    samplerInfo.addressModeW = convertAddressMode(settings.adressModeW);
+
+    VkPhysicalDeviceProperties properties{};
+    vkGetPhysicalDeviceProperties(m_device.getPhysical(), &properties);
+
+    VkBorderColor borderColor{VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE};
+    switch (settings.color)
+    {
+    case SamplerColor::WHITE:
+        borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+    case SamplerColor::BLACK:
+        borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+    case SamplerColor::ZERO_ALPHA:
+        borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+    };
+
+    samplerInfo.anisotropyEnable = VK_TRUE;
+    samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+    samplerInfo.borderColor = borderColor;
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+
+    samplerInfo.mipmapMode =
+        settings.filter == SamplerFilter::NEAREST ? VK_SAMPLER_MIPMAP_MODE_NEAREST : VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerInfo.minLod = 0.0f;
+    samplerInfo.maxLod = 0.0f;
+    samplerInfo.mipLodBias = 0.0f;
+
+    VkSampler sampler{};
+    if (vkCreateSampler(m_device.getLogical(), &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
+    {
+        log(LogLevel::ERR, "Failed to create sampler!");
+    }
+    m_samplers.push_back({settings, sampler});
 }
 
 void VulkanContext::submitGraphicsQueue(u32 batchIndex)

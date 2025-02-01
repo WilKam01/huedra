@@ -37,6 +37,8 @@ public:
     void setRenderGraph(RenderGraphBuilder& builder) override;
     void render() override;
 
+    VkSampler getSampler(const SamplerSettings& settings);
+
 private:
     struct ResourceTransition
     {
@@ -54,6 +56,7 @@ private:
 
     VkSurfaceKHR createSurface(Window* window);
     void createDescriptorHandlers(const RenderPassBuilder& builder, PassInfo& passInfo);
+    void createSampler(const SamplerSettings& settings);
 
     void submitGraphicsQueue(u32 batchIndex);
     void submitComputeQueue(u32 batchIndex);
@@ -82,6 +85,13 @@ private:
     std::vector<PassBatch> m_passBatches;
     bool m_usingGraphicsQueue{false};
     bool m_usingComputeQueue{false};
+
+    struct SamplerInfo
+    {
+        SamplerSettings settings;
+        VkSampler sampler;
+    };
+    std::vector<SamplerInfo> m_samplers;
 
     CommandPool m_graphicsCommandPool;
     CommandBuffer m_graphicsCommandBuffer;

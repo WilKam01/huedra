@@ -31,7 +31,6 @@ public:
     VkPipelineStageFlags getLayoutStage() { return m_layoutStages[getIndex()]; }
     VulkanRenderTarget* getRenderTarget() { return p_renderTarget; }
     VkFormat getFormat() { return m_format; }
-    VkSampler getSampler() { return m_sampler; }
 
     void setLayout(VkImageLayout layout) { m_imageLayouts[getIndex()] = layout; }
     void setLayoutStage(VkPipelineStageFlags stage) { m_layoutStages[getIndex()] = stage; }
@@ -39,7 +38,6 @@ public:
 private:
     u32 getIndex();
     VkFormat findFormat(TextureType type, GraphicsDataFormat format);
-    void createSampler(); // TODO: Separate from here to context, also add user control and multiple samplers
 
     void createImages(VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties);
     void createImageViews(VkImageAspectFlags aspectFlags);
@@ -47,7 +45,6 @@ private:
     Device* p_device;
     VulkanRenderTarget* p_renderTarget{nullptr};
     bool m_externallyCreated{false};
-    bool m_createdSampler{false};
 
     VkFormat m_format;
     std::vector<VkImage> m_images;
@@ -55,7 +52,6 @@ private:
     std::vector<VkImageView> m_imageViews;
     std::vector<VkImageLayout> m_imageLayouts;
     std::vector<VkPipelineStageFlags> m_layoutStages;
-    VkSampler m_sampler;
 };
 
 } // namespace huedra
