@@ -15,18 +15,19 @@ public:
     VulkanRenderTarget() = default;
     ~VulkanRenderTarget() = default;
 
-    void init(Device& device, CommandPool& commandPool, VulkanSwapchain& swapchain, VkFormat format, VkExtent2D extent);
-    void init(Device& device, CommandPool& commandPool, RenderTargetType type, GraphicsDataFormat format, u32 width,
-              u32 height);
+    void init(Device& device, VulkanSwapchain& swapchain, VkFormat format, VkExtent2D extent);
+    void init(Device& device, RenderTargetType type, GraphicsDataFormat format, u32 width, u32 height);
     void cleanup();
     void partialCleanup();
 
     void addRenderPass(VulkanRenderPass* renderPass);
-    void removeRenderPass(VulkanRenderPass* renderPass);
+
+    Ref<Texture> getColorTexture() override;
+    Ref<Texture> getDepthTexture() override;
 
     VulkanSwapchain* getSwapchain() { return p_swapchain; }
-    VulkanTexture& getColorTexture() { return m_texture; }
-    VulkanTexture& getDepthTexture() { return m_depthTexture; }
+    VulkanTexture& getVkColorTexture() { return m_texture; }
+    VulkanTexture& getVkDepthTexture() { return m_depthTexture; }
     VkFormat getColorFormat() { return m_texture.getFormat(); }
     VkFormat getDepthFormat() { return m_depthTexture.getFormat(); }
     u32 getImageCount() { return m_imageCount; }

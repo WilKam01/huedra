@@ -13,7 +13,7 @@ public:
     VulkanSwapchain() = default;
     ~VulkanSwapchain() = default;
 
-    void init(Window* window, Device& device, CommandPool& commandPool, VkSurfaceKHR surface, bool renderDepth);
+    void init(Window* window, Device& device, VkSurfaceKHR surface, bool renderDepth);
     void cleanup();
 
     void aquireNextImage();
@@ -24,8 +24,11 @@ public:
     VulkanRenderTarget& getRenderTarget() { return m_renderTarget; }
     VkSemaphore getImageAvailableSemaphore() { return m_imageAvailableSemaphores[m_semaphoreIndex]; }
     bool renderDepth() { return m_renderDepth; }
+    bool alreadyWaited() { return m_alreadyWaitedOnFrame; }
     bool canPresent() { return m_renderTarget.isAvailable(); }
     u32 getImageIndex() { return m_imageIndex; }
+
+    void setAlreadyWaited() { m_alreadyWaitedOnFrame = true; }
 
 private:
     VkPresentModeKHR choosePresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
@@ -38,7 +41,6 @@ private:
 
     Window* p_window;
     Device* p_device;
-    CommandPool* p_commandPool;
 
     VkSwapchainKHR m_swapchain;
     VkSurfaceKHR m_surface;
@@ -47,6 +49,7 @@ private:
 
     std::vector<VkSemaphore> m_imageAvailableSemaphores;
     bool m_alreadyAquiredFrame{false};
+    bool m_alreadyWaitedOnFrame{false};
     u32 m_imageIndex{0};
     u32 m_semaphoreIndex{0};
 };

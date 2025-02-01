@@ -34,7 +34,8 @@ RenderPassBuilder& RenderPassBuilder::init(RenderPassType type, const PipelineBu
     return *this;
 }
 
-RenderPassBuilder& RenderPassBuilder::addResource(ResourceAccessType access, Ref<Buffer> buffer)
+RenderPassBuilder& RenderPassBuilder::addResource(ResourceAccessType access, Ref<Buffer> buffer,
+                                                  ShaderStageFlags shaderStage)
 {
     if (!buffer.valid())
     {
@@ -44,8 +45,9 @@ RenderPassBuilder& RenderPassBuilder::addResource(ResourceAccessType access, Ref
 
     RenderPassReference reference;
     reference.access = access;
-    reference.buffer = buffer;
-    reference.type = RenderPassReference::ResourceType::BUFFER;
+    reference.shaderStage = shaderStage;
+    reference.buffer = buffer.get();
+    reference.type = RenderPassReference::Type::BUFFER;
 
     if (access == ResourceAccessType::READ || access == ResourceAccessType::READ_WRITE)
     {
@@ -60,7 +62,8 @@ RenderPassBuilder& RenderPassBuilder::addResource(ResourceAccessType access, Ref
     return *this;
 }
 
-RenderPassBuilder& RenderPassBuilder::addResource(ResourceAccessType access, Ref<Texture> texture)
+RenderPassBuilder& RenderPassBuilder::addResource(ResourceAccessType access, Ref<Texture> texture,
+                                                  ShaderStageFlags shaderStage)
 {
     if (!texture.valid())
     {
@@ -70,8 +73,9 @@ RenderPassBuilder& RenderPassBuilder::addResource(ResourceAccessType access, Ref
 
     RenderPassReference reference;
     reference.access = access;
-    reference.texture = texture;
-    reference.type = RenderPassReference::ResourceType::TEXTURE;
+    reference.shaderStage = shaderStage;
+    reference.texture = texture.get();
+    reference.type = RenderPassReference::Type::TEXTURE;
 
     if (access == ResourceAccessType::READ || access == ResourceAccessType::READ_WRITE)
     {
@@ -128,7 +132,6 @@ u64 RenderPassBuilder::generateHash()
     u64 hash = 0xcbf29ce484222325;
     auto combineHash = [&hash, fnvPrime](u64 val) { hash ^= val * fnvPrime; };
     auto u64Hash = std::hash<u64>();
-    auto floatHash = std::hash<float>();
     auto ptrHash = std::hash<void*>();
 
     combineHash(u64Hash(static_cast<u64>(m_type)));
@@ -150,9 +153,6 @@ u64 RenderPassBuilder::generateHash()
     for (auto& renderTarget : m_renderTargets)
     {
         combineHash(ptrHash((renderTarget.target.get())));
-        combineHash(floatHash(renderTarget.clearColor.x));
-        combineHash(floatHash(renderTarget.clearColor.y));
-        combineHash(floatHash(renderTarget.clearColor.z));
     }
 
     return hash;

@@ -1,6 +1,7 @@
 #include "context.hpp"
 #include "core/global.hpp"
 #include "core/log.hpp"
+#include "core/string/utils.hpp"
 #include "platform/vulkan/config.hpp"
 #include "platform/vulkan/type_converter.hpp"
 
@@ -131,7 +132,7 @@ void VulkanContext::createSwapchain(Window* window, bool renderDepth)
 {
     VulkanSwapchain* swapchain = new VulkanSwapchain();
     VkSurfaceKHR surface = createSurface(window);
-    swapchain->init(window, m_device, m_graphicsCommandPool, surface, renderDepth);
+    swapchain->init(window, m_device, surface, renderDepth);
 
     m_swapchains.push_back(swapchain);
     m_surfaces.push_back(surface);
@@ -182,17 +183,87 @@ Buffer* VulkanContext::createBuffer(BufferType type, BufferUsageFlags usage, u64
     return &buffer;
 }
 
-Texture* VulkanContext::createTexture(TextureData textureData)
+Texture* VulkanContext::createTexture(const TextureData& textureData)
 {
     VulkanTexture& texture = m_textures.emplace_back();
-    texture.init(m_device, m_graphicsCommandPool, textureData);
+
+    VkDeviceSize size = textureData.width * textureData.height * textureData.texelSize;
+    VkFormat format = converter::convertDataFormat(textureData.format);
+    VkImage image;
+    VkDeviceMemory memory;
+
+    m_stagingBuffer.init(
+        m_device, BufferType::STATIC, size, HU_BUFFER_USAGE_UNDEFINED, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, textureData.texels.data());
+
+    VkImageCreateInfo imageInfo{};
+    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    imageInfo.imageType = VK_IMAGE_TYPE_2D;
+    imageInfo.extent.width = textureData.width;
+    imageInfo.extent.height = textureData.height;
+    imageInfo.extent.depth = 1;
+    imageInfo.mipLevels = 1;
+    imageInfo.arrayLayers = 1;
+    imageInfo.format = format;
+    imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    if (vkCreateImage(m_device.getLogical(), &imageInfo, nullptr, &image) != VK_SUCCESS)
+    {
+        log(LogLevel::ERR, "Failed to create image!");
+    }
+
+    VkMemoryRequirements memRequirements;
+    vkGetImageMemoryRequirements(m_device.getLogical(), image, &memRequirements);
+
+    VkMemoryAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize = memRequirements.size;
+    allocInfo.memoryTypeIndex =
+        m_device.findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    if (vkAllocateMemory(m_device.getLogical(), &allocInfo, nullptr, &memory) != VK_SUCCESS)
+    {
+        log(LogLevel::ERR, "Failed to allocate image memory!");
+    }
+
+    vkBindImageMemory(m_device.getLogical(), image, memory, 0);
+
+    VkCommandBuffer commandBuffer = m_graphicsCommandPool.beginSingleTimeCommand();
+
+    m_graphicsCommandPool.transistionImageLayout(
+        commandBuffer, image, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_ACCESS_NONE,
+        VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+    VkBufferImageCopy region{};
+    region.bufferOffset = 0;
+    region.bufferRowLength = 0;
+    region.bufferImageHeight = 0;
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.mipLevel = 0;
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.layerCount = 1;
+    region.imageOffset = {0, 0, 0};
+    region.imageExtent = {textureData.width, textureData.height, 1};
+
+    vkCmdCopyBufferToImage(commandBuffer, m_stagingBuffer.get(), image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
+                           &region);
+
+    m_graphicsCommandPool.endSingleTimeCommand(commandBuffer);
+
+    m_stagingBuffer.cleanup();
+
+    texture.init(m_device, textureData, format, image, memory);
     return &texture;
 }
 
 RenderTarget* VulkanContext::createRenderTarget(RenderTargetType type, GraphicsDataFormat format, u32 width, u32 height)
 {
     VulkanRenderTarget& renderTarget = m_renderTargets.emplace_back();
-    renderTarget.init(m_device, m_graphicsCommandPool, type, format, width, height);
+    renderTarget.init(m_device, type, format, width, height);
     return &renderTarget;
 }
 
@@ -247,7 +318,7 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
     m_curGraph = builder;
     m_device.waitIdle();
 
-    log(LogLevel::INFO, "New render graph with hash: %llu", m_curGraph.getHash());
+    log(LogLevel::INFO, "New render graph with hash: 0x%s", toHex(m_curGraph.getHash()).c_str());
 
     // Destroy all previous batches
     for (auto& batch : m_passBatches)
@@ -268,6 +339,17 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
     m_usingGraphicsQueue = false;
     m_usingComputeQueue = false;
 
+    struct VersionData
+    {
+        u32 version{0};
+        VkImageLayout curLayout{VK_IMAGE_LAYOUT_UNDEFINED};
+        TextureType textureType{TextureType::COLOR};
+        VulkanRenderPass* firstRenderPass{nullptr};
+        VulkanRenderPass* curRenderPass{nullptr};
+        u32 curRenderTargetIndex{0};
+    };
+    std::map<void*, VersionData> resourceVersions; // Keeping track on resource iterations
+
     m_passBatches.emplace_back(); // At least one batch
     for (auto& [key, info] : builder.getRenderPasses())
     {
@@ -275,70 +357,227 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
         passInfo.pass = new VulkanRenderPass();
         passInfo.pass->init(m_device, info);
 
-        std::vector<std::vector<ResourceBinding>> sets = info.getPipeline().getResources();
-        std::vector<std::vector<VkDescriptorType>> bindingTypes(sets.size());
-        std::multiset<VkDescriptorType> poolSizeSet{};
-        for (u64 i = 0; i < sets.size(); ++i)
+        std::vector<VulkanSwapchain*> swapchains;
+        u32 latestVersion = 0; // Checking the latest iteration of an input resource
+        for (auto& input : info.getInputs())
         {
-            bindingTypes[i].resize(sets[i].size());
-            for (u64 j = 0; j < sets[i].size(); ++j)
+            void* ptr = input.type == RenderPassReference::Type::BUFFER ? static_cast<void*>(input.buffer)
+                                                                        : static_cast<void*>(input.texture);
+            if (!resourceVersions.contains(ptr))
             {
-                bindingTypes[i][j] = converter::convertResourceType(sets[i][j].resource);
-                poolSizeSet.insert(bindingTypes[i][j]);
+                resourceVersions.insert(std::pair<void*, u32>(ptr, {}));
+            }
+            latestVersion = std::max(latestVersion, resourceVersions[ptr].version);
+            resourceVersions[ptr].curLayout = resourceVersions[ptr].textureType == TextureType::COLOR
+                                                  ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+                                                  : VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+            if (resourceVersions[ptr].curRenderPass != nullptr)
+            {
+                if (resourceVersions[ptr].textureType == TextureType::COLOR)
+                {
+                    resourceVersions[ptr].curRenderPass->setFinalColorLayout(resourceVersions[ptr].curRenderTargetIndex,
+                                                                             resourceVersions[ptr].curLayout);
+                }
+                else
+                {
+                    resourceVersions[ptr].curRenderPass->setFinalDepthLayout(resourceVersions[ptr].curRenderTargetIndex,
+                                                                             resourceVersions[ptr].curLayout);
+                }
+            }
+            else if (input.type == RenderPassReference::Type::TEXTURE)
+            {
+                ResourceTransition& transition = passInfo.transitions.emplace_back();
+                transition.texture = static_cast<VulkanTexture*>(input.texture);
+                transition.newLayout = resourceVersions[ptr].curLayout;
+                transition.newStage = converter::convertPipelineStage(info.getPipeline().getType(), input.shaderStage);
+            }
+            resourceVersions[ptr].curRenderPass = nullptr;
+
+            if (input.type == RenderPassReference::Type::TEXTURE)
+            {
+                VulkanTexture* texture = static_cast<VulkanTexture*>(input.texture);
+                if (texture->getRenderTarget() && texture->getRenderTarget()->getSwapchain())
+                {
+                    swapchains.push_back(texture->getRenderTarget()->getSwapchain());
+                    m_activeSwapchains.insert(texture->getRenderTarget()->getSwapchain());
+                }
             }
         }
 
-        std::vector<VkDescriptorPoolSize> poolSizes;
-        for (auto& type : poolSizeSet)
+        for (auto& output : info.getOutputs())
         {
-            VkDescriptorPoolSize poolSize;
-            poolSize.type = type;
-            // TODO: Add ability to decide multiple sets per frame. An estimation or actual?
-            poolSize.descriptorCount =
-                static_cast<u32>(poolSizeSet.count(type) * GraphicsManager::MAX_FRAMES_IN_FLIGHT);
-            poolSizes.push_back(poolSize);
+            void* ptr = output.type == RenderPassReference::Type::BUFFER ? static_cast<void*>(output.buffer)
+                                                                         : static_cast<void*>(output.texture);
+            if (!resourceVersions.contains(ptr))
+            {
+                resourceVersions.insert(std::pair<void*, u32>(ptr, {}));
+            }
+            resourceVersions[ptr].version = latestVersion + 1;
+            resourceVersions[ptr].curLayout = VK_IMAGE_LAYOUT_GENERAL;
+            if (resourceVersions[ptr].curRenderPass != nullptr)
+            {
+                if (resourceVersions[ptr].textureType == TextureType::COLOR)
+                {
+                    resourceVersions[ptr].curRenderPass->setFinalColorLayout(resourceVersions[ptr].curRenderTargetIndex,
+                                                                             resourceVersions[ptr].curLayout);
+                }
+                else
+                {
+                    resourceVersions[ptr].curRenderPass->setFinalDepthLayout(resourceVersions[ptr].curRenderTargetIndex,
+                                                                             resourceVersions[ptr].curLayout);
+                }
+            }
+            else if (output.type == RenderPassReference::Type::TEXTURE)
+            {
+                ResourceTransition& transition = passInfo.transitions.emplace_back();
+                transition.texture = static_cast<VulkanTexture*>(output.texture);
+                transition.newLayout = resourceVersions[ptr].curLayout;
+                transition.newStage = converter::convertPipelineStage(info.getPipeline().getType(), output.shaderStage);
+            }
+            resourceVersions[ptr].curRenderPass = nullptr;
+
+            if (output.type == RenderPassReference::Type::TEXTURE)
+            {
+                VulkanTexture* texture = static_cast<VulkanTexture*>(output.texture);
+                if (texture->getRenderTarget() && texture->getRenderTarget()->getSwapchain())
+                {
+                    swapchains.push_back(texture->getRenderTarget()->getSwapchain());
+                    m_activeSwapchains.insert(texture->getRenderTarget()->getSwapchain());
+                }
+            }
         }
 
-        VkDescriptorPoolCreateInfo poolInfo{};
-        poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        poolInfo.pPoolSizes = poolSizes.data();
-        poolInfo.poolSizeCount = static_cast<u32>(poolSizes.size());
-        // TODO: Add ability to decide multiple sets per frame. An estimation or actual?
-        poolInfo.maxSets = GraphicsManager::MAX_FRAMES_IN_FLIGHT;
-
-        if (vkCreateDescriptorPool(m_device.getLogical(), &poolInfo, nullptr, &passInfo.descriptorPool) != VK_SUCCESS)
+        for (u32 i = 0; i < info.getRenderTargets().size(); ++i)
         {
-            log(LogLevel::ERR, "Failed to create descriptor pool!");
+            VulkanRenderTarget* target = static_cast<VulkanRenderTarget*>(info.getRenderTargets()[i].target.get());
+            if (target->usesColor())
+            {
+                void* ptr = &target->getVkColorTexture();
+                if (!resourceVersions.contains(ptr))
+                {
+                    resourceVersions.insert(std::pair<void*, u32>(ptr, {}));
+                    resourceVersions[ptr].curLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                }
+                else if (resourceVersions[ptr].curLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+                {
+                    resourceVersions[ptr].curLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                    resourceVersions[ptr].curRenderPass->setFinalColorLayout(resourceVersions[ptr].curRenderTargetIndex,
+                                                                             resourceVersions[ptr].curLayout);
+                }
+                resourceVersions[ptr].version = latestVersion + 1;
+                resourceVersions[ptr].curRenderPass = passInfo.pass;
+                if (resourceVersions[ptr].firstRenderPass == nullptr)
+                {
+                    resourceVersions[ptr].firstRenderPass = resourceVersions[ptr].curRenderPass;
+                }
+                resourceVersions[ptr].curRenderTargetIndex = i;
+                resourceVersions[ptr].textureType = TextureType::COLOR;
+
+                if (!resourceVersions[ptr].curRenderPass->getBuilder().getClearRenderTargets())
+                {
+                    resourceVersions[ptr].curRenderPass->setInitialColorLayout(
+                        resourceVersions[ptr].curRenderTargetIndex, resourceVersions[ptr].curLayout);
+                }
+            }
+
+            if (target->usesDepth())
+            {
+                void* ptr = &target->getVkDepthTexture();
+                if (!resourceVersions.contains(ptr))
+                {
+                    resourceVersions.insert(std::pair<void*, u32>(ptr, {}));
+                }
+                else if (resourceVersions[ptr].curLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+                {
+                    resourceVersions[ptr].curLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                    resourceVersions[ptr].curRenderPass->setFinalDepthLayout(resourceVersions[ptr].curRenderTargetIndex,
+                                                                             resourceVersions[ptr].curLayout);
+                }
+                resourceVersions[ptr].version = latestVersion + 1;
+                resourceVersions[ptr].curRenderPass = passInfo.pass;
+                resourceVersions[ptr].curRenderTargetIndex = i;
+                resourceVersions[ptr].textureType = TextureType::DEPTH;
+                if (resourceVersions[ptr].firstRenderPass == nullptr)
+                {
+                    resourceVersions[ptr].firstRenderPass = resourceVersions[ptr].curRenderPass;
+                }
+                if (!resourceVersions[ptr].curRenderPass->getBuilder().getClearRenderTargets())
+                {
+                    resourceVersions[ptr].curRenderPass->setInitialDepthLayout(
+                        resourceVersions[ptr].curRenderTargetIndex, resourceVersions[ptr].curLayout);
+                }
+            }
+
+            if (target->getSwapchain())
+            {
+                swapchains.push_back(target->getSwapchain());
+                m_activeSwapchains.insert(target->getSwapchain());
+            }
         }
 
-        passInfo.descriptorHandlers.resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
-        for (auto& handler : passInfo.descriptorHandlers)
+        if (m_passBatches.size() <= latestVersion)
         {
-            handler.init(m_device, *passInfo.pass, passInfo.descriptorPool, bindingTypes);
+            m_passBatches.resize(latestVersion + 1);
         }
-
-        m_passBatches.back().passes.push_back(passInfo);
+        m_passBatches[latestVersion].passes.push_back(passInfo);
 
         switch (info.getType())
         {
         case RenderPassType::GRAPHICS:
-            m_passBatches.back().useGraphicsQueue = true;
+            m_passBatches[latestVersion].useGraphicsQueue = true;
             m_usingGraphicsQueue = true;
             break;
         case RenderPassType::COMPUTE:
-            m_passBatches.back().useComputeQueue = true;
+            m_passBatches[latestVersion].useComputeQueue = true;
             m_usingComputeQueue = true;
             break;
         }
 
-        for (auto& target : info.getRenderTargets())
+        for (auto& swapchain : swapchains)
         {
-            VulkanRenderTarget* vulkanTarget = static_cast<VulkanRenderTarget*>(target.target.get());
-            if (vulkanTarget->getSwapchain() != nullptr)
+            m_passBatches[latestVersion].swapchains.insert(swapchain);
+        }
+    }
+
+    for (auto& [ptr, data] : resourceVersions)
+    {
+        if (data.firstRenderPass != nullptr)
+        {
+            bool clearTarget = data.firstRenderPass->getBuilder().getClearRenderTargets();
+            if (data.textureType == TextureType::COLOR)
             {
-                m_passBatches.back().swapchains.insert(vulkanTarget->getSwapchain());
-                m_activeSwapchains.insert(vulkanTarget->getSwapchain());
+                if (!clearTarget)
+                {
+                    data.firstRenderPass->setInitialColorLayout(data.curRenderTargetIndex, data.curLayout);
+                }
+                VulkanTexture* tex = static_cast<VulkanTexture*>(ptr);
+                if (tex->getRenderTarget() && tex->getRenderTarget()->getSwapchain())
+                {
+                    if (!clearTarget)
+                    {
+                        data.firstRenderPass->setInitialColorLayout(data.curRenderTargetIndex,
+                                                                    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+                    }
+                    if (data.curRenderPass)
+                    {
+                        data.curRenderPass->setFinalColorLayout(data.curRenderTargetIndex,
+                                                                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+                    }
+                }
             }
+            else if (!clearTarget)
+            {
+                data.firstRenderPass->setInitialDepthLayout(data.curRenderTargetIndex, data.curLayout);
+            }
+        }
+    }
+
+    for (auto& batch : m_passBatches)
+    {
+        for (auto& info : batch.passes)
+        {
+            info.pass->create();
+            createDescriptorHandlers(info.pass->getBuilder(), info);
         }
     }
 }
@@ -384,6 +623,54 @@ void VulkanContext::render()
                 break;
             }
 
+            VkCommandBuffer transitionCommandBuffer = m_graphicsCommandPool.beginSingleTimeCommand();
+
+            for (auto& transition : info.transitions)
+            {
+                m_graphicsCommandPool.transistionImageLayout(
+                    transitionCommandBuffer, transition.texture->get(), transition.texture->getFormat(),
+                    transition.texture->getLayout(), transition.newLayout,
+                    vulkan_config::layoutToAccess.at(transition.texture->getLayout()),
+                    vulkan_config::layoutToAccess.at(transition.newLayout), transition.texture->getLayoutStage(),
+                    transition.newStage);
+
+                transition.texture->setLayout(transition.newLayout);
+                transition.texture->setLayoutStage(transition.newStage);
+            }
+
+            // TODO: Needs more testing, what stage should be used for read/write textures?
+            for (auto& targetInfo : info.pass->getTargetInfo())
+            {
+                if (targetInfo.renderTarget->usesColor() && targetInfo.initialColorLayout != VK_IMAGE_LAYOUT_UNDEFINED)
+                {
+                    VulkanTexture& texture = targetInfo.renderTarget->getVkColorTexture();
+
+                    m_graphicsCommandPool.transistionImageLayout(
+                        transitionCommandBuffer, texture.get(), texture.getFormat(), texture.getLayout(),
+                        targetInfo.initialColorLayout, vulkan_config::layoutToAccess.at(texture.getLayout()),
+                        vulkan_config::layoutToAccess.at(targetInfo.initialColorLayout), texture.getLayoutStage(),
+                        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+
+                    texture.setLayout(targetInfo.initialColorLayout);
+                    texture.setLayoutStage(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+                }
+                if (targetInfo.renderTarget->usesDepth() && targetInfo.initialDepthLayout != VK_IMAGE_LAYOUT_UNDEFINED)
+                {
+                    VulkanTexture& texture = targetInfo.renderTarget->getVkDepthTexture();
+
+                    m_graphicsCommandPool.transistionImageLayout(
+                        transitionCommandBuffer, texture.get(), texture.getFormat(), texture.getLayout(),
+                        targetInfo.initialDepthLayout, vulkan_config::layoutToAccess.at(texture.getLayout()),
+                        vulkan_config::layoutToAccess.at(targetInfo.initialDepthLayout), texture.getLayoutStage(),
+                        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+
+                    texture.setLayout(targetInfo.initialDepthLayout);
+                    texture.setLayoutStage(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+                }
+            }
+
+            m_graphicsCommandPool.endSingleTimeCommand(transitionCommandBuffer);
+
             info.pass->begin(commandBuffer);
 
             VulkanRenderContext renderContext;
@@ -401,6 +688,31 @@ void VulkanContext::render()
         if (m_passBatches[i].useComputeQueue)
         {
             submitComputeQueue(i);
+        }
+
+        for (auto& swapchain : m_passBatches[i].swapchains)
+        {
+            swapchain->setAlreadyWaited();
+        }
+    }
+
+    for (auto& swapchain : m_activeSwapchains)
+    {
+        VulkanTexture& texture = swapchain->getRenderTarget().getVkColorTexture();
+        if (texture.getLayout() != VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+        {
+            VkCommandBuffer transitionCommandBuffer = m_graphicsCommandPool.beginSingleTimeCommand();
+
+            m_graphicsCommandPool.transistionImageLayout(
+                transitionCommandBuffer, texture.get(), texture.getFormat(), texture.getLayout(),
+                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, vulkan_config::layoutToAccess.at(texture.getLayout()),
+                vulkan_config::layoutToAccess.at(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR), texture.getLayoutStage(),
+                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+
+            texture.setLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+            texture.setLayoutStage(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+
+            m_graphicsCommandPool.endSingleTimeCommand(transitionCommandBuffer);
         }
     }
 
@@ -430,6 +742,50 @@ VkSurfaceKHR VulkanContext::createSurface(Window* window)
     return surface;
 }
 
+void VulkanContext::createDescriptorHandlers(const RenderPassBuilder& builder, PassInfo& passInfo)
+{
+    std::vector<std::vector<ResourceBinding>> sets = builder.getPipeline().getResources();
+    std::vector<std::vector<VkDescriptorType>> bindingTypes(sets.size());
+    std::multiset<VkDescriptorType> poolSizeSet{};
+    for (u64 i = 0; i < sets.size(); ++i)
+    {
+        bindingTypes[i].resize(sets[i].size());
+        for (u64 j = 0; j < sets[i].size(); ++j)
+        {
+            bindingTypes[i][j] = converter::convertResourceType(sets[i][j].resource);
+            poolSizeSet.insert(bindingTypes[i][j]);
+        }
+    }
+
+    std::vector<VkDescriptorPoolSize> poolSizes;
+    for (auto& type : poolSizeSet)
+    {
+        VkDescriptorPoolSize poolSize;
+        poolSize.type = type;
+        // TODO: Add ability to decide multiple sets per frame. An estimation or actual?
+        poolSize.descriptorCount = static_cast<u32>(poolSizeSet.count(type) * GraphicsManager::MAX_FRAMES_IN_FLIGHT);
+        poolSizes.push_back(poolSize);
+    }
+
+    VkDescriptorPoolCreateInfo poolInfo{};
+    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    poolInfo.pPoolSizes = poolSizes.data();
+    poolInfo.poolSizeCount = static_cast<u32>(poolSizes.size());
+    // TODO: Add ability to decide multiple sets per frame. An estimation or actual?
+    poolInfo.maxSets = GraphicsManager::MAX_FRAMES_IN_FLIGHT;
+
+    if (vkCreateDescriptorPool(m_device.getLogical(), &poolInfo, nullptr, &passInfo.descriptorPool) != VK_SUCCESS)
+    {
+        log(LogLevel::ERR, "Failed to create descriptor pool!");
+    }
+
+    passInfo.descriptorHandlers.resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
+    for (auto& handler : passInfo.descriptorHandlers)
+    {
+        handler.init(m_device, *passInfo.pass, passInfo.descriptorPool, bindingTypes);
+    }
+}
+
 void VulkanContext::submitGraphicsQueue(u32 batchIndex)
 {
     m_graphicsCommandBuffer.end(Global::graphicsManager.getCurrentFrame());
@@ -437,14 +793,17 @@ void VulkanContext::submitGraphicsQueue(u32 batchIndex)
     std::vector<VkSemaphore> waitSemaphores;
     std::vector<VkPipelineStageFlags> waitStages;
 
-    for (auto& swapchain : m_passBatches[batchIndex].swapchains)
-    {
-        waitSemaphores.push_back(swapchain->getImageAvailableSemaphore());
-        waitStages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-    }
-
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    for (auto& swapchain : m_passBatches[batchIndex].swapchains)
+    {
+        if (!swapchain->alreadyWaited())
+        {
+            waitSemaphores.push_back(swapchain->getImageAvailableSemaphore());
+            waitStages.push_back(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+        }
+    }
+
     if (batchIndex != 0) // Should wait on queue if it's not the first batch
     {
         if (m_passBatches[batchIndex - 1].useGraphicsQueue)
@@ -474,11 +833,7 @@ void VulkanContext::submitGraphicsQueue(u32 batchIndex)
             &m_graphicsSyncSemaphores[m_curGraphicsSemphoreIndex][Global::graphicsManager.getCurrentFrame()];
     }
 
-    VkFence fence{};
-    if (batchIndex == m_passBatches.size() - 1)
-    {
-        fence = m_graphicsFrameInFlightFences[Global::graphicsManager.getCurrentFrame()];
-    }
+    VkFence fence = m_graphicsFrameInFlightFences[Global::graphicsManager.getCurrentFrame()];
     if (vkQueueSubmit(m_device.getGraphicsQueue(), 1, &submitInfo, fence) != VK_SUCCESS)
     {
         log(LogLevel::ERR, "Failed to submit graphics queue!");
@@ -496,6 +851,15 @@ void VulkanContext::submitComputeQueue(u32 batchIndex)
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    for (auto& swapchain : m_passBatches[batchIndex].swapchains)
+    {
+        if (!swapchain->alreadyWaited())
+        {
+            waitSemaphores.push_back(swapchain->getImageAvailableSemaphore());
+            waitStages.push_back(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+        }
+    }
+
     if (batchIndex != 0) // Should wait on queue if it's not the first batch
     {
         if (m_passBatches[batchIndex - 1].useGraphicsQueue)
@@ -517,19 +881,15 @@ void VulkanContext::submitComputeQueue(u32 batchIndex)
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &m_computeCommandBuffer.get(Global::graphicsManager.getCurrentFrame());
 
-    // Should not signal last batch
-    if (batchIndex != m_passBatches.size() - 1)
+    // Should not signal last batch, EXCEPT for existence of active swapchains
+    if (batchIndex != m_passBatches.size() - 1 || !m_activeSwapchains.empty())
     {
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores =
             &m_computeSyncSemaphores[m_curComputeSemphoreIndex][Global::graphicsManager.getCurrentFrame()];
     }
 
-    VkFence fence{};
-    if (batchIndex == m_passBatches.size() - 1)
-    {
-        fence = m_computeFrameInFlightFences[Global::graphicsManager.getCurrentFrame()];
-    }
+    VkFence fence = m_computeFrameInFlightFences[Global::graphicsManager.getCurrentFrame()];
     if (vkQueueSubmit(m_device.getComputeQueue(), 1, &submitInfo, fence) != VK_SUCCESS)
     {
         log(LogLevel::ERR, "Failed to submit compute queue!");
@@ -550,11 +910,22 @@ void VulkanContext::presentSwapchains()
         results.push_back(VK_SUCCESS);
     }
 
+    std::vector<VkSemaphore> waitSemaphores;
+    if (m_passBatches.back().useGraphicsQueue)
+    {
+        waitSemaphores.push_back(
+            m_graphicsSyncSemaphores[1 - m_curGraphicsSemphoreIndex][Global::graphicsManager.getCurrentFrame()]);
+    }
+    if (m_passBatches.back().useComputeQueue)
+    {
+        waitSemaphores.push_back(
+            m_computeSyncSemaphores[1 - m_curComputeSemphoreIndex][Global::graphicsManager.getCurrentFrame()]);
+    }
+
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores =
-        &m_graphicsSyncSemaphores[1 - m_curGraphicsSemphoreIndex][Global::graphicsManager.getCurrentFrame()];
+    presentInfo.waitSemaphoreCount = static_cast<u32>(waitSemaphores.size());
+    presentInfo.pWaitSemaphores = waitSemaphores.data();
     presentInfo.swapchainCount = static_cast<u32>(swapchains.size());
     presentInfo.pSwapchains = swapchains.data();
     presentInfo.pImageIndices = imageIndices.data();

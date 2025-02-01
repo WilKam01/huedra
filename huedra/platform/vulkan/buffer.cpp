@@ -5,7 +5,7 @@
 namespace huedra {
 
 void VulkanBuffer::init(Device& device, BufferType type, u64 size, BufferUsageFlags usage,
-                        VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, void* data)
+                        VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, const void* data)
 {
     Buffer::init(type, usage, size);
     p_device = &device;

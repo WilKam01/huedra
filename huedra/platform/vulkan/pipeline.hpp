@@ -11,7 +11,7 @@ public:
     VulkanPipeline() = default;
     ~VulkanPipeline() = default;
 
-    void initGraphics(const PipelineBuilder& pipelineBuilder, Device& device, VkRenderPass renderPass);
+    void initGraphics(const PipelineBuilder& pipelineBuilder, Device& device, VkRenderPass renderPass, u32 targetCount);
     void initCompute(const PipelineBuilder& pipelineBuilder, Device& device);
     void cleanup();
 

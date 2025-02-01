@@ -65,13 +65,11 @@ void CommandPool::endSingleTimeCommand(VkCommandBuffer buffer)
     vkFreeCommandBuffers(p_device->getLogical(), m_commandPool, 1, &buffer);
 }
 
-void CommandPool::transistionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout,
-                                         VkImageLayout newLayout, VkAccessFlags srcAccessMask,
+void CommandPool::transistionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkFormat format,
+                                         VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask,
                                          VkAccessFlags dstAccessMask, VkPipelineStageFlags srcStageMask,
                                          VkPipelineStageFlags dstStageMask)
 {
-    VkCommandBuffer commandBuffer = beginSingleTimeCommand();
-
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     barrier.oldLayout = oldLayout;
@@ -97,8 +95,6 @@ void CommandPool::transistionImageLayout(VkImage image, VkFormat format, VkImage
     }
 
     vkCmdPipelineBarrier(commandBuffer, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &barrier);
-
-    endSingleTimeCommand(commandBuffer);
 }
 
 } // namespace huedra

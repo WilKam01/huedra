@@ -4,12 +4,10 @@
 
 namespace huedra {
 
-void VulkanSwapchain::init(Window* window, Device& device, CommandPool& commandPool, VkSurfaceKHR surface,
-                           bool renderDepth)
+void VulkanSwapchain::init(Window* window, Device& device, VkSurfaceKHR surface, bool renderDepth)
 {
     p_window = window;
     p_device = &device;
-    p_commandPool = &commandPool;
     m_surface = surface;
     m_renderDepth = renderDepth;
 
@@ -55,6 +53,7 @@ void VulkanSwapchain::aquireNextImage()
     }
     else
     {
+        m_alreadyWaitedOnFrame = false;
         m_alreadyAquiredFrame = true;
         m_renderTarget.setAvailability(true);
     }
@@ -158,7 +157,8 @@ void VulkanSwapchain::create()
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
     createInfo.imageExtent = extent;
     createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    createInfo.imageUsage =
+        VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
 
     QueueFamilyIndices indices = p_device->getQueueFamilyIndices();
     u32 queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
@@ -187,7 +187,7 @@ void VulkanSwapchain::create()
         log(LogLevel::ERR, "Failed to create swap chain!");
     }
 
-    m_renderTarget.init(*p_device, *p_commandPool, *this, surfaceFormat.format, extent);
+    m_renderTarget.init(*p_device, *this, surfaceFormat.format, extent);
 }
 
 } // namespace huedra

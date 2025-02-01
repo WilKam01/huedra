@@ -7,8 +7,7 @@
 
 namespace huedra {
 
-void VulkanRenderTarget::init(Device& device, CommandPool& commandPool, VulkanSwapchain& swapchain, VkFormat format,
-                              VkExtent2D extent)
+void VulkanRenderTarget::init(Device& device, VulkanSwapchain& swapchain, VkFormat format, VkExtent2D extent)
 {
     RenderTarget::init(swapchain.renderDepth() ? RenderTargetType::COLOR_AND_DEPTH : RenderTargetType::COLOR,
                        converter::convertVkFormat(format), extent.width, extent.height);
@@ -20,12 +19,12 @@ void VulkanRenderTarget::init(Device& device, CommandPool& commandPool, VulkanSw
     std::vector<VkImage> images(m_imageCount);
     vkGetSwapchainImagesKHR(p_device->getLogical(), p_swapchain->get(), &m_imageCount, images.data());
 
-    m_texture.init(device, commandPool, images, format, extent);
+    m_texture.init(device, images, format, extent, *this);
 
     if (swapchain.renderDepth())
     {
-        m_depthTexture.init(device, commandPool, TextureType::DEPTH, GraphicsDataFormat::UNDEFINED, extent.width,
-                            extent.height, m_imageCount);
+        m_depthTexture.init(device, TextureType::DEPTH, GraphicsDataFormat::UNDEFINED, extent.width, extent.height,
+                            m_imageCount, *this);
     }
 
     for (auto& renderPass : p_renderPasses)
@@ -34,8 +33,7 @@ void VulkanRenderTarget::init(Device& device, CommandPool& commandPool, VulkanSw
     }
 }
 
-void VulkanRenderTarget::init(Device& device, CommandPool& commandPool, RenderTargetType type,
-                              GraphicsDataFormat format, u32 width, u32 height)
+void VulkanRenderTarget::init(Device& device, RenderTargetType type, GraphicsDataFormat format, u32 width, u32 height)
 {
     RenderTarget::init(type, format, width, height);
     p_device = &device;
@@ -45,12 +43,12 @@ void VulkanRenderTarget::init(Device& device, CommandPool& commandPool, RenderTa
 
     if (type == RenderTargetType::COLOR || type == RenderTargetType::COLOR_AND_DEPTH)
     {
-        m_texture.init(device, commandPool, TextureType::COLOR, format, width, height, m_imageCount);
+        m_texture.init(device, TextureType::COLOR, format, width, height, m_imageCount, *this);
     }
     if (type == RenderTargetType::DEPTH || type == RenderTargetType::COLOR_AND_DEPTH)
     {
-        m_depthTexture.init(device, commandPool, TextureType::DEPTH, GraphicsDataFormat::UNDEFINED, width, height,
-                            m_imageCount);
+        m_depthTexture.init(device, TextureType::DEPTH, GraphicsDataFormat::UNDEFINED, width, height, m_imageCount,
+                            *this);
     }
 
     for (auto& renderPass : p_renderPasses)
@@ -83,13 +81,22 @@ void VulkanRenderTarget::partialCleanup()
 
 void VulkanRenderTarget::addRenderPass(VulkanRenderPass* renderPass) { p_renderPasses.push_back(renderPass); }
 
-void VulkanRenderTarget::removeRenderPass(VulkanRenderPass* renderPass)
+Ref<Texture> VulkanRenderTarget::getColorTexture()
 {
-    auto it = std::find(p_renderPasses.begin(), p_renderPasses.end(), renderPass);
-    if (it != p_renderPasses.end())
+    if (usesColor())
     {
-        p_renderPasses.erase(it);
+        return Ref<Texture>(&m_texture);
     }
+    return Ref<Texture>(nullptr);
+}
+
+Ref<Texture> VulkanRenderTarget::getDepthTexture()
+{
+    if (usesDepth())
+    {
+        return Ref<Texture>(&m_depthTexture);
+    }
+    return Ref<Texture>(nullptr);
 }
 
 void VulkanRenderTarget::setAvailability(bool available) { m_available = available; }

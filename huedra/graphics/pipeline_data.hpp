@@ -32,9 +32,10 @@ typedef enum ShaderStageFlags
 
 enum class ResourceType
 {
-    UNIFORM_BUFFER,
-    STORAGE_BUFFER,
-    TEXTURE,
+    UNIFORM_BUFFER,   // Read only
+    STORAGE_BUFFER,   // Read/Write
+    UNFIFORM_TEXTURE, // Read only
+    STORAGE_TEXTURE,  // Read/Write
 };
 
 enum class BufferType

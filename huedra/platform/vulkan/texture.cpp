@@ -3,67 +3,140 @@
 #include "core/log.hpp"
 #include "platform/vulkan/buffer.hpp"
 #include "platform/vulkan/pipeline.hpp"
+#include "platform/vulkan/render_target.hpp"
+#include "platform/vulkan/swapchain.hpp"
 #include "platform/vulkan/type_converter.hpp"
 
 namespace huedra {
 
-void VulkanTexture::init(Device& device, CommandPool& commandPool, TextureData textureData)
+void VulkanTexture::init(Device& device, const TextureData& textureData, VkFormat format, VkImage image,
+                         VkDeviceMemory memory)
 {
     Texture::init(textureData.width, textureData.height, textureData.format, TextureType::COLOR);
 
     p_device = &device;
-    p_commandPool = &commandPool;
     m_externallyCreated = false;
-    m_multipleImages = false;
     m_createdSampler = true;
+    m_format = format;
 
-    m_format = findFormat(TextureType::COLOR, textureData.format);
-
-    VkDeviceSize size = textureData.width * textureData.height * textureData.texelSize;
-
-    m_images.resize(1);
+    m_images.push_back(image);
+    m_memories.push_back(memory);
     m_imageViews.resize(1);
-    m_memories.resize(1);
-
-    VulkanBuffer stagingBuffer;
-    stagingBuffer.init(device, BufferType::STATIC, size, HU_BUFFER_USAGE_UNDEFINED, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                       textureData.texels.data());
-
-    createImages(VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    commandPool.transistionImageLayout(
-        m_images[0], m_format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_ACCESS_NONE,
-        VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
-
-    VkCommandBuffer commandBuffer = commandPool.beginSingleTimeCommand();
-
-    VkBufferImageCopy region{};
-    region.bufferOffset = 0;
-    region.bufferRowLength = 0;
-    region.bufferImageHeight = 0;
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = 1;
-    region.imageOffset = {0, 0, 0};
-    region.imageExtent = {textureData.width, textureData.height, 1};
-
-    vkCmdCopyBufferToImage(commandBuffer, stagingBuffer.get(), m_images[0], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
-                           &region);
-
-    commandPool.endSingleTimeCommand(commandBuffer);
-
-    commandPool.transistionImageLayout(m_images[0], m_format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT,
-                                       VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                       VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-
-    stagingBuffer.cleanup();
+    m_imageLayouts.resize(1, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    m_layoutStages.resize(1, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
     createImageViews(VK_IMAGE_ASPECT_COLOR_BIT);
+    createSampler();
+}
 
+void VulkanTexture::init(Device& device, TextureType type, GraphicsDataFormat format, u32 width, u32 height,
+                         u32 imageCount, VulkanRenderTarget& renderTarget)
+{
+    Texture::init(width, height, format, type);
+
+    p_device = &device;
+    p_renderTarget = &renderTarget;
+    m_externallyCreated = false;
+    m_format = findFormat(type, format);
+
+    m_images.resize(imageCount);
+    m_imageViews.resize(imageCount);
+    m_memories.resize(imageCount);
+    m_imageLayouts.resize(imageCount, VK_IMAGE_LAYOUT_UNDEFINED);
+    m_layoutStages.resize(imageCount, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+
+    if (type == TextureType::COLOR)
+    {
+        createImages(VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        createImageViews(VK_IMAGE_ASPECT_COLOR_BIT);
+        m_createdSampler = true;
+        createSampler();
+    }
+    else
+    {
+        createImages(VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        createImageViews(VK_IMAGE_ASPECT_DEPTH_BIT);
+        m_createdSampler = false;
+    }
+}
+
+void VulkanTexture::init(Device& device, std::vector<VkImage> images, VkFormat format, VkExtent2D extent,
+                         VulkanRenderTarget& renderTarget)
+{
+    Texture::init(extent.width, extent.height, converter::convertVkFormat(format), TextureType::COLOR);
+
+    p_device = &device;
+    p_renderTarget = &renderTarget;
+    m_externallyCreated = true;
+    m_createdSampler = false;
+    m_format = format;
+
+    m_images = images;
+    m_imageViews.resize(m_images.size());
+    m_memories.resize(m_images.size());
+    m_imageLayouts.resize(m_images.size(), VK_IMAGE_LAYOUT_UNDEFINED);
+    m_layoutStages.resize(m_images.size(), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+
+    createImageViews(VK_IMAGE_ASPECT_COLOR_BIT);
+}
+
+void VulkanTexture::cleanup()
+{
+    if (m_createdSampler)
+    {
+        vkDestroySampler(p_device->getLogical(), m_sampler, nullptr);
+    }
+
+    for (size_t i = 0; i < m_images.size(); ++i)
+    {
+        vkDestroyImageView(p_device->getLogical(), m_imageViews[i], nullptr);
+        if (!m_externallyCreated)
+        {
+            vkDestroyImage(p_device->getLogical(), m_images[i], nullptr);
+            vkFreeMemory(p_device->getLogical(), m_memories[i], nullptr);
+        }
+    }
+    m_imageViews.clear();
+    m_images.clear();
+    m_memories.clear();
+    m_imageLayouts.clear();
+    m_layoutStages.clear();
+    p_renderTarget = nullptr;
+}
+
+u32 VulkanTexture::getIndex()
+{
+    return p_renderTarget ? (p_renderTarget->getSwapchain() ? p_renderTarget->getSwapchain()->getImageIndex()
+                                                            : Global::graphicsManager.getCurrentFrame())
+                          : 0;
+}
+
+VkFormat VulkanTexture::findFormat(TextureType type, GraphicsDataFormat format)
+{
+    if (type == TextureType::DEPTH)
+    {
+        return p_device->findDepthFormat();
+    }
+    else
+    {
+        VkFormat vkFormat = converter::convertDataFormat(format);
+        VkFormatProperties formatProperties;
+        vkGetPhysicalDeviceFormatProperties(p_device->getPhysical(), vkFormat, &formatProperties);
+
+        if (formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT)
+        {
+            return vkFormat;
+        }
+    }
+
+    log(LogLevel::ERR, "Failed to find supported format!");
+    return VK_FORMAT_UNDEFINED;
+}
+
+void VulkanTexture::createSampler()
+{
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
     samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -91,98 +164,6 @@ void VulkanTexture::init(Device& device, CommandPool& commandPool, TextureData t
     {
         log(LogLevel::ERR, "Failed to create sampler!");
     }
-}
-
-void VulkanTexture::init(Device& device, CommandPool& commandPool, TextureType type, GraphicsDataFormat format,
-                         u32 width, u32 height, u32 imageCount)
-{
-    Texture::init(width, height, format, type);
-
-    p_device = &device;
-    p_commandPool = &commandPool;
-    m_externallyCreated = false;
-    m_multipleImages = true;
-    m_createdSampler = false;
-
-    m_format = findFormat(type, format);
-
-    m_images.resize(imageCount);
-    m_imageViews.resize(imageCount);
-    m_memories.resize(imageCount);
-
-    if (type == TextureType::DEPTH)
-    {
-        createImages(VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        createImageViews(VK_IMAGE_ASPECT_DEPTH_BIT);
-    }
-    else
-    {
-        createImages(VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        createImageViews(VK_IMAGE_ASPECT_COLOR_BIT);
-    }
-}
-
-void VulkanTexture::init(Device& device, CommandPool& commandPool, std::vector<VkImage> images, VkFormat format,
-                         VkExtent2D extent)
-{
-    Texture::init(extent.width, extent.height, converter::convertVkFormat(format), TextureType::COLOR);
-
-    p_device = &device;
-    p_commandPool = &commandPool;
-    m_externallyCreated = true;
-    m_multipleImages = true;
-    m_createdSampler = false;
-    m_format = format;
-
-    m_images = images;
-    m_imageViews.resize(m_images.size());
-    m_memories.resize(m_images.size());
-    createImageViews(VK_IMAGE_ASPECT_COLOR_BIT);
-}
-
-void VulkanTexture::cleanup()
-{
-    if (m_createdSampler)
-    {
-        vkDestroySampler(p_device->getLogical(), m_sampler, nullptr);
-    }
-
-    for (size_t i = 0; i < m_images.size(); ++i)
-    {
-        vkDestroyImageView(p_device->getLogical(), m_imageViews[i], nullptr);
-        if (!m_externallyCreated)
-        {
-            vkDestroyImage(p_device->getLogical(), m_images[i], nullptr);
-            vkFreeMemory(p_device->getLogical(), m_memories[i], nullptr);
-        }
-    }
-    m_imageViews.clear();
-    m_images.clear();
-    m_memories.clear();
-}
-
-VkFormat VulkanTexture::findFormat(TextureType type, GraphicsDataFormat format)
-{
-    if (type == TextureType::DEPTH)
-    {
-        return p_device->findDepthFormat();
-    }
-    else
-    {
-        VkFormat vkFormat = converter::convertDataFormat(format);
-        VkFormatProperties formatProperties;
-        vkGetPhysicalDeviceFormatProperties(p_device->getPhysical(), vkFormat, &formatProperties);
-
-        if (formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT)
-        {
-            return vkFormat;
-        }
-    }
-
-    log(LogLevel::ERR, "Failed to find supported format!");
-    return VK_FORMAT_UNDEFINED;
 }
 
 void VulkanTexture::createImages(VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties)

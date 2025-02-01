@@ -53,7 +53,7 @@ Ref<Buffer> GraphicsManager::createBuffer(BufferType type, u32 usage, u64 size, 
     return Ref<Buffer>(m_context->createBuffer(type, static_cast<BufferUsageFlags>(usage), size, data));
 }
 
-Ref<Texture> GraphicsManager::createTexture(TextureData textureData)
+Ref<Texture> GraphicsManager::createTexture(const TextureData& textureData)
 {
     if (textureData.width == 0 || textureData.height == 0)
     {

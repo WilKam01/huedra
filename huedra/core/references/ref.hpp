@@ -22,6 +22,7 @@ template <typename T>
 class Ref : public RefBase
 {
 public:
+    Ref() = default;
     Ref(T* ptr);
     ~Ref();
 

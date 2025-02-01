@@ -26,7 +26,7 @@ public:
     void removeSwapchain(size_t index) override;
 
     Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) override;
-    Texture* createTexture(TextureData textureData) override;
+    Texture* createTexture(const TextureData& textureData) override;
     RenderTarget* createRenderTarget(RenderTargetType type, GraphicsDataFormat format, u32 width, u32 height) override;
 
     void removeBuffer(Buffer* buffer) override;
@@ -38,7 +38,22 @@ public:
     void render() override;
 
 private:
+    struct ResourceTransition
+    {
+        VulkanTexture* texture{nullptr};
+        VkImageLayout newLayout{VK_IMAGE_LAYOUT_UNDEFINED};
+        VkPipelineStageFlags newStage{VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
+    };
+    struct PassInfo
+    {
+        VulkanRenderPass* pass{nullptr};
+        std::vector<ResourceTransition> transitions;
+        std::vector<DescriptorHandler> descriptorHandlers;
+        VkDescriptorPool descriptorPool;
+    };
+
     VkSurfaceKHR createSurface(Window* window);
+    void createDescriptorHandlers(const RenderPassBuilder& builder, PassInfo& passInfo);
 
     void submitGraphicsQueue(u32 batchIndex);
     void submitComputeQueue(u32 batchIndex);
@@ -57,12 +72,6 @@ private:
     std::deque<VulkanRenderTarget> m_renderTargets;
 
     RenderGraphBuilder m_curGraph;
-    struct PassInfo
-    {
-        VulkanRenderPass* pass;
-        std::vector<DescriptorHandler> descriptorHandlers;
-        VkDescriptorPool descriptorPool;
-    };
     struct PassBatch
     {
         std::vector<PassInfo> passes;

@@ -44,6 +44,37 @@ VkShaderStageFlagBits convertShaderStage(PipelineType type, ShaderStageFlags sha
     return static_cast<VkShaderStageFlagBits>(result);
 }
 
+VkPipelineStageFlagBits convertPipelineStage(PipelineType type, ShaderStageFlags shaderStage)
+{
+    u32 result = 0;
+
+    switch (type)
+    {
+    case PipelineType::GRAPHICS:
+        if ((shaderStage & HU_SHADER_STAGE_GRAPHICS_ALL) == HU_SHADER_STAGE_GRAPHICS_ALL)
+        {
+            return VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+        }
+
+        if (shaderStage & HU_SHADER_STAGE_VERTEX)
+        {
+            result |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+        }
+        if (shaderStage & HU_SHADER_STAGE_FRAGMENT)
+        {
+            result |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        }
+        break;
+    case PipelineType::COMPUTE:
+        if (shaderStage & HU_SHADER_STAGE_COMPUTE)
+        {
+            return VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+        }
+    };
+
+    return static_cast<VkPipelineStageFlagBits>(result);
+}
+
 VkDescriptorType convertResourceType(ResourceType resource)
 {
     switch (resource)
@@ -54,8 +85,11 @@ VkDescriptorType convertResourceType(ResourceType resource)
     case ResourceType::STORAGE_BUFFER:
         return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 
-    case ResourceType::TEXTURE:
+    case ResourceType::UNFIFORM_TEXTURE:
         return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+
+    case ResourceType::STORAGE_TEXTURE:
+        return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 
     default:
         return VK_DESCRIPTOR_TYPE_MAX_ENUM;

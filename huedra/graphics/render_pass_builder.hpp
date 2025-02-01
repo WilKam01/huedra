@@ -31,6 +31,19 @@ struct RenderTargetInfo
     vec3 clearColor;
 };
 
+struct RenderPassReference
+{
+    ResourceAccessType access{ResourceAccessType::READ};
+    ShaderStageFlags shaderStage{HU_SHADER_STAGE_NONE};
+    Buffer* buffer{nullptr};
+    Texture* texture{nullptr};
+    enum class Type
+    {
+        BUFFER,
+        TEXTURE,
+    } type{Type::BUFFER};
+};
+
 class RenderPassBuilder
 {
 public:
@@ -41,8 +54,8 @@ public:
     RenderPassBuilder& setCommands(const RenderCommands& commands);
     RenderPassBuilder& setClearRenderTargets(bool clearRenderTargets);
 
-    RenderPassBuilder& addResource(ResourceAccessType access, Ref<Buffer> buffer);
-    RenderPassBuilder& addResource(ResourceAccessType access, Ref<Texture> texture);
+    RenderPassBuilder& addResource(ResourceAccessType access, Ref<Buffer> buffer, ShaderStageFlags shaderStage);
+    RenderPassBuilder& addResource(ResourceAccessType access, Ref<Texture> texture, ShaderStageFlags shaderStage);
     RenderPassBuilder& addRenderTarget(Ref<RenderTarget> renderTarget, vec3 clearColor = vec3(0.0f));
 
     u64 generateHash();
@@ -52,6 +65,8 @@ public:
     PipelineBuilder getPipeline() const { return m_pipeline; }
     RenderCommands getCommands() const { return m_commands; }
     bool getClearRenderTargets() const { return m_clearTargets; }
+    std::vector<RenderPassReference> getInputs() const { return m_inputs; }
+    std::vector<RenderPassReference> getOutputs() const { return m_outputs; }
     std::vector<RenderTargetInfo> getRenderTargets() const { return m_renderTargets; }
 
 private:
@@ -61,18 +76,6 @@ private:
     PipelineBuilder m_pipeline;
     RenderCommands m_commands{nullptr};
     bool m_clearTargets{true};
-
-    struct RenderPassReference
-    {
-        ResourceAccessType access{ResourceAccessType::READ};
-        Ref<Buffer> buffer{nullptr};
-        Ref<Texture> texture{nullptr};
-        enum class ResourceType
-        {
-            BUFFER,
-            TEXTURE,
-        } type{ResourceType::BUFFER};
-    };
 
     std::vector<RenderPassReference> m_inputs;
     std::vector<RenderPassReference> m_outputs;

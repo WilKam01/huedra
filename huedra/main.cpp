@@ -83,6 +83,16 @@ int main()
     TextureData textureData{1, 1, GraphicsDataFormat::RGBA_16_UNORM, sizeof(u8) * 8, texData};
     Ref<Texture> texture = Global::graphicsManager.createTexture(png);
 
+    const u32 gBufferCount = 3;
+    uvec2 gBufferDimensions(rect.screenWidth, rect.screenHeight);
+    std::array<Ref<RenderTarget>, gBufferCount> gBuffers{};
+    for (auto& gBuffer : gBuffers)
+    {
+        gBuffer = Global::graphicsManager.createRenderTarget(RenderTargetType::COLOR_AND_DEPTH,
+                                                             GraphicsDataFormat::RGBA_8_UNORM, gBufferDimensions.x,
+                                                             gBufferDimensions.y);
+    }
+
     PipelineBuilder builder;
     builder.init(PipelineType::GRAPHICS)
         .addShader(ShaderStage::VERTEX, "assets/shaders/shader.vert")
@@ -93,7 +103,7 @@ int main()
         .addPushConstantRange(HU_SHADER_STAGE_VERTEX, sizeof(matrix4))
         .addResourceSet()
         .addResourceBinding(HU_SHADER_STAGE_VERTEX, ResourceType::UNIFORM_BUFFER)
-        .addResourceBinding(HU_SHADER_STAGE_FRAGMENT, ResourceType::TEXTURE);
+        .addResourceBinding(HU_SHADER_STAGE_FRAGMENT, ResourceType::UNFIFORM_TEXTURE);
 
     RenderCommands commands = [&meshes, positionsBuffer, uvsBuffer, normalsBuffer, indexBuffer, viewProjBuffer, texture,
                                &modelMatrix](RenderContext& renderContext) {
@@ -109,16 +119,34 @@ int main()
     PipelineBuilder computeBuilder;
     computeBuilder.init(PipelineType::COMPUTE)
         .addShader(ShaderStage::COMPUTE, "assets/shaders/shader.comp")
-        .addResourceSet()
-        .addResourceBinding(HU_SHADER_STAGE_COMPUTE, ResourceType::STORAGE_BUFFER);
+        .addResourceSet();
 
-    const u32 computeBufferSize = 64;
+    for (auto& gBuffer : gBuffers)
+    {
+        computeBuilder.addResourceBinding(HU_SHADER_STAGE_COMPUTE, ResourceType::UNFIFORM_TEXTURE);
+    }
+
+    computeBuilder.addResourceBinding(HU_SHADER_STAGE_COMPUTE, ResourceType::UNIFORM_BUFFER)
+        .addResourceBinding(HU_SHADER_STAGE_COMPUTE, ResourceType::STORAGE_TEXTURE);
+
+    struct LightData
+    {
+        vec4 pos;
+        vec4 color;
+    } lightData{vec4(0.0f, 10.0f, 5.0f, 1.0f), vec4(0.5f, 0.1f, 0.5f, 3.0f)};
+
     Ref<Buffer> computeBuffer = Global::graphicsManager.createBuffer(
-        BufferType::DYNAMIC, HU_BUFFER_USAGE_STORAGE_BUFFER, sizeof(u32) * computeBufferSize, nullptr);
+        BufferType::DYNAMIC, HU_BUFFER_USAGE_UNIFORM_BUFFER, sizeof(LightData), &lightData);
 
-    RenderCommands computeCommands = [&computeBuffer](RenderContext& renderContext) {
-        renderContext.bindBuffer(computeBuffer, 0, 0);
-        renderContext.dispatch((computeBufferSize + 31) / 32, 1, 1);
+    RenderCommands computeCommands = [&gBuffers, &computeBuffer, &window](RenderContext& renderContext) {
+        for (u32 i = 0; i < gBufferCount; ++i)
+        {
+            renderContext.bindTexture(gBuffers[i]->getColorTexture(), 0, i);
+        }
+        renderContext.bindBuffer(computeBuffer, 0, gBufferCount);
+        renderContext.bindTexture(window->getRenderTarget()->getColorTexture(), 0, gBufferCount + 1);
+        WindowRect rect = window->getRect();
+        renderContext.dispatch((rect.width + 31) / 32, (rect.height + 31) / 32, 1);
     };
 
     vec3 eye(0.0f, 0.0f, 5.0f);
@@ -146,14 +174,6 @@ int main()
                 static_cast<float>(Global::input.isKeyDown(Keys::S) - Global::input.isKeyDown(Keys::W)) * forward) *
                5.0f * Global::timer.dt();
 
-        rect = window->getRect();
-        viewProj =
-            perspective(radians(90.0f), static_cast<float>(rect.screenWidth) / static_cast<float>(rect.screenHeight),
-                        vec2(0.1f, 100.0f)) *
-            lookTo(eye, -forward, up);
-
-        viewProjBuffer->write(sizeof(viewProj), &viewProj);
-
         static Keys selectedWindow{Keys::_0};
         if (Global::input.isKeyPressed(Keys::_0))
         {
@@ -169,26 +189,52 @@ int main()
         }
 
         RenderGraphBuilder renderGraph;
-
-        renderGraph.addPass("Compute", RenderPassBuilder()
-                                           .init(RenderPassType::COMPUTE, computeBuilder)
-                                           .addResource(ResourceAccessType::READ_WRITE, computeBuffer)
-                                           .setCommands(computeCommands));
-
         if (window.valid() && window->getRenderTarget()->isAvailable() && selectedWindow != Keys::_2)
         {
-            renderGraph.addPass("Pass1", RenderPassBuilder()
-                                             .init(RenderPassType::GRAPHICS, builder)
-                                             .addResource(ResourceAccessType::READ, viewProjBuffer)
-                                             .addResource(ResourceAccessType::READ, texture)
-                                             .addRenderTarget(window->getRenderTarget(), vec3(0.2f))
-                                             .setCommands(commands));
+            WindowRect newRect = window->getRect();
+            if (newRect.screenWidth != rect.screenWidth || newRect.screenHeight != rect.screenHeight)
+            {
+                rect = newRect;
+                for (auto& gBuffer : gBuffers)
+                {
+                    Global::graphicsManager.removeRenderTarget(gBuffer);
+                    gBuffer = Global::graphicsManager.createRenderTarget(RenderTargetType::COLOR_AND_DEPTH,
+                                                                         GraphicsDataFormat::RGBA_8_UNORM,
+                                                                         rect.screenWidth, rect.screenHeight);
+                }
+            }
+
+            RenderPassBuilder renderPass =
+                RenderPassBuilder()
+                    .init(RenderPassType::GRAPHICS, builder)
+                    .addResource(ResourceAccessType::READ, viewProjBuffer, HU_SHADER_STAGE_VERTEX)
+                    .addResource(ResourceAccessType::READ, texture, HU_SHADER_STAGE_FRAGMENT)
+                    .setCommands(commands);
+            for (auto& gBuffer : gBuffers)
+            {
+                renderPass.addRenderTarget(gBuffer);
+            }
+            renderGraph.addPass("GBuffer Pass", renderPass);
+
+            renderPass.init(RenderPassType::COMPUTE, computeBuilder);
+            for (auto& gBuffer : gBuffers)
+            {
+                renderPass.addResource(ResourceAccessType::READ, gBuffer->getColorTexture(), HU_SHADER_STAGE_COMPUTE);
+            }
+            renderPass.addResource(ResourceAccessType::WRITE, window->getRenderTarget()->getColorTexture(),
+                                   HU_SHADER_STAGE_COMPUTE);
+            renderPass.setCommands(computeCommands);
+            renderGraph.addPass("Ligthning Pass", renderPass);
         }
 
-        Global::graphicsManager.render(renderGraph);
+        viewProj =
+            perspective(radians(90.0f), static_cast<float>(rect.screenWidth) / static_cast<float>(rect.screenHeight),
+                        vec2(0.1f, 100.0f)) *
+            lookTo(eye, -forward, up);
 
-        std::array<u32, computeBufferSize> computeData{};
-        computeBuffer.get()->read(computeBufferSize, computeData.data());
+        viewProjBuffer->write(sizeof(viewProj), &viewProj);
+
+        Global::graphicsManager.render(renderGraph);
 
         if (Global::input.isKeyActive(KeyToggles::CAPS_LOCK))
         {

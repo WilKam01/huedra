@@ -117,8 +117,7 @@ void DescriptorHandler::writeTexture(VulkanTexture& texture, u32 set, u32 bindin
     }
 
     VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = texture.getType() == TextureType::COLOR ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-                                                                    : VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+    imageInfo.imageLayout = texture.getLayout();
     imageInfo.imageView = texture.getView();
     imageInfo.sampler = texture.getSampler();
 

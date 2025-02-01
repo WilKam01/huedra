@@ -12,7 +12,7 @@ public:
     ~VulkanBuffer() = default;
 
     void init(Device& device, BufferType type, u64 size, BufferUsageFlags usage, VkBufferUsageFlags usageFlags,
-              VkMemoryPropertyFlags memoryPropertyFlags, void* data = nullptr);
+              VkMemoryPropertyFlags memoryPropertyFlags, const void* data = nullptr);
     void cleanup();
 
     void write(u64 size, void* data) override;

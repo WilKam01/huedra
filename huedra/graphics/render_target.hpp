@@ -1,7 +1,9 @@
 #pragma once
 
+#include "core/references/ref.hpp"
 #include "core/types.hpp"
 #include "graphics/pipeline_data.hpp"
+#include "graphics/texture.hpp"
 
 namespace huedra {
 
@@ -17,6 +19,9 @@ class RenderTarget
 public:
     RenderTarget();
     virtual ~RenderTarget();
+
+    virtual Ref<Texture> getColorTexture() = 0;
+    virtual Ref<Texture> getDepthTexture() = 0;
 
     bool isAvailable() const { return m_available; }
     RenderTargetType getType() { return m_type; }

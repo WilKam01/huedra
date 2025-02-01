@@ -1,6 +1,7 @@
 #include "render_pass.hpp"
 #include "core/global.hpp"
 #include "core/log.hpp"
+#include "platform/vulkan/render_target.hpp"
 #include "platform/vulkan/swapchain.hpp"
 
 namespace huedra {
@@ -9,42 +10,32 @@ void VulkanRenderPass::init(Device& device, const RenderPassBuilder& builder)
 {
     p_device = &device;
     m_builder = builder;
-
-    if (builder.getType() == RenderPassType::GRAPHICS)
+    if (m_builder.getType() == RenderPassType::GRAPHICS)
     {
-        for (auto& info : builder.getRenderTargets())
+        for (auto& info : m_builder.getRenderTargets())
         {
-            p_renderTargets.push_back(static_cast<VulkanRenderTarget*>(info.target.get()));
-            p_renderTargets.back()->addRenderPass(this);
-            if (p_renderTargets.back()->getSwapchain() != nullptr)
+            p_targetInfos.push_back({static_cast<VulkanRenderTarget*>(info.target.get())});
+            p_targetInfos.back().renderTarget->addRenderPass(this);
+            if (p_targetInfos.back().renderTarget->getSwapchain() != nullptr)
             {
-                p_swapchainTarget = p_renderTargets.back();
+                p_swapchainTarget = p_targetInfos.back().renderTarget;
             }
         }
+    }
+}
 
+void VulkanRenderPass::create()
+{
+    if (m_builder.getType() == RenderPassType::GRAPHICS)
+    {
         createRenderPass();
-        switch (builder.getType())
-        {
-        case RenderPassType::GRAPHICS:
-            m_pipeline.initGraphics(builder.getPipeline(), device, m_renderPass);
-            break;
-        case RenderPassType::COMPUTE:
-            m_pipeline.initCompute(builder.getPipeline(), device);
-            break;
-        }
+        m_pipeline.initGraphics(m_builder.getPipeline(), *p_device, m_renderPass,
+                                static_cast<u32>(m_builder.getRenderTargets().size()));
         createFramebuffers();
     }
     else
     {
-        switch (builder.getType())
-        {
-        case RenderPassType::GRAPHICS:
-            m_pipeline.initGraphics(builder.getPipeline(), device, m_renderPass);
-            break;
-        case RenderPassType::COMPUTE:
-            m_pipeline.initCompute(builder.getPipeline(), device);
-            break;
-        }
+        m_pipeline.initCompute(m_builder.getPipeline(), *p_device);
     }
 }
 
@@ -54,10 +45,6 @@ void VulkanRenderPass::cleanup()
     {
         cleanupFramebuffers();
         vkDestroyRenderPass(p_device->getLogical(), m_renderPass, nullptr);
-        for (auto& renderTarget : p_renderTargets)
-        {
-            renderTarget->removeRenderPass(this);
-        }
         p_swapchainTarget = nullptr;
     }
     m_pipeline.cleanup();
@@ -76,16 +63,16 @@ void VulkanRenderPass::createFramebuffers()
     for (size_t i = 0; i < m_framebuffers.size(); i++)
     {
         std::vector<VkImageView> attachments;
-        for (auto& renderTarget : p_renderTargets)
+        for (auto& info : p_targetInfos)
         {
-            u32 imageCount = renderTarget->getImageCount();
-            if (renderTarget->usesColor())
+            u32 imageCount = info.renderTarget->getImageCount();
+            if (info.renderTarget->usesColor())
             {
-                attachments.push_back(renderTarget->getColorTexture().getView(i % imageCount));
+                attachments.push_back(info.renderTarget->getVkColorTexture().getView(i % imageCount));
             }
-            if (renderTarget->usesDepth())
+            if (info.renderTarget->usesDepth())
             {
-                attachments.push_back(renderTarget->getDepthTexture().getView(i % imageCount));
+                attachments.push_back(info.renderTarget->getVkDepthTexture().getView(i % imageCount));
             }
         }
 
@@ -94,8 +81,8 @@ void VulkanRenderPass::createFramebuffers()
         framebufferInfo.renderPass = m_renderPass;
         framebufferInfo.attachmentCount = static_cast<u32>(attachments.size());
         framebufferInfo.pAttachments = attachments.data();
-        framebufferInfo.width = p_renderTargets[0]->getExtent().width;
-        framebufferInfo.height = p_renderTargets[0]->getExtent().height;
+        framebufferInfo.width = p_targetInfos[0].renderTarget->getExtent().width;
+        framebufferInfo.height = p_targetInfos[0].renderTarget->getExtent().height;
         framebufferInfo.layers = 1;
 
         if (vkCreateFramebuffer(p_device->getLogical(), &framebufferInfo, nullptr, &m_framebuffers[i]) != VK_SUCCESS)
@@ -122,7 +109,7 @@ void VulkanRenderPass::begin(VkCommandBuffer commandBuffer)
         return;
     }
 
-    VkExtent2D extent = p_renderTargets[0]->getExtent();
+    VkExtent2D extent = p_targetInfos[0].renderTarget->getExtent();
 
     VkViewport viewport;
     viewport.x = 0.0f;
@@ -158,15 +145,15 @@ void VulkanRenderPass::begin(VkCommandBuffer commandBuffer)
     std::vector<VkClearValue> clearValues{};
     if (m_builder.getClearRenderTargets())
     {
-        for (u32 i = 0; i < p_renderTargets.size(); ++i)
+        for (u32 i = 0; i < p_targetInfos.size(); ++i)
         {
             vec3 clearColor = m_builder.getRenderTargets()[i].clearColor;
-            if (p_renderTargets[i]->usesColor())
+            if (p_targetInfos[i].renderTarget->usesColor())
             {
                 VkClearValue& value = clearValues.emplace_back();
                 value.color = {clearColor[0], clearColor[1], clearColor[2], 1.0f};
             }
-            if (p_renderTargets[i]->usesDepth())
+            if (p_targetInfos[i].renderTarget->usesDepth())
             {
                 VkClearValue& value = clearValues.emplace_back();
                 value.depthStencil = {1.0f, 0};
@@ -185,6 +172,17 @@ void VulkanRenderPass::end(VkCommandBuffer commandBuffer)
     if (m_builder.getType() == RenderPassType::GRAPHICS)
     {
         vkCmdEndRenderPass(commandBuffer);
+        for (auto& info : p_targetInfos)
+        {
+            if (info.renderTarget->usesColor())
+            {
+                info.renderTarget->getVkColorTexture().setLayout(info.finalColorLayout);
+            }
+            if (info.renderTarget->usesDepth())
+            {
+                info.renderTarget->getVkDepthTexture().setLayout(info.finalDepthLayout);
+            }
+        }
     }
 }
 
@@ -195,19 +193,19 @@ void VulkanRenderPass::createRenderPass()
     std::vector<VkAttachmentReference> depthAttachmentRef;
     VkAttachmentLoadOp loadOp =
         m_builder.getClearRenderTargets() ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
-    for (auto& renderTarget : p_renderTargets)
+    for (auto& info : p_targetInfos)
     {
-        if (renderTarget->usesColor())
+        if (info.renderTarget->usesColor())
         {
             VkAttachmentDescription colorAttachment{};
-            colorAttachment.format = renderTarget->getColorFormat();
+            colorAttachment.format = info.renderTarget->getColorFormat();
             colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
             colorAttachment.loadOp = loadOp;
             colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
             colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+            colorAttachment.initialLayout = info.initialColorLayout;
+            colorAttachment.finalLayout = info.finalColorLayout;
 
             attachments.push_back(colorAttachment);
 
@@ -218,17 +216,17 @@ void VulkanRenderPass::createRenderPass()
             colorAttachmentRef.push_back(attachmentRef);
         }
 
-        if (renderTarget->usesDepth())
+        if (info.renderTarget->usesDepth())
         {
             VkAttachmentDescription depthAttachment{};
-            depthAttachment.format = renderTarget->getDepthFormat();
+            depthAttachment.format = info.renderTarget->getDepthFormat();
             depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
             depthAttachment.loadOp = loadOp;
             depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
             depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-            depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            depthAttachment.initialLayout = info.initialDepthLayout;
+            depthAttachment.finalLayout = info.finalDepthLayout;
 
             attachments.push_back(depthAttachment);
 
@@ -262,7 +260,7 @@ void VulkanRenderPass::createRenderPass()
     renderPassInfo.pAttachments = attachments.data();
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
-    if (p_renderTargets[0]->usesColor())
+    if (p_targetInfos[0].renderTarget->usesColor())
     {
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &dependency;
