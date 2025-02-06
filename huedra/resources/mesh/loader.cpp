@@ -452,7 +452,7 @@ std::vector<MeshData> loadGltf(const std::string& path)
             if (uri.starts_with("data:"))
             {
                 std::string type = splitByChar(uri.substr(5), ';')[0];
-                // TODO: Check support ?
+                // TODO: Check support?
                 byteBuffers[i] = decodeBase64(splitByChar(uri, ',')[1]);
             }
             // Path

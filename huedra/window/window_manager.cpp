@@ -17,6 +17,7 @@ void WindowManager::init()
     wc.lpfnWndProc = Win32Window::WindowProc;
     wc.hInstance = GetModuleHandle(NULL);
     wc.lpszClassName = CLASS_NAME;
+    wc.style = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS;
 
     RegisterClass(&wc);
 #endif
@@ -24,7 +25,34 @@ void WindowManager::init()
 
 bool WindowManager::update()
 {
-    for (size_t i = 0; i < m_windows.size();)
+#ifdef WIN32
+    POINT point{};
+    GetCursorPos(&point);
+    Global::input.setMousePosition(ivec2(point.x, point.y));
+
+    if (Global::input.getMouseMode() == MouseMode::CONFINED && p_focusedWindow)
+    {
+        RECT rect;
+        HWND hwnd = static_cast<Win32Window*>(p_focusedWindow)->getHandle();
+        GetClientRect(hwnd, &rect);
+        ClientToScreen(hwnd, (POINT*)&rect.left);
+        ClientToScreen(hwnd, (POINT*)&rect.right);
+        ClipCursor(&rect);
+    }
+    else
+    {
+        ClipCursor(NULL);
+    }
+
+#endif
+
+    if (Global::input.getMouseMode() == MouseMode::LOCKED && p_focusedWindow)
+    {
+        WindowRect rect = p_focusedWindow->getRect();
+        Global::input.setMousePos(ivec2(rect.xPos, rect.yPos) + ivec2(rect.screenWidth, rect.screenHeight) / 2);
+    }
+
+    for (u32 i = 0; i < m_windows.size();)
     {
         Window* window = m_windows[i];
         if (window->shouldClose() || !window->update())
@@ -72,6 +100,20 @@ Ref<Window> WindowManager::addWindow(const std::string& title, const WindowInput
     }
 
     return Ref<Window>(window);
+}
+
+void WindowManager::setMousePos(ivec2 pos)
+{
+#ifdef WIN32
+    SetCursorPos(pos.x, pos.y);
+#endif
+}
+
+void WindowManager::setMouseHidden(bool hidden)
+{
+#ifdef WIN32
+    ShowCursor(!hidden);
+#endif
 }
 
 Window* WindowManager::createWindow(const std::string& title, const WindowInput& input)

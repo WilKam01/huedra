@@ -84,7 +84,7 @@ public:
         }
         return z <=> rhs.z;
     }
-    constexpr bool operator==(const Vec3<T>& rhs) const = default;
+    constexpr bool operator==(const Vec3<T>& rhs) const { return x == rhs.x && y == rhs.y && z == rhs.z; };
 };
 
 #define VEC_OP(OP)                                                         \

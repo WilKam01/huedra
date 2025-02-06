@@ -44,7 +44,7 @@ void Instance::init()
     VkApplicationInfo appInfo{VK_STRUCTURE_TYPE_APPLICATION_INFO};
     appInfo.pNext = nullptr;
     appInfo.pEngineName = "huedra";
-    appInfo.pEngineName = "appName"; // TODO: Add actual name
+    appInfo.pApplicationName = "appName"; // TODO: Add actual name
     appInfo.engineVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
     appInfo.applicationVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
     appInfo.apiVersion = VK_API_VERSION_1_3;

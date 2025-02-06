@@ -78,7 +78,7 @@ public:
         }
         return y <=> rhs.y;
     }
-    constexpr bool operator==(const Vec2<T>& rhs) const = default;
+    constexpr bool operator==(const Vec2<T>& rhs) const { return x == rhs.x && y == rhs.y; };
 };
 
 #define VEC_OP(OP)                                              \

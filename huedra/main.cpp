@@ -2,6 +2,7 @@
 #include "core/global.hpp"
 #include "core/log.hpp"
 #include "core/serialization/json.hpp"
+#include "core/string/utils.hpp"
 #include "graphics/render_pass_builder.hpp"
 #include "math/conversions.hpp"
 #include "math/matrix_projection.hpp"
@@ -32,7 +33,8 @@ int main()
 
     writeBytes("assets/result.json", serializeJson(json));
 
-    Ref<Window> window = Global::windowManager.addWindow("Hello Windows!", huedra::WindowInput(1278, 1360, -7, 0));
+    Ref<Window> window = Global::windowManager.addWindow("Main", huedra::WindowInput(1278, 1360, -7, 0));
+    Ref<Window> window1 = Global::windowManager.addWindow("Sub", huedra::WindowInput(300, 300, 100, 100), window);
 
     // Draw data
     std::vector<MeshData> meshes = loadGlb("assets/mesh/untitled.glb");
@@ -156,6 +158,35 @@ int main()
         Global::timer.update();
         Global::graphicsManager.update();
 
+        ivec2 mousePos = Global::input.getAbsoluteMousePos();
+        ivec2 reLMousePos = Global::input.getRelativeMousePos(window);
+        ivec2 mouseDt = Global::input.getMousePosDelta();
+        ivec2 rawMouseDt = Global::input.getRawMousePosDelta();
+        ivec2 scroll = Global::input.getMouseScroll();
+
+        if (Global::input.isKeyPressed(Keys::_0))
+        {
+            Global::input.toggleMouseHidden();
+        }
+
+        if (Global::input.isKeyPressed(Keys::_1))
+        {
+            Global::input.setMouseMode(MouseMode::NORMAL);
+        }
+        else if (Global::input.isKeyPressed(Keys::_2))
+        {
+            Global::input.setMouseMode(MouseMode::LOCKED);
+        }
+        else if (Global::input.isKeyPressed(Keys::_3))
+        {
+            Global::input.setMouseMode(MouseMode::CONFINED);
+        }
+
+        if (Global::input.getMouseMode() == MouseMode::LOCKED || Global::input.getMouseMode() == MouseMode::CONFINED)
+        {
+            log(LogLevel::INFO, "(%d, %d)", rawMouseDt.x, rawMouseDt.y);
+        }
+
         modelMatrix = matrix4(1.0f);
 
         rot += vec3(Global::input.isKeyDown(Keys::K) - Global::input.isKeyDown(Keys::I),
@@ -174,22 +205,8 @@ int main()
                 static_cast<float>(Global::input.isKeyDown(Keys::S) - Global::input.isKeyDown(Keys::W)) * forward) *
                5.0f * Global::timer.dt();
 
-        static Keys selectedWindow{Keys::_0};
-        if (Global::input.isKeyPressed(Keys::_0))
-        {
-            selectedWindow = Keys::_0;
-        }
-        else if (Global::input.isKeyPressed(Keys::_1))
-        {
-            selectedWindow = Keys::_1;
-        }
-        else if (Global::input.isKeyPressed(Keys::_2))
-        {
-            selectedWindow = Keys::_2;
-        }
-
         RenderGraphBuilder renderGraph;
-        if (window.valid() && window->getRenderTarget()->isAvailable() && selectedWindow != Keys::_2)
+        if (window.valid() && window->getRenderTarget()->isAvailable())
         {
             WindowRect newRect = window->getRect();
             if (newRect.screenWidth != rect.screenWidth || newRect.screenHeight != rect.screenHeight)

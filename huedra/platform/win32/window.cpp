@@ -21,7 +21,9 @@ LRESULT CALLBACK Win32Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
     if (self)
     {
         WindowRect rect = self->getRect();
+        MouseButton button = MouseButton::NONE;
         RECT winRect;
+
         switch (uMsg)
         {
         case WM_DESTROY:
@@ -58,6 +60,33 @@ LRESULT CALLBACK Win32Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
                 rect.yPos = winRect.top;
             }
             break;
+        case WM_INPUT: {
+            RAWINPUT raw;
+            UINT size = sizeof(RAWINPUT);
+            GetRawInputData((HRAWINPUT)lParam, RID_INPUT, &raw, &size, sizeof(RAWINPUTHEADER));
+
+            if (raw.header.dwType == RIM_TYPEMOUSE)
+            {
+                Global::input.setRawMouseDelta(ivec2(raw.data.mouse.lLastX, raw.data.mouse.lLastY));
+            }
+            break;
+        }
+        case WM_MOUSEWHEEL:
+            Global::input.setMouseScrollVertical(GET_WHEEL_DELTA_WPARAM(wParam));
+            break;
+        case WM_MOUSEHWHEEL:
+            Global::input.setMouseScrollHorizontal(GET_WHEEL_DELTA_WPARAM(wParam));
+            break;
+        case WM_ACTIVATE:
+            if (wParam == WA_ACTIVE || wParam == WA_CLICKACTIVE)
+            {
+                Global::windowManager.setFocusedWindow(self);
+            }
+            else if (wParam == WA_INACTIVE && Global::windowManager.getFocusedWindow().get() == self)
+            {
+                Global::windowManager.setFocusedWindow(nullptr);
+            }
+            break;
         case WM_KEYDOWN:
             Global::input.setKey(convertKey(wParam), true);
             break;
@@ -66,10 +95,49 @@ LRESULT CALLBACK Win32Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
             break;
         case WM_SYSKEYDOWN:
             Global::input.setKey(Keys::ALT, true);
-            return 0;
+            break;
         case WM_SYSKEYUP:
             Global::input.setKey(Keys::ALT, false);
-            return 0;
+            break;
+        case WM_LBUTTONDOWN:
+            Global::input.setMouseButton(MouseButton::LEFT, true);
+            break;
+        case WM_LBUTTONUP:
+            Global::input.setMouseButton(MouseButton::LEFT, false);
+            break;
+        case WM_LBUTTONDBLCLK:
+            Global::input.setMouseButtonDoubleClick(MouseButton::LEFT);
+            break;
+        case WM_RBUTTONDOWN:
+            Global::input.setMouseButton(MouseButton::RIGHT, true);
+            break;
+        case WM_RBUTTONUP:
+            Global::input.setMouseButton(MouseButton::RIGHT, false);
+            break;
+        case WM_RBUTTONDBLCLK:
+            Global::input.setMouseButtonDoubleClick(MouseButton::RIGHT);
+            break;
+        case WM_MBUTTONDOWN:
+            Global::input.setMouseButton(MouseButton::MIDDLE, true);
+            break;
+        case WM_MBUTTONUP:
+            Global::input.setMouseButton(MouseButton::MIDDLE, false);
+            break;
+        case WM_MBUTTONDBLCLK:
+            Global::input.setMouseButtonDoubleClick(MouseButton::MIDDLE);
+            break;
+        case WM_XBUTTONDOWN:
+            button = GET_XBUTTON_WPARAM(wParam) == XBUTTON1 ? MouseButton::EXTRA1 : MouseButton::EXTRA2;
+            Global::input.setMouseButton(button, true);
+            break;
+        case WM_XBUTTONUP:
+            button = GET_XBUTTON_WPARAM(wParam) == XBUTTON1 ? MouseButton::EXTRA1 : MouseButton::EXTRA2;
+            Global::input.setMouseButton(button, false);
+            break;
+        case WM_XBUTTONDBLCLK:
+            button = GET_XBUTTON_WPARAM(wParam) == XBUTTON1 ? MouseButton::EXTRA1 : MouseButton::EXTRA2;
+            Global::input.setMouseButtonDoubleClick(button);
+            break;
         case WM_PAINT: {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
@@ -122,6 +190,14 @@ bool Win32Window::init(const std::string& title, const WindowInput& input, HINST
     }
 
     ShowWindow(m_handle, 1);
+
+    // Enable raw mouse input
+    RAWINPUTDEVICE rid;
+    rid.usUsagePage = 0x01; // Generic Desktop Controls
+    rid.usUsage = 0x02;     // Mouse
+    rid.dwFlags = RIDEV_INPUTSINK;
+    rid.hwndTarget = m_handle;
+    RegisterRawInputDevices(&rid, 1, sizeof(rid));
 
     return true;
 }
