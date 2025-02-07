@@ -31,6 +31,7 @@ public:
 
 private:
     void setMousePos(ivec2 pos);
+    void setCursor(CursorType cursor);
     void setMouseHidden(bool hidden);
 
     void setFocusedWindow(Window* window) { p_focusedWindow = window; }

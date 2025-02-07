@@ -20,16 +20,20 @@ void WindowManager::init()
     wc.style = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS;
 
     RegisterClass(&wc);
+
+    // Enable raw mouse input
+    RAWINPUTDEVICE rid;
+    rid.usUsagePage = 0x01;        // Generic Desktop Controls
+    rid.usUsage = 0x02;            // Mouse
+    rid.dwFlags = RIDEV_DEVNOTIFY; // Receive input globally
+    rid.hwndTarget = NULL;
+    RegisterRawInputDevices(&rid, 1, sizeof(rid));
 #endif
 }
 
 bool WindowManager::update()
 {
 #ifdef WIN32
-    POINT point{};
-    GetCursorPos(&point);
-    Global::input.setMousePosition(ivec2(point.x, point.y));
-
     if (Global::input.getMouseMode() == MouseMode::CONFINED && p_focusedWindow)
     {
         RECT rect;
@@ -106,6 +110,54 @@ void WindowManager::setMousePos(ivec2 pos)
 {
 #ifdef WIN32
     SetCursorPos(pos.x, pos.y);
+#endif
+}
+
+void WindowManager::setCursor(CursorType cursor)
+{
+#ifdef WIN32
+    switch (cursor)
+    {
+    case CursorType::DEFAULT:
+        SetCursor(LoadCursor(NULL, IDC_ARROW));
+        break;
+    case CursorType::CARET:
+        SetCursor(LoadCursor(NULL, IDC_IBEAM));
+        break;
+    case CursorType::WAIT:
+        SetCursor(LoadCursor(NULL, IDC_WAIT));
+        break;
+    case CursorType::WAIT_IN_BACKGROUND:
+        SetCursor(LoadCursor(NULL, IDC_APPSTARTING));
+        break;
+    case CursorType::CROSSHAIR:
+        SetCursor(LoadCursor(NULL, IDC_CROSS));
+        break;
+    case CursorType::HAND:
+        SetCursor(LoadCursor(NULL, IDC_HAND));
+        break;
+    case CursorType::HELP:
+        SetCursor(LoadCursor(NULL, IDC_HELP));
+        break;
+    case CursorType::NO_ENTRY:
+        SetCursor(LoadCursor(NULL, IDC_NO));
+        break;
+    case CursorType::MOVE:
+        SetCursor(LoadCursor(NULL, IDC_SIZEALL));
+        break;
+    case CursorType::SIZE_NESW:
+        SetCursor(LoadCursor(NULL, IDC_SIZENESW));
+        break;
+    case CursorType::SIZE_NWSE:
+        SetCursor(LoadCursor(NULL, IDC_SIZENWSE));
+        break;
+    case CursorType::SIZE_NS:
+        SetCursor(LoadCursor(NULL, IDC_SIZENS));
+        break;
+    case CursorType::SIZE_WE:
+        SetCursor(LoadCursor(NULL, IDC_SIZEWE));
+        break;
+    }
 #endif
 }
 

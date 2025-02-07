@@ -1,6 +1,7 @@
 #include "input.hpp"
 #include "core/global.hpp"
 #include "core/log.hpp"
+#include "math/vec_transform.hpp"
 
 namespace huedra {
 
@@ -9,7 +10,7 @@ void Input::update()
     m_prevKeyDown = m_keyDown;
     m_prevMouseButtonDown = m_mouseButtonDown;
     m_mouseButtonDoubleClicked = 0;
-    m_prevMousePos = m_mousePos;
+    m_mouseDelta = ivec2(0);
     m_mouseScroll = ivec2(0);
 }
 
@@ -115,22 +116,13 @@ ivec2 Input::getRelativeMousePos(Ref<Window> window) const
     return m_mousePos - ivec2(window->getRect().xScreenPos, window->getRect().yScreenPos);
 }
 
-ivec2 Input::getMousePosDelta() const
+ivec2 Input::getMouseDelta() const
 {
     if (m_mouseMode == MouseMode::DISABLED)
     {
         return ivec2();
     }
-    return m_mousePos - m_prevMousePos;
-}
-
-ivec2 Input::getRawMousePosDelta() const
-{
-    if (m_mouseMode == MouseMode::DISABLED)
-    {
-        return ivec2();
-    }
-    return m_rawMouseDelta;
+    return m_mouseDelta;
 }
 
 ivec2 Input::getMouseScroll() const
@@ -148,15 +140,36 @@ void Input::setMousePos(ivec2 pos)
     {
         return;
     }
+    m_mousePos = pos;
     Global::windowManager.setMousePos(pos);
 }
 
-void Input::setMouseMode(MouseMode mode) { m_mouseMode = mode; }
+void Input::setMouseMode(MouseMode mode)
+{
+    if (m_mouseMode == MouseMode::DISABLED && mode != MouseMode::DISABLED)
+    {
+        Global::windowManager.setCursor(m_cursor);
+        Global::windowManager.setMouseHidden(m_mouseHidden);
+    }
+    m_mouseMode = mode;
+}
+
+void Input::setCursor(CursorType cursor)
+{
+    m_cursor = cursor;
+    if (m_mouseMode != MouseMode::DISABLED)
+    {
+        Global::windowManager.setCursor(m_cursor);
+    }
+}
 
 void Input::setMouseHidden(bool hidden)
 {
     m_mouseHidden = hidden;
-    Global::windowManager.setMouseHidden(m_mouseHidden);
+    if (m_mouseMode != MouseMode::DISABLED)
+    {
+        Global::windowManager.setMouseHidden(m_mouseHidden);
+    }
 }
 
 void Input::toggleMouseHidden() { setMouseHidden(!m_mouseHidden); }
@@ -215,7 +228,7 @@ void Input::setMouseButtonDoubleClick(MouseButton button)
 
 void Input::setMousePosition(ivec2 pos) { m_mousePos = pos; }
 
-void Input::setRawMouseDelta(ivec2 pos) { m_rawMouseDelta = pos; }
+void Input::setMouseDelta(ivec2 pos) { m_mouseDelta = pos; }
 
 void Input::setMouseScrollVertical(i32 vertical) { m_mouseScroll.y = vertical; }
 

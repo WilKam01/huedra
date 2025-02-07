@@ -33,15 +33,16 @@ public:
 
     ivec2 getAbsoluteMousePos() const;
     ivec2 getRelativeMousePos(Ref<Window> window) const;
-    ivec2 getMousePosDelta() const;
-    ivec2 getRawMousePosDelta() const;
+    ivec2 getMouseDelta() const;
     ivec2 getMouseScroll() const; // x = horizontal, y = vertical
 
     MouseMode getMouseMode() const { return m_mouseMode; }
+    CursorType getCursor() const { return m_cursor; }
     bool isMouseHidden() const { return m_mouseHidden; }
 
     void setMousePos(ivec2 pos);
     void setMouseMode(MouseMode mode);
+    void setCursor(CursorType cursor);
     void setMouseHidden(bool hidden);
     void toggleMouseHidden();
 
@@ -52,7 +53,7 @@ private:
     void setMouseButton(MouseButton button, bool isDown);
     void setMouseButtonDoubleClick(MouseButton button);
     void setMousePosition(ivec2 pos);
-    void setRawMouseDelta(ivec2 pos);
+    void setMouseDelta(ivec2 pos);
     void setMouseScrollVertical(i32 vertical);
     void setMouseScrollHorizontal(i32 horizontal);
 
@@ -65,11 +66,11 @@ private:
     u8 m_mouseButtonDoubleClicked{0};
 
     ivec2 m_mousePos{0};
-    ivec2 m_prevMousePos{0};
-    ivec2 m_rawMouseDelta{0};
+    ivec2 m_mouseDelta{0};
     ivec2 m_mouseScroll{0};
 
     MouseMode m_mouseMode{MouseMode::NORMAL};
+    CursorType m_cursor{CursorType::DEFAULT};
     bool m_mouseHidden{false};
 };
 

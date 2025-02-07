@@ -4,7 +4,7 @@ Huedra is a prototype Game Engine made with as few dependencies as possible. In 
 ## Features
 * General Rendering interface (graphics and compute pipeline), using Vulkan backend (with the possibility for other APIs in the future) 
 * Window manager - multiple windows, parenting
-* Keyboard Input
+* Input (Keyboard, Mouse)
 * Mathematics (Vector, Matrix, Quaternion)
 * Import of meshes: .obj, .gltf, .glb
 * Import of textures: .png
@@ -14,7 +14,7 @@ Huedra is a prototype Game Engine made with as few dependencies as possible. In 
 * Scene graph with ECS
 * Physics
 * Audio
-* Input (Mouse, Controller)
+* Additional Input (Controller)
 * Additional rendering features
 * Additional graphics APIs (DX12, Metal)
 * Additional platforms (Linux, Mac)

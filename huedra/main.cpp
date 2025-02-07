@@ -158,41 +158,44 @@ int main()
         Global::timer.update();
         Global::graphicsManager.update();
 
-        ivec2 mousePos = Global::input.getAbsoluteMousePos();
-        ivec2 reLMousePos = Global::input.getRelativeMousePos(window);
-        ivec2 mouseDt = Global::input.getMousePosDelta();
-        ivec2 rawMouseDt = Global::input.getRawMousePosDelta();
-        ivec2 scroll = Global::input.getMouseScroll();
-
-        if (Global::input.isKeyPressed(Keys::_0))
+        static bool lock = false;
+        if (Global::input.isKeyPressed(Keys::ESCAPE))
         {
-            Global::input.toggleMouseHidden();
+            lock = !lock;
+            if (lock)
+            {
+                Global::input.setMouseMode(MouseMode::LOCKED);
+            }
+            else
+            {
+                Global::input.setMouseMode(MouseMode::NORMAL);
+            }
+            Global::input.setMouseHidden(lock);
         }
 
-        if (Global::input.isKeyPressed(Keys::_1))
+        if (Global::input.isKeyPressed(Keys::ENTER))
         {
-            Global::input.setMouseMode(MouseMode::NORMAL);
-        }
-        else if (Global::input.isKeyPressed(Keys::_2))
-        {
-            Global::input.setMouseMode(MouseMode::LOCKED);
-        }
-        else if (Global::input.isKeyPressed(Keys::_3))
-        {
-            Global::input.setMouseMode(MouseMode::CONFINED);
-        }
-
-        if (Global::input.getMouseMode() == MouseMode::LOCKED || Global::input.getMouseMode() == MouseMode::CONFINED)
-        {
-            log(LogLevel::INFO, "(%d, %d)", rawMouseDt.x, rawMouseDt.y);
+            Global::input.setCursor(static_cast<CursorType>((static_cast<u32>(Global::input.getCursor()) + 1) % 13));
         }
 
         modelMatrix = matrix4(1.0f);
 
-        rot += vec3(Global::input.isKeyDown(Keys::K) - Global::input.isKeyDown(Keys::I),
-                    Global::input.isKeyDown(Keys::J) - Global::input.isKeyDown(Keys::L),
-                    Global::input.isKeyDown(Keys::O) - Global::input.isKeyDown(Keys::U)) *
-               1.0f * Global::timer.dt();
+        if (lock)
+        {
+            ivec2 mouseDt = Global::input.getMouseDelta();
+            if (mouseDt != ivec2(0))
+            {
+                log(LogLevel::INFO, "(%d, %d)", mouseDt.x, mouseDt.y);
+            }
+            rot -= vec3(mouseDt.y, mouseDt.x, 0.0f) * 1.0f * Global::timer.dt();
+        }
+        else
+        {
+            rot += vec3(Global::input.isKeyDown(Keys::K) - Global::input.isKeyDown(Keys::I),
+                        Global::input.isKeyDown(Keys::J) - Global::input.isKeyDown(Keys::L),
+                        Global::input.isKeyDown(Keys::O) - Global::input.isKeyDown(Keys::U)) *
+                   1.0f * Global::timer.dt();
+        }
 
         matrix3 rMat = rotateZ(matrix3(1.0f), rot.z) * rotateY(matrix3(1.0f), rot.y) * rotateX(matrix3(1.0f), rot.x);
 
