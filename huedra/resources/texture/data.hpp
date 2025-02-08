@@ -5,6 +5,14 @@
 
 namespace huedra {
 
+enum class TexelChannelFormat
+{
+    G = 1,   // Grayscale
+    GA = 2,  // Grayscale, Alpha
+    RGB = 3, // Red, Green, Blue
+    RGBA = 4 // Red, Green, Blue, Alpha
+};
+
 struct TextureData
 {
     u32 width{0};

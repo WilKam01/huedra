@@ -19,6 +19,7 @@ int main()
     Global::timer.init();
     Global::windowManager.init();
     Global::graphicsManager.init();
+    Global::resourceManager.init();
 
     JsonObject json = parseJson(readBytes("assets/test.json"));
 
@@ -34,16 +35,14 @@ int main()
     writeBytes("assets/result.json", serializeJson(json));
 
     Ref<Window> window = Global::windowManager.addWindow("Main", huedra::WindowInput(1278, 1360, -7, 0));
-    Ref<Window> window1 = Global::windowManager.addWindow("Sub", huedra::WindowInput(300, 300, 100, 100), window);
 
     // Draw data
-    std::vector<MeshData> meshes = loadGlb("assets/mesh/untitled.glb");
+    std::vector<MeshData>& meshes = Global::resourceManager.loadMeshData("assets/mesh/untitled.glb");
 
     if (meshes.empty())
     {
         log(LogLevel::ERR, "meshes array is empty");
     }
-
     if (meshes[0].uvs.empty())
     {
         log(LogLevel::ERR, "Imported mesh: %s has no uv coordinates", meshes[0].name.c_str());
@@ -79,11 +78,8 @@ int main()
     Ref<Buffer> viewProjBuffer = Global::graphicsManager.createBuffer(
         BufferType::DYNAMIC, HU_BUFFER_USAGE_UNIFORM_BUFFER, sizeof(viewProj), &viewProj);
 
-    TextureData png = loadPng("assets/textures/test.png", TexelChannelFormat::RGBA);
-
-    std::vector<u8> texData = {{0x11, 0xf1, 0x11, 0xf1, 0x11, 0xf1, 0xff, 0xff}};
-    TextureData textureData{1, 1, GraphicsDataFormat::RGBA_16_UNORM, sizeof(u8) * 8, texData};
-    Ref<Texture> texture = Global::graphicsManager.createTexture(png);
+    TextureData& tex = Global::resourceManager.loadTextureData("assets/textures/test.png", TexelChannelFormat::RGBA);
+    Ref<Texture> texture = Global::graphicsManager.createTexture(tex);
 
     const u32 gBufferCount = 3;
     uvec2 gBufferDimensions(rect.screenWidth, rect.screenHeight);
@@ -284,6 +280,7 @@ int main()
     Global::graphicsManager.removeTexture(texture);
     Global::graphicsManager.removeBuffer(viewProjBuffer);
 
+    Global::resourceManager.cleanup();
     Global::graphicsManager.cleanup();
     Global::windowManager.cleanup();
 
