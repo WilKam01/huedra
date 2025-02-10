@@ -31,6 +31,7 @@ void DescriptorHandler::updateSetInstance()
             ++set.curIndex;
         }
     }
+    m_updatedSinceLastUpdate = false;
 }
 
 void DescriptorHandler::resetSetInstance()
@@ -39,11 +40,12 @@ void DescriptorHandler::resetSetInstance()
     {
         set.curIndex = 0;
     }
+    m_updatedSinceLastUpdate = false;
 }
 
 void DescriptorHandler::bindSets(VkCommandBuffer commandBuffer)
 {
-    if (m_sets.empty())
+    if (m_sets.empty() || !m_updatedSinceLastUpdate)
     {
         return;
     }
@@ -99,6 +101,7 @@ void DescriptorHandler::writeBuffer(VulkanBuffer& buffer, u32 set, u32 binding)
     descriptorWrite.pBufferInfo = &bufferInfo;
 
     vkUpdateDescriptorSets(p_device->getLogical(), 1, &descriptorWrite, 0, nullptr);
+    m_updatedSinceLastUpdate = true;
 }
 
 void DescriptorHandler::writeTexture(VulkanTexture& texture, VkSampler sampler, u32 set, u32 binding)
@@ -136,6 +139,7 @@ void DescriptorHandler::writeTexture(VulkanTexture& texture, VkSampler sampler, 
     descriptorWrite.pImageInfo = &imageInfo;
 
     vkUpdateDescriptorSets(p_device->getLogical(), 1, &descriptorWrite, 0, nullptr);
+    m_updatedSinceLastUpdate = true;
 }
 
 VkDescriptorSet DescriptorHandler::createDescriptorSet(u32 set)

@@ -37,6 +37,7 @@ private:
         u64 curIndex{0};
     };
     std::vector<SetInfo> m_sets;
+    bool m_updatedSinceLastUpdate{false};
 };
 
 } // namespace huedra

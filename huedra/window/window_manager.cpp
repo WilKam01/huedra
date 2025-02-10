@@ -47,7 +47,6 @@ bool WindowManager::update()
     {
         ClipCursor(NULL);
     }
-
 #endif
 
     if (Global::input.getMouseMode() == MouseMode::LOCKED && p_focusedWindow)

@@ -22,5 +22,5 @@ void main() {
     gl_Position = cameraBuffer.viewProj * pushConstantData.model * vec4(position, 1.0);
     fragPosition = position;
     fragUv = uv;
-    fragNormal = normal;
+    fragNormal = (cameraBuffer.viewProj * pushConstantData.model * vec4(normal, 0.0)).xyz;
 }

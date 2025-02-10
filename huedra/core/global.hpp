@@ -4,6 +4,7 @@
 #include "core/timer.hpp"
 #include "graphics/graphics_manager.hpp"
 #include "resources/resource_manager.hpp"
+#include "scene/scene_manager.hpp"
 #include "window/window_manager.hpp"
 
 namespace huedra {
@@ -15,6 +16,7 @@ struct Global
     static inline WindowManager windowManager;
     static inline GraphicsManager graphicsManager;
     static inline ResourceManager resourceManager;
+    static inline SceneManager sceneManager;
 };
 
 } // namespace huedra

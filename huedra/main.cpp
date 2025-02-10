@@ -11,6 +11,7 @@
 #include "math/vec3.hpp"
 #include "resources/mesh/loader.hpp"
 #include "resources/texture/loader.hpp"
+#include "scene/components/transform.hpp"
 
 using namespace huedra;
 
@@ -66,19 +67,32 @@ int main()
         Global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_INDEX_BUFFER,
                                              sizeof(u32) * meshes[0].indices.size(), meshes[0].indices.data());
 
+    // Scene Entities
+    const u32 numEnities = 7;
+    for (u32 x = 0; x < numEnities; ++x)
+    {
+        for (u32 y = 0; y < numEnities; ++y)
+        {
+            Entity e = Global::sceneManager.addEntity();
+            Transform transform;
+            transform.position = vec3(-(numEnities / 2.0f) + x + 0.5f, -(numEnities / 2.0f) + y + 0.5f, 0.0f) * 3.0f;
+            transform.rotation = vec3(radians(15) * x, radians(15) * y, 0.0f);
+            transform.scale = vec3(1.0f);
+            Global::sceneManager.setComponent(e, transform);
+        }
+    }
+
     // Shader Resources
     WindowRect rect = window->getRect();
     matrix4 viewProj =
-        perspective(radians(45.0f), static_cast<float>(rect.screenWidth) / static_cast<float>(rect.screenHeight),
+        perspective(radians(45), static_cast<float>(rect.screenWidth) / static_cast<float>(rect.screenHeight),
                     vec2(0.1f, 100.0f)) *
         lookAt(vec3(0.0f, 0.0f, -5.0f), vec3(0.0f), vec3(0.0f, 1.0f, 0.0f));
-
-    matrix4 modelMatrix(1.0f);
 
     Ref<Buffer> viewProjBuffer = Global::graphicsManager.createBuffer(
         BufferType::DYNAMIC, HU_BUFFER_USAGE_UNIFORM_BUFFER, sizeof(viewProj), &viewProj);
 
-    TextureData& tex = Global::resourceManager.loadTextureData("assets/textures/test.png", TexelChannelFormat::RGBA);
+    TextureData& tex = Global::resourceManager.loadTextureData("assets/textures/1x1.png", TexelChannelFormat::RGBA);
     Ref<Texture> texture = Global::graphicsManager.createTexture(tex);
 
     const u32 gBufferCount = 3;
@@ -104,13 +118,20 @@ int main()
         .addResourceBinding(HU_SHADER_STAGE_FRAGMENT, ResourceType::UNFIFORM_TEXTURE);
 
     RenderCommands commands = [&meshes, positionsBuffer, uvsBuffer, normalsBuffer, indexBuffer, viewProjBuffer, texture,
-                               &modelMatrix](RenderContext& renderContext) {
+                               numEnities](RenderContext& renderContext) {
         renderContext.bindVertexBuffers({positionsBuffer, uvsBuffer, normalsBuffer});
         renderContext.bindIndexBuffer(indexBuffer);
         renderContext.bindBuffer(viewProjBuffer, 0, 0);
         renderContext.bindTexture(texture, 0, 1, SAMPLER_LINEAR);
-        renderContext.pushConstants(HU_SHADER_STAGE_VERTEX, sizeof(matrix4), &modelMatrix);
-        renderContext.drawIndexed(static_cast<u32>(meshes[0].indices.size()), 1, 0, 0);
+
+        for (u32 i = 0; i < numEnities * numEnities; ++i)
+        {
+            Transform& transform = Global::sceneManager.getComponent<Transform>(i);
+            transform.rotation += vec3(radians(5), radians(10), 0.0f) * Global::timer.dt();
+            matrix4 mat = transform.applyMatrix();
+            renderContext.pushConstants(HU_SHADER_STAGE_VERTEX, sizeof(matrix4), &mat);
+            renderContext.drawIndexed(static_cast<u32>(meshes[0].indices.size()), 1, 0, 0);
+        }
     };
 
     // Compute pipeline and info
@@ -131,7 +152,7 @@ int main()
     {
         vec4 pos;
         vec4 color;
-    } lightData{vec4(0.0f, 10.0f, 5.0f, 1.0f), vec4(0.5f, 0.1f, 0.5f, 3.0f)};
+    } lightData{vec4(0.0f, 10.0f, 5.0f, 1.0f), vec4(0.2f, 0.1f, 0.5f, 2.0f)};
 
     Ref<Buffer> computeBuffer = Global::graphicsManager.createBuffer(
         BufferType::DYNAMIC, HU_BUFFER_USAGE_UNIFORM_BUFFER, sizeof(LightData), &lightData);
@@ -147,7 +168,7 @@ int main()
         renderContext.dispatch((rect.width + 31) / 32, (rect.height + 31) / 32, 1);
     };
 
-    vec3 eye(0.0f, 0.0f, 5.0f);
+    vec3 eye(0.0f, 0.0f, 12.0f);
     vec3 rot(0.0f);
     while (Global::windowManager.update())
     {
@@ -174,15 +195,9 @@ int main()
             Global::input.setCursor(static_cast<CursorType>((static_cast<u32>(Global::input.getCursor()) + 1) % 13));
         }
 
-        modelMatrix = matrix4(1.0f);
-
         if (lock)
         {
             ivec2 mouseDt = Global::input.getMouseDelta();
-            if (mouseDt != ivec2(0))
-            {
-                log(LogLevel::INFO, "(%d, %d)", mouseDt.x, mouseDt.y);
-            }
             rot -= vec3(mouseDt.y, mouseDt.x, 0.0f) * 1.0f * Global::timer.dt();
         }
         else
@@ -199,10 +214,11 @@ int main()
         vec3 up = vec3(rMat(0, 1), rMat(1, 1), rMat(2, 1));
         vec3 forward = vec3(rMat(0, 2), rMat(1, 2), rMat(2, 2));
 
+        float eyeSpeed = 5.0f + 10.0f * Global::input.isKeyDown(Keys::SHIFT);
         eye += (static_cast<float>(Global::input.isKeyDown(Keys::D) - Global::input.isKeyDown(Keys::A)) * right +
                 static_cast<float>(Global::input.isKeyDown(Keys::Q) - Global::input.isKeyDown(Keys::E)) * up +
                 static_cast<float>(Global::input.isKeyDown(Keys::S) - Global::input.isKeyDown(Keys::W)) * forward) *
-               5.0f * Global::timer.dt();
+               eyeSpeed * Global::timer.dt();
 
         RenderGraphBuilder renderGraph;
         if (window.valid() && window->getRenderTarget()->isAvailable())
