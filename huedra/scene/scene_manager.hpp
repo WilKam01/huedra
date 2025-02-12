@@ -3,6 +3,7 @@
 #include "core/log.hpp"
 #include "scene/types.hpp"
 
+#include <functional>
 #include <typeindex>
 
 namespace huedra {
@@ -42,6 +43,13 @@ public:
 
     template <typename... Args>
     std::tuple<Args&...> getComponents(Entity entity) const;
+
+    template <typename T>
+    void query(std::function<void(T&)> func) const;
+
+    // func should be structured as std::function<void(Args&...)>
+    template <typename... Args>
+    void query(auto&& func) const;
 
 private:
     constexpr static u32 getId(Entity entity) { return entity & 0x00ffffff; }
@@ -148,7 +156,50 @@ inline T& SceneManager::getComponent(Entity entity) const
 template <typename... Args>
 inline std::tuple<Args&...> SceneManager::getComponents(Entity entity) const
 {
-    return std::tuple<Args&...>(((getComponent<Args>(entity)), ...));
+    return std::tuple<Args&...>(getComponent<Args>(entity)...);
+}
+
+template <typename T>
+inline void SceneManager::query(std::function<void(T&)> func) const
+{
+    if (m_componentSets.contains(typeid(T)))
+    {
+        ComponentList<T>* list = static_cast<ComponentList<T>*>(m_componentSets.at(typeid(T)).componentList);
+        for (auto& comp : list)
+        {
+            func(comp);
+        }
+    }
+}
+
+// func should be structured as std::function<void(Args&...)>
+template <typename... Args>
+inline void SceneManager::query(auto&& func) const
+{
+    if ((!m_componentSets.contains(typeid(Args)) || ...))
+    {
+        return;
+    }
+
+    u32 min = ~0u;
+    const SparseSet* sets[] = {&m_componentSets.at(typeid(Args))...};
+    const std::vector<Entity>* entities = nullptr;
+    for (auto& set : sets)
+    {
+        if (set->dense.size() < min)
+        {
+            min = set->dense.size();
+            entities = &set->dense;
+        }
+    }
+
+    for (auto& entity : *entities)
+    {
+        if (hasComponents<Args...>(entity))
+        {
+            func(getComponent<Args>(entity)...);
+        }
+    }
 }
 
 } // namespace huedra

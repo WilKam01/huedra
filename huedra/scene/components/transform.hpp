@@ -17,4 +17,7 @@ struct Transform
     }
 };
 
+struct Test
+{};
+
 } // namespace huedra

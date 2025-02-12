@@ -24,11 +24,14 @@ void DescriptorHandler::cleanup() { m_sets.clear(); }
 
 void DescriptorHandler::updateSetInstance()
 {
-    for (auto& set : m_sets)
+    if (m_updatedSinceLastUpdate)
     {
-        if (set.curIndex < set.instances.size())
+        for (auto& set : m_sets)
         {
-            ++set.curIndex;
+            if (set.curIndex < set.instances.size())
+            {
+                ++set.curIndex;
+            }
         }
     }
     m_updatedSinceLastUpdate = false;

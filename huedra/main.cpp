@@ -79,6 +79,10 @@ int main()
             transform.rotation = vec3(radians(15) * x, radians(15) * y, 0.0f);
             transform.scale = vec3(1.0f);
             Global::sceneManager.setComponent(e, transform);
+            if ((x + y) % 2)
+            {
+                Global::sceneManager.setComponent(e, Test());
+            }
         }
     }
 
@@ -124,14 +128,12 @@ int main()
         renderContext.bindBuffer(viewProjBuffer, 0, 0);
         renderContext.bindTexture(texture, 0, 1, SAMPLER_LINEAR);
 
-        for (u32 i = 0; i < numEnities * numEnities; ++i)
-        {
-            Transform& transform = Global::sceneManager.getComponent<Transform>(i);
+        Global::sceneManager.query<Transform, Test>([&](Transform& transform, Test& test) {
             transform.rotation += vec3(radians(5), radians(10), 0.0f) * Global::timer.dt();
             matrix4 mat = transform.applyMatrix();
             renderContext.pushConstants(HU_SHADER_STAGE_VERTEX, sizeof(matrix4), &mat);
             renderContext.drawIndexed(static_cast<u32>(meshes[0].indices.size()), 1, 0, 0);
-        }
+        });
     };
 
     // Compute pipeline and info
