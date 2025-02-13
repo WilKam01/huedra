@@ -2,7 +2,7 @@
 
 #include "math/quaternion.hpp"
 
-namespace huedra {
+namespace huedra::math {
 
 float dot(const Quaternion& lhs, const Quaternion& rhs) { return lhs.scalar * rhs.scalar + dot(lhs.axis, rhs.axis); }
 

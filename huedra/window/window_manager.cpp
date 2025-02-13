@@ -4,6 +4,7 @@
 
 #ifdef WIN32
 #include "platform/win32/window.hpp"
+using namespace huedra::win32;
 #endif
 
 namespace huedra {
@@ -34,7 +35,7 @@ void WindowManager::init()
 bool WindowManager::update()
 {
 #ifdef WIN32
-    if (Global::input.getMouseMode() == MouseMode::CONFINED && p_focusedWindow)
+    if (global::input.getMouseMode() == MouseMode::CONFINED && p_focusedWindow)
     {
         RECT rect;
         HWND hwnd = static_cast<Win32Window*>(p_focusedWindow)->getHandle();
@@ -49,10 +50,10 @@ bool WindowManager::update()
     }
 #endif
 
-    if (Global::input.getMouseMode() == MouseMode::LOCKED && p_focusedWindow)
+    if (global::input.getMouseMode() == MouseMode::LOCKED && p_focusedWindow)
     {
         WindowRect rect = p_focusedWindow->getRect();
-        Global::input.setMousePos(ivec2(rect.xPos, rect.yPos) + ivec2(rect.screenWidth, rect.screenHeight) / 2);
+        global::input.setMousePos(ivec2(rect.xPos, rect.yPos) + ivec2(rect.screenWidth, rect.screenHeight) / 2);
     }
 
     for (u32 i = 0; i < m_windows.size();)
@@ -61,7 +62,7 @@ bool WindowManager::update()
         if (window->shouldClose() || !window->update())
         {
             m_windows.erase(m_windows.begin() + i);
-            Global::graphicsManager.removeSwapchain(i);
+            global::graphicsManager.removeSwapchain(i);
 
             window->cleanup();
             delete window;
@@ -91,7 +92,7 @@ Ref<Window> WindowManager::addWindow(const std::string& title, const WindowInput
     if (window)
     {
         m_windows.push_back(window);
-        Global::graphicsManager.createSwapchain(window, input.m_renderDepth);
+        global::graphicsManager.createSwapchain(window, input.m_renderDepth);
         if (parent.valid())
         {
             window->setParent(parent);

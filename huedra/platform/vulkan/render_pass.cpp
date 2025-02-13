@@ -135,7 +135,7 @@ void VulkanRenderPass::begin(VkCommandBuffer commandBuffer)
     }
     else
     {
-        renderPassInfo.framebuffer = m_framebuffers[Global::graphicsManager.getCurrentFrame()];
+        renderPassInfo.framebuffer = m_framebuffers[global::graphicsManager.getCurrentFrame()];
     }
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = extent;

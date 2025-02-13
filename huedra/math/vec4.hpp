@@ -26,8 +26,7 @@ public:
 
     template <u64 L>
     Vec4(Vec<T, L> vec) : data(vec)
-    {
-    }
+    {}
 
     union
     {

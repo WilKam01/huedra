@@ -7,6 +7,7 @@
 
 #ifdef WIN32
 #include "platform/win32/window.hpp"
+using namespace huedra::win32;
 #endif
 
 namespace huedra {
@@ -15,7 +16,7 @@ void VulkanContext::init()
 {
     m_instance.init();
 
-    Window* tempWindow = Global::windowManager.createWindow("temp", {});
+    Window* tempWindow = global::windowManager.createWindow("temp", {});
     VkSurfaceKHR surface = createSurface(tempWindow);
 
     m_device.init(m_instance, surface);
@@ -602,11 +603,11 @@ void VulkanContext::render()
     std::vector<VkFence> fences{};
     if (m_usingGraphicsQueue)
     {
-        fences.push_back(m_graphicsFrameInFlightFences[Global::graphicsManager.getCurrentFrame()]);
+        fences.push_back(m_graphicsFrameInFlightFences[global::graphicsManager.getCurrentFrame()]);
     }
     if (m_usingComputeQueue)
     {
-        fences.push_back(m_computeFrameInFlightFences[Global::graphicsManager.getCurrentFrame()]);
+        fences.push_back(m_computeFrameInFlightFences[global::graphicsManager.getCurrentFrame()]);
     }
     vkWaitForFences(m_device.getLogical(), static_cast<u32>(fences.size()), fences.data(), VK_TRUE, UINT64_MAX);
     vkResetFences(m_device.getLogical(), static_cast<u32>(fences.size()), fences.data());
@@ -615,11 +616,11 @@ void VulkanContext::render()
     {
         if (m_passBatches[i].useGraphicsQueue)
         {
-            m_graphicsCommandBuffer.begin(Global::graphicsManager.getCurrentFrame());
+            m_graphicsCommandBuffer.begin(global::graphicsManager.getCurrentFrame());
         }
         if (m_passBatches[i].useComputeQueue)
         {
-            m_computeCommandBuffer.begin(Global::graphicsManager.getCurrentFrame());
+            m_computeCommandBuffer.begin(global::graphicsManager.getCurrentFrame());
         }
 
         for (auto& info : m_passBatches[i].passes)
@@ -628,10 +629,10 @@ void VulkanContext::render()
             switch (info.pass->getPipelineType())
             {
             case PipelineType::GRAPHICS:
-                commandBuffer = m_graphicsCommandBuffer.get(Global::graphicsManager.getCurrentFrame());
+                commandBuffer = m_graphicsCommandBuffer.get(global::graphicsManager.getCurrentFrame());
                 break;
             case PipelineType::COMPUTE:
-                commandBuffer = m_computeCommandBuffer.get(Global::graphicsManager.getCurrentFrame());
+                commandBuffer = m_computeCommandBuffer.get(global::graphicsManager.getCurrentFrame());
                 break;
             }
 
@@ -687,7 +688,7 @@ void VulkanContext::render()
 
             VulkanRenderContext renderContext;
             renderContext.init(commandBuffer, this, info.pass,
-                               info.descriptorHandlers[Global::graphicsManager.getCurrentFrame()]);
+                               info.descriptorHandlers[global::graphicsManager.getCurrentFrame()]);
             info.pass->getCommands()(renderContext);
 
             info.pass->end(commandBuffer);
@@ -877,7 +878,7 @@ void VulkanContext::createSampler(const SamplerSettings& settings)
 
 void VulkanContext::submitGraphicsQueue(u32 batchIndex)
 {
-    m_graphicsCommandBuffer.end(Global::graphicsManager.getCurrentFrame());
+    m_graphicsCommandBuffer.end(global::graphicsManager.getCurrentFrame());
 
     std::vector<VkSemaphore> waitSemaphores;
     std::vector<VkPipelineStageFlags> waitStages;
@@ -898,13 +899,13 @@ void VulkanContext::submitGraphicsQueue(u32 batchIndex)
         if (m_passBatches[batchIndex - 1].useGraphicsQueue)
         {
             waitSemaphores.push_back(
-                m_graphicsSyncSemaphores[1 - m_curGraphicsSemphoreIndex][Global::graphicsManager.getCurrentFrame()]);
+                m_graphicsSyncSemaphores[1 - m_curGraphicsSemphoreIndex][global::graphicsManager.getCurrentFrame()]);
             waitStages.push_back(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
         }
         if (m_passBatches[batchIndex - 1].useComputeQueue)
         {
             waitSemaphores.push_back(
-                m_computeSyncSemaphores[1 - m_curComputeSemphoreIndex][Global::graphicsManager.getCurrentFrame()]);
+                m_computeSyncSemaphores[1 - m_curComputeSemphoreIndex][global::graphicsManager.getCurrentFrame()]);
             waitStages.push_back(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
         }
     }
@@ -912,17 +913,17 @@ void VulkanContext::submitGraphicsQueue(u32 batchIndex)
     submitInfo.pWaitSemaphores = waitSemaphores.data();
     submitInfo.pWaitDstStageMask = waitStages.data();
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &m_graphicsCommandBuffer.get(Global::graphicsManager.getCurrentFrame());
+    submitInfo.pCommandBuffers = &m_graphicsCommandBuffer.get(global::graphicsManager.getCurrentFrame());
 
     // Should not signal last batch, EXCEPT for existence of active swapchains
     if (batchIndex != m_passBatches.size() - 1 || !m_activeSwapchains.empty())
     {
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores =
-            &m_graphicsSyncSemaphores[m_curGraphicsSemphoreIndex][Global::graphicsManager.getCurrentFrame()];
+            &m_graphicsSyncSemaphores[m_curGraphicsSemphoreIndex][global::graphicsManager.getCurrentFrame()];
     }
 
-    VkFence fence = m_graphicsFrameInFlightFences[Global::graphicsManager.getCurrentFrame()];
+    VkFence fence = m_graphicsFrameInFlightFences[global::graphicsManager.getCurrentFrame()];
     if (vkQueueSubmit(m_device.getGraphicsQueue(), 1, &submitInfo, fence) != VK_SUCCESS)
     {
         log(LogLevel::ERR, "Failed to submit graphics queue!");
@@ -933,7 +934,7 @@ void VulkanContext::submitGraphicsQueue(u32 batchIndex)
 
 void VulkanContext::submitComputeQueue(u32 batchIndex)
 {
-    m_computeCommandBuffer.end(Global::graphicsManager.getCurrentFrame());
+    m_computeCommandBuffer.end(global::graphicsManager.getCurrentFrame());
 
     std::vector<VkSemaphore> waitSemaphores;
     std::vector<VkPipelineStageFlags> waitStages;
@@ -954,13 +955,13 @@ void VulkanContext::submitComputeQueue(u32 batchIndex)
         if (m_passBatches[batchIndex - 1].useGraphicsQueue)
         {
             waitSemaphores.push_back(
-                m_graphicsSyncSemaphores[1 - m_curGraphicsSemphoreIndex][Global::graphicsManager.getCurrentFrame()]);
+                m_graphicsSyncSemaphores[1 - m_curGraphicsSemphoreIndex][global::graphicsManager.getCurrentFrame()]);
             waitStages.push_back(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
         }
         if (m_passBatches[batchIndex - 1].useComputeQueue)
         {
             waitSemaphores.push_back(
-                m_computeSyncSemaphores[1 - m_curComputeSemphoreIndex][Global::graphicsManager.getCurrentFrame()]);
+                m_computeSyncSemaphores[1 - m_curComputeSemphoreIndex][global::graphicsManager.getCurrentFrame()]);
             waitStages.push_back(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
         }
     }
@@ -968,17 +969,17 @@ void VulkanContext::submitComputeQueue(u32 batchIndex)
     submitInfo.pWaitSemaphores = waitSemaphores.data();
     submitInfo.pWaitDstStageMask = waitStages.data();
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &m_computeCommandBuffer.get(Global::graphicsManager.getCurrentFrame());
+    submitInfo.pCommandBuffers = &m_computeCommandBuffer.get(global::graphicsManager.getCurrentFrame());
 
     // Should not signal last batch, EXCEPT for existence of active swapchains
     if (batchIndex != m_passBatches.size() - 1 || !m_activeSwapchains.empty())
     {
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores =
-            &m_computeSyncSemaphores[m_curComputeSemphoreIndex][Global::graphicsManager.getCurrentFrame()];
+            &m_computeSyncSemaphores[m_curComputeSemphoreIndex][global::graphicsManager.getCurrentFrame()];
     }
 
-    VkFence fence = m_computeFrameInFlightFences[Global::graphicsManager.getCurrentFrame()];
+    VkFence fence = m_computeFrameInFlightFences[global::graphicsManager.getCurrentFrame()];
     if (vkQueueSubmit(m_device.getComputeQueue(), 1, &submitInfo, fence) != VK_SUCCESS)
     {
         log(LogLevel::ERR, "Failed to submit compute queue!");
@@ -1003,12 +1004,12 @@ void VulkanContext::presentSwapchains()
     if (m_passBatches.back().useGraphicsQueue)
     {
         waitSemaphores.push_back(
-            m_graphicsSyncSemaphores[1 - m_curGraphicsSemphoreIndex][Global::graphicsManager.getCurrentFrame()]);
+            m_graphicsSyncSemaphores[1 - m_curGraphicsSemphoreIndex][global::graphicsManager.getCurrentFrame()]);
     }
     if (m_passBatches.back().useComputeQueue)
     {
         waitSemaphores.push_back(
-            m_computeSyncSemaphores[1 - m_curComputeSemphoreIndex][Global::graphicsManager.getCurrentFrame()]);
+            m_computeSyncSemaphores[1 - m_curComputeSemphoreIndex][global::graphicsManager.getCurrentFrame()]);
     }
 
     VkPresentInfoKHR presentInfo{};

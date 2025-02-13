@@ -7,16 +7,13 @@
 #include "scene/scene_manager.hpp"
 #include "window/window_manager.hpp"
 
-namespace huedra {
+namespace huedra::global {
 
-struct Global
-{
-    static inline Timer timer;
-    static inline Input input;
-    static inline WindowManager windowManager;
-    static inline GraphicsManager graphicsManager;
-    static inline ResourceManager resourceManager;
-    static inline SceneManager sceneManager;
-};
+inline Timer timer;
+inline Input input;
+inline WindowManager windowManager;
+inline GraphicsManager graphicsManager;
+inline ResourceManager resourceManager;
+inline SceneManager sceneManager;
 
-} // namespace huedra
+} // namespace huedra::global

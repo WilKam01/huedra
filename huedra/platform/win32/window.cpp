@@ -68,83 +68,83 @@ LRESULT CALLBACK Win32Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 
             if (raw.header.dwType == RIM_TYPEMOUSE)
             {
-                Global::input.setMouseDelta(ivec2(raw.data.mouse.lLastX, raw.data.mouse.lLastY));
+                global::input.setMouseDelta(ivec2(raw.data.mouse.lLastX, raw.data.mouse.lLastY));
             }
             break;
         }
         case WM_MOUSEMOVE:
             GetCursorPos(&point);
-            Global::input.setMousePosition(ivec2(point.x, point.y));
+            global::input.setMousePosition(ivec2(point.x, point.y));
             break;
         case WM_MOUSEWHEEL:
-            Global::input.setMouseScrollVertical(GET_WHEEL_DELTA_WPARAM(wParam));
+            global::input.setMouseScrollVertical(GET_WHEEL_DELTA_WPARAM(wParam));
             break;
         case WM_MOUSEHWHEEL:
-            Global::input.setMouseScrollHorizontal(GET_WHEEL_DELTA_WPARAM(wParam));
+            global::input.setMouseScrollHorizontal(GET_WHEEL_DELTA_WPARAM(wParam));
             break;
         case WM_ACTIVATE:
             if (wParam == WA_ACTIVE || wParam == WA_CLICKACTIVE)
             {
-                Global::windowManager.setFocusedWindow(self);
+                global::windowManager.setFocusedWindow(self);
             }
-            else if (wParam == WA_INACTIVE && Global::windowManager.getFocusedWindow().get() == self)
+            else if (wParam == WA_INACTIVE && global::windowManager.getFocusedWindow().get() == self)
             {
-                Global::windowManager.setFocusedWindow(nullptr);
+                global::windowManager.setFocusedWindow(nullptr);
             }
             break;
         case WM_SETCURSOR:
-            Global::windowManager.setCursor(Global::input.getCursor());
+            global::windowManager.setCursor(global::input.getCursor());
             break;
         case WM_KEYDOWN:
-            Global::input.setKey(convertKey(wParam), true);
+            global::input.setKey(convertKey(wParam), true);
             break;
         case WM_KEYUP:
-            Global::input.setKey(convertKey(wParam), false);
+            global::input.setKey(convertKey(wParam), false);
             break;
         case WM_SYSKEYDOWN:
-            Global::input.setKey(Keys::ALT, true);
+            global::input.setKey(Keys::ALT, true);
             return 0;
         case WM_SYSKEYUP:
-            Global::input.setKey(Keys::ALT, false);
+            global::input.setKey(Keys::ALT, false);
             return 0;
         case WM_LBUTTONDOWN:
-            Global::input.setMouseButton(MouseButton::LEFT, true);
+            global::input.setMouseButton(MouseButton::LEFT, true);
             break;
         case WM_LBUTTONUP:
-            Global::input.setMouseButton(MouseButton::LEFT, false);
+            global::input.setMouseButton(MouseButton::LEFT, false);
             break;
         case WM_LBUTTONDBLCLK:
-            Global::input.setMouseButtonDoubleClick(MouseButton::LEFT);
+            global::input.setMouseButtonDoubleClick(MouseButton::LEFT);
             break;
         case WM_RBUTTONDOWN:
-            Global::input.setMouseButton(MouseButton::RIGHT, true);
+            global::input.setMouseButton(MouseButton::RIGHT, true);
             break;
         case WM_RBUTTONUP:
-            Global::input.setMouseButton(MouseButton::RIGHT, false);
+            global::input.setMouseButton(MouseButton::RIGHT, false);
             break;
         case WM_RBUTTONDBLCLK:
-            Global::input.setMouseButtonDoubleClick(MouseButton::RIGHT);
+            global::input.setMouseButtonDoubleClick(MouseButton::RIGHT);
             break;
         case WM_MBUTTONDOWN:
-            Global::input.setMouseButton(MouseButton::MIDDLE, true);
+            global::input.setMouseButton(MouseButton::MIDDLE, true);
             break;
         case WM_MBUTTONUP:
-            Global::input.setMouseButton(MouseButton::MIDDLE, false);
+            global::input.setMouseButton(MouseButton::MIDDLE, false);
             break;
         case WM_MBUTTONDBLCLK:
-            Global::input.setMouseButtonDoubleClick(MouseButton::MIDDLE);
+            global::input.setMouseButtonDoubleClick(MouseButton::MIDDLE);
             break;
         case WM_XBUTTONDOWN:
             button = GET_XBUTTON_WPARAM(wParam) == XBUTTON1 ? MouseButton::EXTRA1 : MouseButton::EXTRA2;
-            Global::input.setMouseButton(button, true);
+            global::input.setMouseButton(button, true);
             break;
         case WM_XBUTTONUP:
             button = GET_XBUTTON_WPARAM(wParam) == XBUTTON1 ? MouseButton::EXTRA1 : MouseButton::EXTRA2;
-            Global::input.setMouseButton(button, false);
+            global::input.setMouseButton(button, false);
             break;
         case WM_XBUTTONDBLCLK:
             button = GET_XBUTTON_WPARAM(wParam) == XBUTTON1 ? MouseButton::EXTRA1 : MouseButton::EXTRA2;
-            Global::input.setMouseButtonDoubleClick(button);
+            global::input.setMouseButtonDoubleClick(button);
             break;
         case WM_PAINT: {
             PAINTSTRUCT ps;
@@ -214,9 +214,9 @@ void Win32Window::cleanup()
 // TODO: Run on another thread since resizing and moving window will halt execution in DispatchMessage
 bool Win32Window::update()
 {
-    Global::input.setKeyToggle(KeyToggles::CAPS_LOCK, GetKeyState(VK_CAPITAL) & 1);
-    Global::input.setKeyToggle(KeyToggles::NUM_LOCK, GetKeyState(VK_NUMLOCK) & 1);
-    Global::input.setKeyToggle(KeyToggles::SCR_LOCK, GetKeyState(VK_SCROLL) & 1);
+    global::input.setKeyToggle(KeyToggles::CAPS_LOCK, GetKeyState(VK_CAPITAL) & 1);
+    global::input.setKeyToggle(KeyToggles::NUM_LOCK, GetKeyState(VK_NUMLOCK) & 1);
+    global::input.setKeyToggle(KeyToggles::SCR_LOCK, GetKeyState(VK_SCROLL) & 1);
 
     MSG msg{};
     while (PeekMessage(&msg, m_handle, 0, 0, PM_REMOVE))

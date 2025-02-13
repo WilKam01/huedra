@@ -4,7 +4,7 @@
 #include <concepts>
 #include <numbers>
 
-namespace huedra {
+namespace huedra::math {
 
 template <typename T>
     requires std::is_arithmetic_v<T>

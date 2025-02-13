@@ -8,13 +8,12 @@
 
 namespace huedra {
 
-class Win32Window;
-
 class Input
 {
     friend class WindowManager;
+#ifdef WIN32
     friend class Win32Window;
-
+#endif
 public:
     Input() = default;
     ~Input() = default;

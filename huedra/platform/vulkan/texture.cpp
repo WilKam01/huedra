@@ -98,7 +98,7 @@ void VulkanTexture::cleanup()
 u32 VulkanTexture::getIndex()
 {
     return p_renderTarget ? (p_renderTarget->getSwapchain() ? p_renderTarget->getSwapchain()->getImageIndex()
-                                                            : Global::graphicsManager.getCurrentFrame())
+                                                            : global::graphicsManager.getCurrentFrame())
                           : 0;
 }
 

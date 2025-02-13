@@ -5,7 +5,7 @@
 #include "math/vec4.hpp"
 #include <cmath>
 
-namespace huedra {
+namespace huedra::math {
 
 // Dot Product
 
@@ -237,4 +237,4 @@ Vec4<T> slerp(const Vec4<T>& start, const Vec4<T>& end, float t)
     return (sin((1.0f - t) * theta) / sinTheta) * start + (sin(t * theta) / sinTheta) * end;
 }
 
-} // namespace huedra
+} // namespace huedra::math

@@ -17,10 +17,10 @@ using namespace huedra;
 
 int main()
 {
-    Global::timer.init();
-    Global::windowManager.init();
-    Global::graphicsManager.init();
-    Global::resourceManager.init();
+    global::timer.init();
+    global::windowManager.init();
+    global::graphicsManager.init();
+    global::resourceManager.init();
 
     JsonObject json = parseJson(readBytes("assets/test.json"));
 
@@ -35,10 +35,10 @@ int main()
 
     writeBytes("assets/result.json", serializeJson(json));
 
-    Ref<Window> window = Global::windowManager.addWindow("Main", huedra::WindowInput(1278, 1360, -7, 0));
+    Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1278, 1360, -7, 0));
 
     // Draw data
-    std::vector<MeshData>& meshes = Global::resourceManager.loadMeshData("assets/mesh/untitled.glb");
+    std::vector<MeshData>& meshes = global::resourceManager.loadMeshData("assets/mesh/untitled.glb");
 
     if (meshes.empty())
     {
@@ -54,17 +54,17 @@ int main()
     }
 
     Ref<Buffer> positionsBuffer =
-        Global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER,
+        global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER,
                                              sizeof(vec3) * meshes[0].positions.size(), meshes[0].positions.data());
 
-    Ref<Buffer> uvsBuffer = Global::graphicsManager.createBuffer(
+    Ref<Buffer> uvsBuffer = global::graphicsManager.createBuffer(
         BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER, sizeof(vec2) * meshes[0].uvs.size(), meshes[0].uvs.data());
 
     Ref<Buffer> normalsBuffer =
-        Global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER,
+        global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER,
                                              sizeof(vec3) * meshes[0].normals.size(), meshes[0].normals.data());
     Ref<Buffer> indexBuffer =
-        Global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_INDEX_BUFFER,
+        global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_INDEX_BUFFER,
                                              sizeof(u32) * meshes[0].indices.size(), meshes[0].indices.data());
 
     // Scene Entities
@@ -73,38 +73,34 @@ int main()
     {
         for (u32 y = 0; y < numEnities; ++y)
         {
-            Entity e = Global::sceneManager.addEntity();
+            Entity e = global::sceneManager.addEntity();
             Transform transform;
             transform.position = vec3(-(numEnities / 2.0f) + x + 0.5f, -(numEnities / 2.0f) + y + 0.5f, 0.0f) * 3.0f;
-            transform.rotation = vec3(radians(15) * x, radians(15) * y, 0.0f);
+            transform.rotation = vec3(math::radians(15) * x, math::radians(15) * y, 0.0f);
             transform.scale = vec3(1.0f);
-            Global::sceneManager.setComponent(e, transform);
-            if ((x + y) % 2)
-            {
-                Global::sceneManager.setComponent(e, Test());
-            }
+            global::sceneManager.setComponent(e, transform);
         }
     }
 
     // Shader Resources
     WindowRect rect = window->getRect();
-    matrix4 viewProj =
-        perspective(radians(45), static_cast<float>(rect.screenWidth) / static_cast<float>(rect.screenHeight),
-                    vec2(0.1f, 100.0f)) *
-        lookAt(vec3(0.0f, 0.0f, -5.0f), vec3(0.0f), vec3(0.0f, 1.0f, 0.0f));
+    matrix4 viewProj = math::perspective(math::radians(45),
+                                         static_cast<float>(rect.screenWidth) / static_cast<float>(rect.screenHeight),
+                                         vec2(0.1f, 100.0f)) *
+                       math::lookAt(vec3(0.0f, 0.0f, -5.0f), vec3(0.0f), vec3(0.0f, 1.0f, 0.0f));
 
-    Ref<Buffer> viewProjBuffer = Global::graphicsManager.createBuffer(
+    Ref<Buffer> viewProjBuffer = global::graphicsManager.createBuffer(
         BufferType::DYNAMIC, HU_BUFFER_USAGE_UNIFORM_BUFFER, sizeof(viewProj), &viewProj);
 
-    TextureData& tex = Global::resourceManager.loadTextureData("assets/textures/1x1.png", TexelChannelFormat::RGBA);
-    Ref<Texture> texture = Global::graphicsManager.createTexture(tex);
+    TextureData& tex = global::resourceManager.loadTextureData("assets/textures/1x1.png", TexelChannelFormat::RGBA);
+    Ref<Texture> texture = global::graphicsManager.createTexture(tex);
 
     const u32 gBufferCount = 3;
     uvec2 gBufferDimensions(rect.screenWidth, rect.screenHeight);
     std::array<Ref<RenderTarget>, gBufferCount> gBuffers{};
     for (auto& gBuffer : gBuffers)
     {
-        gBuffer = Global::graphicsManager.createRenderTarget(RenderTargetType::COLOR_AND_DEPTH,
+        gBuffer = global::graphicsManager.createRenderTarget(RenderTargetType::COLOR_AND_DEPTH,
                                                              GraphicsDataFormat::RGBA_8_UNORM, gBufferDimensions.x,
                                                              gBufferDimensions.y);
     }
@@ -128,8 +124,8 @@ int main()
         renderContext.bindBuffer(viewProjBuffer, 0, 0);
         renderContext.bindTexture(texture, 0, 1, SAMPLER_LINEAR);
 
-        Global::sceneManager.query<Transform, Test>([&](Transform& transform, Test& test) {
-            transform.rotation += vec3(radians(5), radians(10), 0.0f) * Global::timer.dt();
+        global::sceneManager.query<Transform>([&](Transform& transform) {
+            transform.rotation += vec3(math::radians(5), math::radians(10), 0.0f) * global::timer.dt();
             matrix4 mat = transform.applyMatrix();
             renderContext.pushConstants(HU_SHADER_STAGE_VERTEX, sizeof(matrix4), &mat);
             renderContext.drawIndexed(static_cast<u32>(meshes[0].indices.size()), 1, 0, 0);
@@ -156,7 +152,7 @@ int main()
         vec4 color;
     } lightData{vec4(0.0f, 10.0f, 5.0f, 1.0f), vec4(0.2f, 0.1f, 0.5f, 2.0f)};
 
-    Ref<Buffer> computeBuffer = Global::graphicsManager.createBuffer(
+    Ref<Buffer> computeBuffer = global::graphicsManager.createBuffer(
         BufferType::DYNAMIC, HU_BUFFER_USAGE_UNIFORM_BUFFER, sizeof(LightData), &lightData);
 
     RenderCommands computeCommands = [&gBuffers, &computeBuffer, &window](RenderContext& renderContext) {
@@ -172,55 +168,56 @@ int main()
 
     vec3 eye(0.0f, 0.0f, 12.0f);
     vec3 rot(0.0f);
-    while (Global::windowManager.update())
+    while (global::windowManager.update())
     {
-        Global::timer.update();
-        Global::graphicsManager.update();
+        global::timer.update();
+        global::graphicsManager.update();
 
         static bool lock = false;
-        if (Global::input.isKeyPressed(Keys::ESCAPE))
+        if (global::input.isKeyPressed(Keys::ESCAPE))
         {
             lock = !lock;
             if (lock)
             {
-                Global::input.setMouseMode(MouseMode::LOCKED);
+                global::input.setMouseMode(MouseMode::LOCKED);
             }
             else
             {
-                Global::input.setMouseMode(MouseMode::NORMAL);
+                global::input.setMouseMode(MouseMode::NORMAL);
             }
-            Global::input.setMouseHidden(lock);
+            global::input.setMouseHidden(lock);
         }
 
-        if (Global::input.isKeyPressed(Keys::ENTER))
+        if (global::input.isKeyPressed(Keys::ENTER))
         {
-            Global::input.setCursor(static_cast<CursorType>((static_cast<u32>(Global::input.getCursor()) + 1) % 13));
+            global::input.setCursor(static_cast<CursorType>((static_cast<u32>(global::input.getCursor()) + 1) % 13));
         }
 
         if (lock)
         {
-            ivec2 mouseDt = Global::input.getMouseDelta();
-            rot -= vec3(mouseDt.y, mouseDt.x, 0.0f) * 1.0f * Global::timer.dt();
+            ivec2 mouseDt = global::input.getMouseDelta();
+            rot -= vec3(mouseDt.y, mouseDt.x, 0.0f) * 1.0f * global::timer.dt();
         }
         else
         {
-            rot += vec3(Global::input.isKeyDown(Keys::K) - Global::input.isKeyDown(Keys::I),
-                        Global::input.isKeyDown(Keys::J) - Global::input.isKeyDown(Keys::L),
-                        Global::input.isKeyDown(Keys::O) - Global::input.isKeyDown(Keys::U)) *
-                   1.0f * Global::timer.dt();
+            rot += vec3(global::input.isKeyDown(Keys::K) - global::input.isKeyDown(Keys::I),
+                        global::input.isKeyDown(Keys::J) - global::input.isKeyDown(Keys::L),
+                        global::input.isKeyDown(Keys::O) - global::input.isKeyDown(Keys::U)) *
+                   1.0f * global::timer.dt();
         }
 
-        matrix3 rMat = rotateZ(matrix3(1.0f), rot.z) * rotateY(matrix3(1.0f), rot.y) * rotateX(matrix3(1.0f), rot.x);
+        matrix3 rMat = math::rotateZ(matrix3(1.0f), rot.z) * math::rotateY(matrix3(1.0f), rot.y) *
+                       math::rotateX(matrix3(1.0f), rot.x);
 
         vec3 right = vec3(rMat(0, 0), rMat(1, 0), rMat(2, 0));
         vec3 up = vec3(rMat(0, 1), rMat(1, 1), rMat(2, 1));
         vec3 forward = vec3(rMat(0, 2), rMat(1, 2), rMat(2, 2));
 
-        float eyeSpeed = 5.0f + 10.0f * Global::input.isKeyDown(Keys::SHIFT);
-        eye += (static_cast<float>(Global::input.isKeyDown(Keys::D) - Global::input.isKeyDown(Keys::A)) * right +
-                static_cast<float>(Global::input.isKeyDown(Keys::Q) - Global::input.isKeyDown(Keys::E)) * up +
-                static_cast<float>(Global::input.isKeyDown(Keys::S) - Global::input.isKeyDown(Keys::W)) * forward) *
-               eyeSpeed * Global::timer.dt();
+        float eyeSpeed = 5.0f + 10.0f * global::input.isKeyDown(Keys::SHIFT);
+        eye += (static_cast<float>(global::input.isKeyDown(Keys::D) - global::input.isKeyDown(Keys::A)) * right +
+                static_cast<float>(global::input.isKeyDown(Keys::Q) - global::input.isKeyDown(Keys::E)) * up +
+                static_cast<float>(global::input.isKeyDown(Keys::S) - global::input.isKeyDown(Keys::W)) * forward) *
+               eyeSpeed * global::timer.dt();
 
         RenderGraphBuilder renderGraph;
         if (window.valid() && window->getRenderTarget()->isAvailable())
@@ -231,8 +228,8 @@ int main()
                 rect = newRect;
                 for (auto& gBuffer : gBuffers)
                 {
-                    Global::graphicsManager.removeRenderTarget(gBuffer);
-                    gBuffer = Global::graphicsManager.createRenderTarget(RenderTargetType::COLOR_AND_DEPTH,
+                    global::graphicsManager.removeRenderTarget(gBuffer);
+                    gBuffer = global::graphicsManager.createRenderTarget(RenderTargetType::COLOR_AND_DEPTH,
                                                                          GraphicsDataFormat::RGBA_8_UNORM,
                                                                          rect.screenWidth, rect.screenHeight);
                 }
@@ -261,16 +258,16 @@ int main()
             renderGraph.addPass("Ligthning Pass", renderPass);
         }
 
-        viewProj =
-            perspective(radians(90.0f), static_cast<float>(rect.screenWidth) / static_cast<float>(rect.screenHeight),
-                        vec2(0.1f, 100.0f)) *
-            lookTo(eye, -forward, up);
+        viewProj = math::perspective(math::radians(90.0f),
+                                     static_cast<float>(rect.screenWidth) / static_cast<float>(rect.screenHeight),
+                                     vec2(0.1f, 100.0f)) *
+                   math::lookTo(eye, -forward, up);
 
         viewProjBuffer->write(sizeof(viewProj), &viewProj);
 
-        Global::graphicsManager.render(renderGraph);
+        global::graphicsManager.render(renderGraph);
 
-        if (Global::input.isKeyActive(KeyToggles::CAPS_LOCK))
+        if (global::input.isKeyActive(KeyToggles::CAPS_LOCK))
         {
             log(LogLevel::INFO, "Caps is on");
         }
@@ -278,7 +275,7 @@ int main()
         static u32 i = 0;
         static std::array<u32, 500> avgFps;
 
-        avgFps[i++] = static_cast<u32>(1.0f / Global::timer.dt());
+        avgFps[i++] = static_cast<u32>(1.0f / global::timer.dt());
         if (i >= 500)
         {
             u32 sum = 0;
@@ -287,20 +284,20 @@ int main()
                 sum += fps;
             }
 
-            log(LogLevel::INFO, "Elapsed: %f, Delta: %f, FPS: %u", Global::timer.secondsElapsed(), Global::timer.dt(),
+            log(LogLevel::INFO, "Elapsed: %f, Delta: %f, FPS: %u", global::timer.secondsElapsed(), global::timer.dt(),
                 sum / 500);
             i = 0;
         }
-        Global::input.update();
+        global::input.update();
     }
 
-    Global::graphicsManager.removeBuffer(computeBuffer);
-    Global::graphicsManager.removeTexture(texture);
-    Global::graphicsManager.removeBuffer(viewProjBuffer);
+    global::graphicsManager.removeBuffer(computeBuffer);
+    global::graphicsManager.removeTexture(texture);
+    global::graphicsManager.removeBuffer(viewProjBuffer);
 
-    Global::resourceManager.cleanup();
-    Global::graphicsManager.cleanup();
-    Global::windowManager.cleanup();
+    global::resourceManager.cleanup();
+    global::graphicsManager.cleanup();
+    global::windowManager.cleanup();
 
 #ifdef DEBUG
     ReferenceCounter::reportState();

@@ -141,15 +141,15 @@ void Input::setMousePos(ivec2 pos)
         return;
     }
     m_mousePos = pos;
-    Global::windowManager.setMousePos(pos);
+    global::windowManager.setMousePos(pos);
 }
 
 void Input::setMouseMode(MouseMode mode)
 {
     if (m_mouseMode == MouseMode::DISABLED && mode != MouseMode::DISABLED)
     {
-        Global::windowManager.setCursor(m_cursor);
-        Global::windowManager.setMouseHidden(m_mouseHidden);
+        global::windowManager.setCursor(m_cursor);
+        global::windowManager.setMouseHidden(m_mouseHidden);
     }
     m_mouseMode = mode;
 }
@@ -159,7 +159,7 @@ void Input::setCursor(CursorType cursor)
     m_cursor = cursor;
     if (m_mouseMode != MouseMode::DISABLED)
     {
-        Global::windowManager.setCursor(m_cursor);
+        global::windowManager.setCursor(m_cursor);
     }
 }
 
@@ -168,7 +168,7 @@ void Input::setMouseHidden(bool hidden)
     m_mouseHidden = hidden;
     if (m_mouseMode != MouseMode::DISABLED)
     {
-        Global::windowManager.setMouseHidden(m_mouseHidden);
+        global::windowManager.setMouseHidden(m_mouseHidden);
     }
 }
 

@@ -10,7 +10,7 @@
 
 #include <limits>
 
-namespace huedra {
+namespace huedra::math {
 
 // Translate
 
@@ -184,7 +184,7 @@ constexpr Matrix<T, 4, 4> rotate(const Matrix<T, 4, 4>& matrix, T angle, const V
 // Scale
 
 template <typename T>
-constexpr Matrix<T, 2, 2> scaleMat(const Matrix<T, 2, 2>& matrix, const Vec2<T>& vec)
+constexpr Matrix<T, 2, 2> scale(const Matrix<T, 2, 2>& matrix, const Vec2<T>& vec)
 {
     Matrix<T, 2, 2> mat = matrix;
     mat(0, 0) = vec.x;
@@ -193,7 +193,7 @@ constexpr Matrix<T, 2, 2> scaleMat(const Matrix<T, 2, 2>& matrix, const Vec2<T>&
 }
 
 template <typename T>
-constexpr Matrix<T, 3, 3> scaleMat(const Matrix<T, 3, 3>& matrix, const Vec2<T>& vec)
+constexpr Matrix<T, 3, 3> scale(const Matrix<T, 3, 3>& matrix, const Vec2<T>& vec)
 {
     Matrix<T, 3, 3> mat = matrix;
     mat(0, 0) = vec.x;
@@ -202,7 +202,7 @@ constexpr Matrix<T, 3, 3> scaleMat(const Matrix<T, 3, 3>& matrix, const Vec2<T>&
 }
 
 template <typename T>
-constexpr Matrix<T, 3, 3> scaleMat(const Matrix<T, 3, 3>& matrix, const Vec3<T>& vec)
+constexpr Matrix<T, 3, 3> scale(const Matrix<T, 3, 3>& matrix, const Vec3<T>& vec)
 {
     Matrix<T, 3, 3> mat = matrix;
     mat(0, 0) = vec.x;
@@ -212,7 +212,7 @@ constexpr Matrix<T, 3, 3> scaleMat(const Matrix<T, 3, 3>& matrix, const Vec3<T>&
 }
 
 template <typename T>
-constexpr Matrix<T, 4, 4> scaleMat(const Matrix<T, 4, 4>& matrix, const Vec3<T>& vec)
+constexpr Matrix<T, 4, 4> scale(const Matrix<T, 4, 4>& matrix, const Vec3<T>& vec)
 {
     Matrix<T, 4, 4> mat = matrix;
     mat(0, 0) = vec.x;

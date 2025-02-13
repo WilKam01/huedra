@@ -5,7 +5,7 @@
 #include "math/vec2.hpp"
 #include "math/vec3.hpp"
 
-namespace huedra {
+namespace huedra::math {
 
 // Z = zero, N = negative, RH = right hand, LH = left hand
 // width.x = left, width.y = right
