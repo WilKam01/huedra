@@ -78,14 +78,14 @@ constexpr std::vector<u8> inflate(const u8* bytes)
     u8 compressionMethod = readBits(&cmf, 0, 4);
     if (compressionMethod != 8) // "deflate" method
     {
-        log(LogLevel::WARNING, "inflate(): Incorrect compression method used: %d (should be 8)", compressionMethod);
+        log(LogLevel::WARNING, "inflate(): Incorrect compression method used: {} (should be 8)", compressionMethod);
         return std::vector<u8>();
     }
 
     u8 compressionInfo = readBits(&cmf, 4, 4);
     if (compressionInfo > 7) // compression info = log2(windowSize) - 8
     {
-        log(LogLevel::WARNING, "inflate(): Compression info used: %d is too large (should be 7 or less)",
+        log(LogLevel::WARNING, "inflate(): Compression info used: {} is too large (should be 7 or less)",
             compressionInfo);
         return std::vector<u8>();
     }
@@ -225,7 +225,7 @@ constexpr std::vector<u8> inflate(const u8* bytes)
                     else
                     {
                         log(LogLevel::WARNING,
-                            "inflate(): symbol read of dynamic huffman codes is invalid: %d, should be [0, 18]",
+                            "inflate(): symbol read of dynamic huffman codes is invalid: {}, should be [0, 18]",
                             symbol);
                         return std::vector<u8>();
                     }
@@ -273,7 +273,7 @@ constexpr std::vector<u8> inflate(const u8* bytes)
         }
         else
         {
-            log(LogLevel::WARNING, "inflate(): Block Type is %d is undefined/reserved", blockType);
+            log(LogLevel::WARNING, "inflate(): Block Type is {} is undefined/reserved", blockType);
             return std::vector<u8>();
         }
     }
@@ -346,7 +346,7 @@ constexpr std::vector<u8> inflate(const u8* bytes)
     u32 adler32 = parseFromBytes<u32>(&bytes[index + bits / 8 + 1], std::endian::big);
     if (s2 * 65536 + s1 != adler32)
     {
-        log(LogLevel::WARNING, "inflate(): ADLER32: %u is not accurate (calculated value: %u)", adler32,
+        log(LogLevel::WARNING, "inflate(): ADLER32: {} is not accurate (calculated value: %u)", adler32,
             s2 * 65536 + s1);
     }
 #endif

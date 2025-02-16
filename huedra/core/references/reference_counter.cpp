@@ -31,10 +31,10 @@ void ReferenceCounter::reportState()
 {
     if (!m_references.empty())
     {
-        log(LogLevel::WARNING, "ReferenceCounter: found %d resources not removed", m_references.size());
-        for (auto& ref : m_references)
+        log(LogLevel::WARNING, "ReferenceCounter: found {} resources not removed", m_references.size());
+        for (auto& [ptr, refs] : m_references)
         {
-            log(LogLevel::WARNING, "Address: %p | References alive: %d", ref.first, ref.second.size());
+            log(LogLevel::WARNING, "Address: 0x{:x} | References alive: {}", ptr, refs.size());
         }
     }
 }

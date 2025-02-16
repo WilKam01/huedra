@@ -58,7 +58,7 @@ void DescriptorHandler::bindSets(VkCommandBuffer commandBuffer)
     {
         if (m_sets[i].instances.empty() || m_sets[i].curIndex >= m_sets[i].instances.size())
         {
-            log(LogLevel::WARNING, "Could not bind sets, set %llu has not been set", i);
+            log(LogLevel::WARNING, "Could not bind sets, set {} has not been set", i);
             return;
         }
         descriptors[i] = m_sets[i].instances[m_sets[i].curIndex];
@@ -73,13 +73,13 @@ void DescriptorHandler::writeBuffer(VulkanBuffer& buffer, u32 set, u32 binding)
 {
     if (set >= m_sets.size())
     {
-        log(LogLevel::WARNING, "Could not write buffer, set %lu out of bounds (%llu defined)", set, m_sets.size());
+        log(LogLevel::WARNING, "Could not write buffer, set {} out of bounds ({} defined)", set, m_sets.size());
         return;
     }
 
     if (binding >= m_sets[set].bindingTypes.size())
     {
-        log(LogLevel::WARNING, "Could not write buffer, binding %lu out of bounds (%llu defined)", binding,
+        log(LogLevel::WARNING, "Could not write buffer, binding {} out of bounds ({} defined)", binding,
             m_sets[set].bindingTypes.size());
         return;
     }
@@ -111,13 +111,13 @@ void DescriptorHandler::writeTexture(VulkanTexture& texture, VkSampler sampler, 
 {
     if (set >= m_sets.size())
     {
-        log(LogLevel::WARNING, "Could not write buffer, set %lu out of bounds (%llu defined)", set, m_sets.size());
+        log(LogLevel::WARNING, "Could not write buffer, set {} out of bounds ({} defined)", set, m_sets.size());
         return;
     }
 
     if (binding >= m_sets[set].bindingTypes.size())
     {
-        log(LogLevel::WARNING, "Could not write buffer, binding %lu out of bounds (%llu defined)", binding,
+        log(LogLevel::WARNING, "Could not write buffer, binding {} out of bounds ({} defined)", binding,
             m_sets[set].bindingTypes.size());
         return;
     }

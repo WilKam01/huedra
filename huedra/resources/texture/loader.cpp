@@ -47,7 +47,7 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
     constexpr u64 pngSignature = 0x89504e470d0a1a0a; // 137, 80, 78, 71, 13, 10, 26, 10
     if (parseFromBytes<u64>(&bytes[0], std::endian::big) != pngSignature)
     {
-        log(LogLevel::WARNING, "loadPng(): %s does not have a valid png signature", path.c_str());
+        log(LogLevel::WARNING, "loadPng(): {} does not have a valid png signature", path.c_str());
         return textureData;
     }
 
@@ -95,7 +95,7 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
 
         if (calcCrc != ~crc)
         {
-            log(LogLevel::WARNING, "loadPng(): CRC for chunk: %s is invalid (c = %u, crc = %u)", chunkType.c_str(),
+            log(LogLevel::WARNING, "loadPng(): CRC for chunk: {} is invalid (c = {}, crc = {})", chunkType.c_str(),
                 calcCrc, crc);
             return TextureData();
         }
@@ -110,14 +110,14 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
             if (header.bitDepth != 1 && header.bitDepth != 2 && header.bitDepth != 4 && header.bitDepth != 8 &&
                 header.bitDepth != 16)
             {
-                log(LogLevel::WARNING, "loadPng(): Incorrect bit depth in IHDR: %u", header.bitDepth);
+                log(LogLevel::WARNING, "loadPng(): Incorrect bit depth in IHDR: {}", header.bitDepth);
                 return TextureData();
             }
 
             u8 colorType = bytes[i + 9];
             if (colorType == 1 || colorType == 5 || colorType > 6)
             {
-                log(LogLevel::WARNING, "loadPng(): Incorrect colorType in IHDR: %u", colorType);
+                log(LogLevel::WARNING, "loadPng(): Incorrect colorType in IHDR: {}", colorType);
                 return TextureData();
             }
             header.colorType = static_cast<HeaderInfo::ColorType>(colorType);
@@ -125,14 +125,14 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
             header.compressionMethod = bytes[i + 10];
             if (header.compressionMethod != 0)
             {
-                log(LogLevel::WARNING, "loadPng(): Incorrect compression method in IHDR: %u", header.compressionMethod);
+                log(LogLevel::WARNING, "loadPng(): Incorrect compression method in IHDR: {}", header.compressionMethod);
                 return TextureData();
             }
 
             header.filterMethod = bytes[i + 11];
             if (header.filterMethod != 0)
             {
-                log(LogLevel::WARNING, "loadPng(): Incorrect filter method in IHDR: %u", header.filterMethod);
+                log(LogLevel::WARNING, "loadPng(): Incorrect filter method in IHDR: {}", header.filterMethod);
                 return TextureData();
             }
 
@@ -144,7 +144,7 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
             }
             if (header.interlaceMethod != 0)
             {
-                log(LogLevel::WARNING, "loadPng(): Incorrect interlace method in IHDR: %u", header.interlaceMethod);
+                log(LogLevel::WARNING, "loadPng(): Incorrect interlace method in IHDR: {}", header.interlaceMethod);
                 return TextureData();
             }
 
@@ -178,7 +178,7 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
         {
             if (chunkLen % 3 != 0)
             {
-                log(LogLevel::WARNING, "loadPng(): PLTE chunk length is not divisible by 3", chunkType.c_str());
+                log(LogLevel::WARNING, "loadPng(): PLTE chunk length is not divisible by 3");
                 return TextureData();
             }
             colorPalette.resize(chunkLen / 3);
@@ -207,14 +207,14 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
             bool isCritical = static_cast<bool>((readBits(reinterpret_cast<u8*>(&chunkType[0]), 5, 1)) == 0);
             if (isCritical)
             {
-                log(LogLevel::WARNING, "loadPng(): Chunk type: %s is critical but not supported, aborting load",
+                log(LogLevel::WARNING, "loadPng(): Chunk type: {} is critical but not supported, aborting load",
                     chunkType.c_str());
                 return TextureData();
             }
 #ifdef DEBUG
             else
             {
-                log(LogLevel::INFO, "loadPng(): Ancilliary Chunk type: %s not supported, will be ignored",
+                log(LogLevel::INFO, "loadPng(): Ancilliary Chunk type: {} not supported, will be ignored",
                     chunkType.c_str());
             }
 #endif
@@ -249,7 +249,7 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
         u8 filterType = imageBytes[i * scanlineByteWidth];
         if (filterType > 4)
         {
-            log(LogLevel::WARNING, "loadPng(): filter type: %d is not valid for filter method 0", filterType);
+            log(LogLevel::WARNING, "loadPng(): filter type: {} is not valid for filter method 0", filterType);
             return TextureData();
         }
         for (u64 j = 0; j < scanlineByteWidth - 1; ++j)

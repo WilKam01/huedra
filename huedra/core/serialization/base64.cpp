@@ -9,7 +9,7 @@ std::vector<u8> decodeBase64(const std::string& base64)
     u64 len = base64.length();
     if (len % 4 != 0)
     {
-        log(LogLevel::WARNING, "decodeBase64(): incorrect string length: %llu", len);
+        log(LogLevel::WARNING, "decodeBase64(): incorrect string length: {}", len);
         return std::vector<u8>();
     }
 
@@ -51,7 +51,7 @@ std::vector<u8> decodeBase64(const std::string& base64)
         {
             if (arr[j] == 65)
             {
-                log(LogLevel::WARNING, "decodeBase64(): Incorrect base64 character: %c", base64[i + j]);
+                log(LogLevel::WARNING, "decodeBase64(): Incorrect base64 character: {}", base64[i + j]);
                 return std::vector<u8>();
             }
         }

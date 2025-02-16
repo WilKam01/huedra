@@ -15,7 +15,7 @@ RenderGraphBuilder& RenderGraphBuilder::addPass(const std::string& name, const R
 {
     if (m_passes.contains(name))
     {
-        log(LogLevel::WARNING, "Could not add render pass, %s already exists", name.c_str());
+        log(LogLevel::WARNING, "Could not add render pass, {} already exists", name.c_str());
         return *this;
     }
 

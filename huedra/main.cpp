@@ -46,11 +46,11 @@ int main()
     }
     if (meshes[0].uvs.empty())
     {
-        log(LogLevel::ERR, "Imported mesh: %s has no uv coordinates", meshes[0].name.c_str());
+        log(LogLevel::ERR, "Imported mesh: {} has no uv coordinates", meshes[0].name.c_str());
     }
     if (meshes[0].normals.empty())
     {
-        log(LogLevel::ERR, "Imported mesh: %s has no normals", meshes[0].name.c_str());
+        log(LogLevel::ERR, "Imported mesh: {} has no normals", meshes[0].name.c_str());
     }
 
     Ref<Buffer> positionsBuffer =
@@ -284,8 +284,8 @@ int main()
                 sum += fps;
             }
 
-            log(LogLevel::INFO, "Elapsed: %f, Delta: %f, FPS: %u", global::timer.secondsElapsed(), global::timer.dt(),
-                sum / 500);
+            log(LogLevel::INFO, "Elapsed: {:.5f}, Delta: {:.5f}, FPS: {}", global::timer.secondsElapsed(),
+                global::timer.dt(), sum / 500);
             i = 0;
         }
         global::input.update();

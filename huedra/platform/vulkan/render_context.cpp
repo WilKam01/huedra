@@ -32,7 +32,7 @@ void VulkanRenderContext::bindVertexBuffers(std::vector<Ref<Buffer>> buffers)
     {
         if (!buffers[i].valid())
         {
-            log(LogLevel::ERR, "Could not bind vertex buffer: %d. Not valid", i);
+            log(LogLevel::ERR, "Could not bind vertex buffer: {}. Not valid", i);
         }
         vkBuffers[i] = static_cast<VulkanBuffer*>(buffers[i].get())->get();
     }

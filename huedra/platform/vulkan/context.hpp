@@ -54,7 +54,6 @@ private:
         VkDescriptorPool descriptorPool;
     };
 
-    VkSurfaceKHR createSurface(Window* window);
     void createDescriptorHandlers(const RenderPassBuilder& builder, PassInfo& passInfo);
     void createSampler(const SamplerSettings& settings);
 

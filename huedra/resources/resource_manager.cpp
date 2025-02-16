@@ -34,7 +34,7 @@ std::vector<MeshData>& ResourceManager::loadMeshData(const std::string& path)
         }
         else
         {
-            log(LogLevel::WARNING, "loadMeshData(): extension %s not supported", extension.c_str());
+            log(LogLevel::WARNING, "loadMeshData(): extension {} not supported", extension.c_str());
             return m_missingMeshData;
         }
     }
@@ -53,7 +53,7 @@ TextureData& ResourceManager::loadTextureData(const std::string& path, TexelChan
         }
         else
         {
-            log(LogLevel::WARNING, "loadTextureData(): extension %s not supported", extension.c_str());
+            log(LogLevel::WARNING, "loadTextureData(): extension {} not supported", extension.c_str());
             return m_missingTextureData;
         }
     }

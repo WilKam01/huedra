@@ -162,7 +162,7 @@ std::vector<MeshData> loadObj(const std::string& path)
 
     if (meshDatas.empty())
     {
-        log(LogLevel::WARNING, "loadObj(): %s has no mesh data", path.c_str());
+        log(LogLevel::WARNING, "loadObj(): {} has no mesh data", path.c_str());
     }
 
     return meshDatas;
@@ -193,7 +193,7 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
 
         if (accessorIndex >= accessors.size() || accessors[accessorIndex].getType() != JsonValue::Type::OBJECT)
         {
-            log(LogLevel::WARNING, "loadGltf(): %s with accessor[%llu]: accessor is incorrect or out of bounds",
+            log(LogLevel::WARNING, "loadGltf(): {} with accessor[{}]: accessor is incorrect or out of bounds",
                 path.c_str(), accessorIndex);
             return std::vector<u8>();
         }
@@ -202,20 +202,20 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
         if (!accessor.hasMember("componentType", JsonValue::Type::UINT) ||
             accessor["componentType"].asUint() != static_cast<u32>(componentType))
         {
-            log(LogLevel::WARNING, "loadGltf(): %s with accessor[%llu]: incorrect componentType", path.c_str(),
+            log(LogLevel::WARNING, "loadGltf(): {} with accessor[{}]: incorrect componentType", path.c_str(),
                 accessorIndex);
             return std::vector<u8>();
         }
 
         if (!accessor.hasMember("type", JsonValue::Type::STRING) || accessor["type"].asString() != type)
         {
-            log(LogLevel::WARNING, "loadGltf(): %s with accessor[%llu]: incorrect type", path.c_str(), accessorIndex);
+            log(LogLevel::WARNING, "loadGltf(): {} with accessor[{}]: incorrect type", path.c_str(), accessorIndex);
             return std::vector<u8>();
         }
 
         if (!accessor.hasMember("count", JsonValue::Type::UINT))
         {
-            log(LogLevel::WARNING, "loadGltf(): %s with accessor[%llu]: incorrect count", path.c_str(), accessorIndex);
+            log(LogLevel::WARNING, "loadGltf(): {} with accessor[{}]: incorrect count", path.c_str(), accessorIndex);
             return std::vector<u8>();
         }
         u32 typeSize = accessor["count"].asUint() * typeCount;
@@ -228,8 +228,8 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
             accessor["bufferView"].asUint() >= bufferViews.size() ||
             bufferViews[accessor["bufferView"].asUint()].getType() != JsonValue::Type::OBJECT)
         {
-            log(LogLevel::WARNING, "loadGltf(): %s with accessor[%llu]: incorrect bufferView index/object",
-                path.c_str(), accessorIndex);
+            log(LogLevel::WARNING, "loadGltf(): {} with accessor[{}]: incorrect bufferView index/object", path.c_str(),
+                accessorIndex);
             return std::vector<u8>();
         }
         JsonObject& bufferView = bufferViews[accessor["bufferView"].asUint()].asObject();
@@ -237,7 +237,7 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
         if (!bufferView.hasMember("buffer", JsonValue::Type::UINT) || bufferView["buffer"].asUint() >= buffers.size() ||
             !bufferView.hasMember("byteLength", JsonValue::Type::UINT))
         {
-            log(LogLevel::WARNING, "loadGltf(): %s with bufferView[%llu]: incorrect bufferView values", path.c_str(),
+            log(LogLevel::WARNING, "loadGltf(): {} with bufferView[{}]: incorrect bufferView values", path.c_str(),
                 accessor["bufferView"].asUint());
             return std::vector<u8>();
         }
@@ -253,7 +253,7 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
         if (accessorByteOffset + byteLen > viewByteLen)
         {
             log(LogLevel::WARNING,
-                "loadGltf(): %s with accessor[%llu] and bufferView[%llu]: byte range larger than view buffer "
+                "loadGltf(): %s with accessor[{}] and bufferView[{}]: byte range larger than view buffer "
                 "byte range",
                 path.c_str(), accessorIndex, accessor["bufferView"].asUint());
             return std::vector<u8>();
@@ -307,14 +307,14 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
     {
         if (meshes[i].getType() != JsonValue::Type::OBJECT)
         {
-            log(LogLevel::WARNING, "loadGltf(): %s with mesh[%llu]: not an object", path.c_str(), i);
+            log(LogLevel::WARNING, "loadGltf(): {} with mesh[{}]: not an object", path.c_str(), i);
             return std::vector<MeshData>();
         }
         JsonObject& mesh = meshes[i].asObject();
 
         if (!mesh.hasMember("primitives", JsonValue::Type::ARRAY))
         {
-            log(LogLevel::WARNING, "loadGltf(): %s with mesh[%llu]: incorrect primitives member", path.c_str(), i);
+            log(LogLevel::WARNING, "loadGltf(): {} with mesh[{}]: incorrect primitives member", path.c_str(), i);
             return std::vector<MeshData>();
         }
         JsonArray& primitives = mesh["primitives"].asArray();
@@ -324,15 +324,15 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
         {
             if (primitives[j].getType() != JsonValue::Type::OBJECT)
             {
-                log(LogLevel::WARNING, "loadGltf(): %s with mesh[%llu].primitives[%llu]: not an object", path.c_str(),
-                    i, j);
+                log(LogLevel::WARNING, "loadGltf(): {} with mesh[{}].primitives[{}]: not an object", path.c_str(), i,
+                    j);
                 return std::vector<MeshData>();
             }
             JsonObject& primitive = primitives[j].asObject();
 
             if (!primitive.hasMember("attributes", JsonValue::Type::OBJECT))
             {
-                log(LogLevel::WARNING, "loadGltf(): %s with mesh[%llu].primitives[%llu]: incorrect attributes member",
+                log(LogLevel::WARNING, "loadGltf(): {} with mesh[{}].primitives[{}]: incorrect attributes member",
                     path.c_str(), i, j);
                 return std::vector<MeshData>();
             }
@@ -341,7 +341,7 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
             if (!attribute.hasMember("POSITION", JsonValue::Type::UINT) ||
                 !primitive.hasMember("indices", JsonValue::Type::UINT))
             {
-                log(LogLevel::WARNING, "loadGltf(): %s with mesh[%llu].primitives[%llu]: incorrect vertex data",
+                log(LogLevel::WARNING, "loadGltf(): {} with mesh[{}].primitives[{}]: incorrect vertex data",
                     path.c_str(), i, j);
                 return std::vector<MeshData>();
             }
@@ -353,7 +353,7 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
             if (primitive["indices"].asUint() >= accessors.size() ||
                 accessors[primitive["indices"].asUint()].getType() != JsonValue::Type::OBJECT)
             {
-                log(LogLevel::WARNING, "loadGltf(): %s with accessor[%llu]: accessor is incorrect or out of bounds",
+                log(LogLevel::WARNING, "loadGltf(): {} with accessor[{}]: accessor is incorrect or out of bounds",
                     path.c_str(), primitive["indices"].asUint());
                 return std::vector<MeshData>();
             }
@@ -364,7 +364,7 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
                  accessor["componentType"].asUint() != static_cast<u32>(ComponentType::UINT16) &&
                  accessor["componentType"].asUint() != static_cast<u32>(ComponentType::UINT32)))
             {
-                log(LogLevel::WARNING, "loadGltf(): %s with accessor[%llu]: incorrect componentType", path.c_str(),
+                log(LogLevel::WARNING, "loadGltf(): {} with accessor[{}]: incorrect componentType", path.c_str(),
                     primitive["indices"].asUint());
                 return std::vector<MeshData>();
             }
@@ -425,7 +425,7 @@ std::vector<MeshData> loadGltf(const std::string& path)
     if (!json.hasMember("meshes", JsonValue::Type::ARRAY) || !json.hasMember("accessors", JsonValue::Type::ARRAY) ||
         !json.hasMember("bufferViews", JsonValue::Type::ARRAY) || !json.hasMember("buffers", JsonValue::Type::ARRAY))
     {
-        log(LogLevel::WARNING, "loadGltf(): %s has incorrect mesh data", path.c_str());
+        log(LogLevel::WARNING, "loadGltf(): {} has incorrect mesh data", path.c_str());
         return std::vector<MeshData>();
     }
     JsonArray& buffers = json["buffers"].asArray();
@@ -435,14 +435,14 @@ std::vector<MeshData> loadGltf(const std::string& path)
     {
         if (buffers[i].getType() != JsonValue::Type::OBJECT)
         {
-            log(LogLevel::WARNING, "loadGltf(): %s with buffer[%llu]: not an object", path.c_str(), i);
+            log(LogLevel::WARNING, "loadGltf(): {} with buffer[{}]: not an object", path.c_str(), i);
             return std::vector<MeshData>();
         }
         JsonObject& buffer = buffers[i].asObject();
 
         if (!buffer.hasMember("byteLength", JsonValue::Type::UINT))
         {
-            log(LogLevel::WARNING, "loadGltf(): %s with buffer[%llu]: incorrect byteLength", path.c_str(), i);
+            log(LogLevel::WARNING, "loadGltf(): {} with buffer[{}]: incorrect byteLength", path.c_str(), i);
             return std::vector<MeshData>();
         }
 
@@ -482,7 +482,7 @@ std::vector<MeshData> loadGlb(const std::string& path)
 
     if (parseFromBytes<u32>(&bytes[0], std::endian::little) != gltfSignature)
     {
-        log(LogLevel::WARNING, "loadGlb(): %s incorrect magic number: %lu, expected %lu", path.c_str(),
+        log(LogLevel::WARNING, "loadGlb(): {} incorrect magic number: {}, expected {}", path.c_str(),
             parseFromBytes<u32>(&bytes[0], std::endian::little), gltfSignature);
         return std::vector<MeshData>();
     }
@@ -504,7 +504,7 @@ std::vector<MeshData> loadGlb(const std::string& path)
         {
             if (foundJson)
             {
-                log(LogLevel::WARNING, "loadGlb(): %s chunk[%lu]: duplicate json data", path.c_str(), chunkIndex);
+                log(LogLevel::WARNING, "loadGlb(): {} chunk[{}]: duplicate json data", path.c_str(), chunkIndex);
                 return std::vector<MeshData>();
             }
             json = parseJson(std::vector<u8>(bytes.begin() + byteIndex, bytes.begin() + byteIndex + chunkLen));
@@ -516,7 +516,7 @@ std::vector<MeshData> loadGlb(const std::string& path)
         }
         else
         {
-            log(LogLevel::WARNING, "loadGlb(): %s chunk[%lu]: incorrect chunkType: %lu", path.c_str(), chunkIndex,
+            log(LogLevel::WARNING, "loadGlb(): {} chunk[{}]: incorrect chunkType: {}", path.c_str(), chunkIndex,
                 chunkType);
             return std::vector<MeshData>();
         }
@@ -529,7 +529,7 @@ std::vector<MeshData> loadGlb(const std::string& path)
         !json.hasMember("bufferViews", JsonValue::Type::ARRAY) || !json.hasMember("buffers", JsonValue::Type::ARRAY) ||
         byteBuffers.size() != json["buffers"].asArray().size())
     {
-        log(LogLevel::WARNING, "loadGlb(): %s has incorrect mesh data", path.c_str());
+        log(LogLevel::WARNING, "loadGlb(): {} has incorrect mesh data", path.c_str());
         return std::vector<MeshData>();
     }
 

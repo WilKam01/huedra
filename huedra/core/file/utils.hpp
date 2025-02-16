@@ -12,7 +12,7 @@ inline std::vector<u8> readBytes(const std::string& path)
     std::ifstream file(path, std::ios::ate | std::ios::binary);
     if (!file.is_open())
     {
-        log(LogLevel::ERR, "Failed to open file: \"%s\"!", path.c_str());
+        log(LogLevel::ERR, "Failed to open file: \"{}\"!", path.c_str());
         return std::vector<u8>();
     }
 
@@ -36,7 +36,7 @@ inline bool writeBytes(const std::string& path, const std::vector<u8>& bytes)
     std::ofstream file(path);
     if (!file.is_open())
     {
-        log(LogLevel::ERR, "Failed to open file: \"%s\"!", path.c_str());
+        log(LogLevel::ERR, "Failed to open file: \"{}\"!", path.c_str());
         return false;
     }
 

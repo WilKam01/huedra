@@ -4,7 +4,6 @@
 
 #ifdef WIN32
 #include "platform/win32/window.hpp"
-using namespace huedra::win32;
 #endif
 
 namespace huedra {

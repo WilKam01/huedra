@@ -82,7 +82,7 @@ void Instance::init()
     log(LogLevel::INFO, "available extensions:");
     for (const auto& extension : extensions)
     {
-        log(LogLevel::INFO, "    %s", extension.extensionName);
+        log(LogLevel::INFO, "    {}", extension.extensionName);
     }
 #endif
 

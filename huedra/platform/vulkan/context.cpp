@@ -3,12 +3,8 @@
 #include "core/log.hpp"
 #include "core/string/utils.hpp"
 #include "platform/vulkan/config.hpp"
+#include "platform/vulkan/os_manager.hpp"
 #include "platform/vulkan/type_converter.hpp"
-
-#ifdef WIN32
-#include "platform/win32/window.hpp"
-using namespace huedra::win32;
-#endif
 
 namespace huedra {
 
@@ -17,7 +13,7 @@ void VulkanContext::init()
     m_instance.init();
 
     Window* tempWindow = global::windowManager.createWindow("temp", {});
-    VkSurfaceKHR surface = createSurface(tempWindow);
+    VkSurfaceKHR surface = createSurface(m_instance, tempWindow);
 
     m_device.init(m_instance, surface);
 
@@ -138,7 +134,7 @@ void VulkanContext::cleanup()
 void VulkanContext::createSwapchain(Window* window, bool renderDepth)
 {
     VulkanSwapchain* swapchain = new VulkanSwapchain();
-    VkSurfaceKHR surface = createSurface(window);
+    VkSurfaceKHR surface = createSurface(m_instance, window);
     swapchain->init(window, m_device, surface, renderDepth);
 
     m_swapchains.push_back(swapchain);
@@ -325,7 +321,7 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
     m_curGraph = builder;
     m_device.waitIdle();
 
-    log(LogLevel::INFO, "New render graph with hash: 0x%s", toHex(m_curGraph.getHash()).c_str());
+    log(LogLevel::INFO, "New render graph with hash: 0x{:x}", m_curGraph.getHash());
 
     // Destroy all previous batches
     for (auto& batch : m_passBatches)
@@ -746,26 +742,6 @@ VkSampler VulkanContext::getSampler(const SamplerSettings& settings)
 
     createSampler(settings);
     return m_samplers.back().sampler;
-}
-
-VkSurfaceKHR VulkanContext::createSurface(Window* window)
-{
-    VkSurfaceKHR surface;
-
-#ifdef WIN32
-    Win32Window* win = static_cast<Win32Window*>(window);
-    VkWin32SurfaceCreateInfoKHR createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    createInfo.hinstance = GetModuleHandle(NULL);
-    createInfo.hwnd = win->getHandle();
-
-    if (vkCreateWin32SurfaceKHR(m_instance.get(), &createInfo, nullptr, &surface) != VK_SUCCESS)
-    {
-        log(LogLevel::ERR, "Failed to create Win32 surface!");
-    }
-#endif
-
-    return surface;
 }
 
 void VulkanContext::createDescriptorHandlers(const RenderPassBuilder& builder, PassInfo& passInfo)

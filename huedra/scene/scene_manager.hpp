@@ -118,7 +118,7 @@ inline void SceneManager::removeComponent(Entity entity)
 {
     if (!hasComponents<T>(entity))
     {
-        log(LogLevel::WARNING, "removeComponent(): entity %lu does not have a %s component", entity, typeid(T).name());
+        log(LogLevel::WARNING, "removeComponent(): entity {} does not have a {} component", entity, typeid(T).name());
         return;
     }
 
@@ -145,7 +145,7 @@ inline T& SceneManager::getComponent(Entity entity) const
 {
     if (!hasComponents<T>(entity))
     {
-        log(LogLevel::ERR, "getComponent(): entity %lu does not have a %s component", entity, typeid(T).name());
+        log(LogLevel::ERR, "getComponent(): entity {} does not have a {} component", entity, typeid(T).name());
     }
 
     const SparseSet& set = m_componentSets.at(typeid(T));

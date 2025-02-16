@@ -41,10 +41,4 @@ inline std::vector<std::string> splitLastByChar(const std::string& str, char del
     return tokens;
 }
 
-template <typename T, typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
-inline std::string toHex(T value)
-{
-    return std::format("{:x}", value);
-}
-
 } // namespace huedra

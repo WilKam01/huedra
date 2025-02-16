@@ -24,6 +24,12 @@ target_include_directories(huedra PRIVATE
   ${PROJECT_SOURCE_DIR}/huedra
 )
 
+if(WIN32)
+  message(STATUS "Building for Windows")
+  set(CMAKE_SYSTEM_NAME Windows)
+  target_compile_definitions(huedra PRIVATE -DWIN32 -DNOMINMAX)
+endif()
+
 # Define compiler flags and macros for different build types
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   target_compile_definitions(huedra PRIVATE -DDEBUG)

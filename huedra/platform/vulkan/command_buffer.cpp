@@ -38,7 +38,7 @@ void CommandBuffer::begin(size_t index)
 
     if (vkBeginCommandBuffer(m_commandBuffers[index], &beginInfo) != VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to begin recording command buffer!\nIndex: %d", index);
+        log(LogLevel::ERR, "Failed to begin recording command buffer!\nIndex: {}", index);
     }
 }
 
