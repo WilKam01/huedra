@@ -25,7 +25,8 @@ RenderPassBuilder& RenderPassBuilder::init(RenderPassType type, const PipelineBu
         log(LogLevel::WARNING, "RenderPassBuilder: pipeline invalid, not a graphics pipeline");
         return *this;
     }
-    else if (type == RenderPassType::COMPUTE && pipeline.getType() != PipelineType::COMPUTE)
+
+    if (type == RenderPassType::COMPUTE && pipeline.getType() != PipelineType::COMPUTE)
     {
         log(LogLevel::WARNING, "RenderPassBuilder: pipeline invalid, not a compute pipeline");
         return *this;
@@ -122,7 +123,7 @@ RenderPassBuilder& RenderPassBuilder::addRenderTarget(Ref<RenderTarget> renderTa
         return *this;
     }
 
-    m_renderTargets.push_back({renderTarget, clearColor});
+    m_renderTargets.push_back({.target = renderTarget, .clearColor = clearColor});
     return *this;
 }
 

@@ -9,7 +9,7 @@ struct Vec2
 {
 public:
     Vec2() = default;
-    Vec2(T val)
+    explicit Vec2(T val)
     {
         x = val;
         y = val;
@@ -21,7 +21,7 @@ public:
     }
 
     template <u64 L>
-    Vec2(Vec<T, L> vec) : data(vec)
+    explicit Vec2(Vec<T, L> vec) : data(vec)
     {}
 
     union
@@ -41,9 +41,11 @@ public:
         };
     };
 
-    inline T operator[](u64 index) const { return data[index]; }
-    inline T& operator[](u64 index) { return data[index]; }
+    T operator[](u64 index) const { return data[index]; }
+    T& operator[](u64 index) { return data[index]; }
 
+    // No better option than using macros for easy operator overloading
+    // NOLINTBEGIN(cppcoreguidelines-macro-usage)
 #define VEC_OP(OP)                                                                                      \
     constexpr Vec2<T> operator OP(const Vec2<T>& rhs) const { return Vec2<T>(x OP rhs.x, y OP rhs.y); } \
                                                                                                         \
@@ -66,6 +68,7 @@ public:
     VEC_OP(>>);
     VEC_OP(<<);
 #undef VEC_OP
+    // NOLINTEND(cppcoreguidelines-macro-usage)
 
     constexpr Vec2<T> operator-() const { return Vec2<T>(-x, -y); }
 
@@ -80,6 +83,8 @@ public:
     constexpr bool operator==(const Vec2<T>& rhs) const { return x == rhs.x && y == rhs.y; };
 };
 
+// No better option than using macros for easy operator overloading
+// NOLINTBEGIN(cppcoreguidelines-macro-usage)
 #define VEC_OP(OP)                                              \
     template <typename T>                                       \
     constexpr Vec2<T> operator OP(T scalar, const Vec2<T>& vec) \
@@ -97,6 +102,7 @@ VEC_OP(^);
 VEC_OP(>>);
 VEC_OP(<<);
 #undef VEC_OP
+// NOLINTEND(cppcoreguidelines-macro-usage)
 
 using vec2 = Vec2<float>;
 using ivec2 = Vec2<i32>;

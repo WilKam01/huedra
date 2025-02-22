@@ -9,7 +9,7 @@ struct Vec3
 {
 public:
     Vec3() = default;
-    Vec3(T val)
+    explicit Vec3(T val)
     {
         x = val;
         y = val;
@@ -23,7 +23,7 @@ public:
     }
 
     template <u64 L>
-    Vec3(Vec<T, L> vec) : data(vec)
+    explicit Vec3(Vec<T, L> vec) : data(vec)
     {}
 
     union
@@ -43,9 +43,11 @@ public:
         };
     };
 
-    inline T operator[](u64 index) const { return data[index]; }
-    inline T& operator[](u64 index) { return data[index]; }
+    T operator[](u64 index) const { return data[index]; }
+    T& operator[](u64 index) { return data[index]; }
 
+    // No better option than using macros for easy operator overloading
+    // NOLINTBEGIN(cppcoreguidelines-macro-usage)
 #define VEC_OP(OP)                                                                                                  \
     constexpr Vec3<T> operator OP(const Vec3<T>& rhs) const { return Vec3<T>(x OP rhs.x, y OP rhs.y, z OP rhs.z); } \
                                                                                                                     \
@@ -69,6 +71,7 @@ public:
     VEC_OP(>>);
     VEC_OP(<<);
 #undef VEC_OP
+    // NOLINTEND(cppcoreguidelines-macro-usage)
 
     constexpr Vec3<T> operator-() const { return Vec3<T>(-x, -y, -z); }
     constexpr std::strong_ordering operator<=>(const Vec3<T>& rhs) const
@@ -86,6 +89,8 @@ public:
     constexpr bool operator==(const Vec3<T>& rhs) const { return x == rhs.x && y == rhs.y && z == rhs.z; };
 };
 
+// No better option than using macros for easy operator overloading
+// NOLINTBEGIN(cppcoreguidelines-macro-usage)
 #define VEC_OP(OP)                                                         \
     template <typename T>                                                  \
     constexpr Vec3<T> operator OP(T scalar, const Vec3<T>& vec)            \
@@ -103,6 +108,7 @@ VEC_OP(^);
 VEC_OP(>>);
 VEC_OP(<<);
 #undef VEC_OP
+// NOLINTEND(cppcoreguidelines-macro-usage)
 
 using vec3 = Vec3<float>;
 using ivec3 = Vec3<i32>;

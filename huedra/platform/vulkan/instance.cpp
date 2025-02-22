@@ -1,21 +1,20 @@
 #include "instance.hpp"
 
 #include "core/log.hpp"
-#include <string.h>
+#include <string>
 
 namespace huedra {
 
-static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                                                    VkDebugUtilsMessageTypeFlagsEXT messageType,
-                                                    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-                                                    void* pUserData)
+namespace {
+VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                             VkDebugUtilsMessageTypeFlagsEXT /*messageType*/,
+                                             const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                                             void* /*pUserData*/)
 {
-    LogLevel level;
+    LogLevel level{LogLevel::INFO};
     switch (messageSeverity)
     {
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-        level = LogLevel::INFO;
-        break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
         level = LogLevel::INFO;
         break;
@@ -26,17 +25,17 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityF
         level = LogLevel::ERR;
         break;
     default:
-        level = LogLevel::INFO;
         break;
     }
 
     log(level, pCallbackData->pMessage);
     return VK_FALSE;
 }
+} // namespace
 
 void Instance::init()
 {
-    if (vulkan_config::enableValidationLayers && !checkValidationLayerSupport())
+    if (vulkan_config::ENABLE_VALIDATION_LAYERS && !checkValidationLayerSupport())
     {
         log(LogLevel::ERR, "Requested validation layers not available!");
     }
@@ -51,20 +50,20 @@ void Instance::init()
 
     VkInstanceCreateInfo createInfo{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
     createInfo.pApplicationInfo = &appInfo;
-    createInfo.enabledExtensionCount = static_cast<u32>(vulkan_config::instanceExtensions.size());
-    createInfo.ppEnabledExtensionNames = vulkan_config::instanceExtensions.data();
+    createInfo.enabledExtensionCount = static_cast<u32>(vulkan_config::INSTANCE_EXTENSIONS.size());
+    createInfo.ppEnabledExtensionNames = vulkan_config::INSTANCE_EXTENSIONS.data();
     createInfo.enabledLayerCount = 0;
     createInfo.pNext = nullptr;
 
     VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-    if (vulkan_config::enableValidationLayers)
+    if (vulkan_config::ENABLE_VALIDATION_LAYERS)
     {
-        createInfo.enabledLayerCount = static_cast<u32>(vulkan_config::validationLayers.size());
-        createInfo.ppEnabledLayerNames = vulkan_config::validationLayers.data();
+        createInfo.enabledLayerCount = static_cast<u32>(vulkan_config::VALIDATION_LAYERS.size());
+        createInfo.ppEnabledLayerNames = vulkan_config::VALIDATION_LAYERS.data();
 
         VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
         populateDebugMessengerCreateInfo(debugCreateInfo);
-        createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
+        createInfo.pNext = &debugCreateInfo;
     }
 
     if (vkCreateInstance(&createInfo, nullptr, &m_instance) != VK_SUCCESS)
@@ -86,7 +85,7 @@ void Instance::init()
     }
 #endif
 
-    if (vulkan_config::enableValidationLayers)
+    if (vulkan_config::ENABLE_VALIDATION_LAYERS)
     {
         VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo = {};
         populateDebugMessengerCreateInfo(debugCreateInfo);
@@ -100,7 +99,7 @@ void Instance::init()
 
 void Instance::cleanup()
 {
-    if (vulkan_config::enableValidationLayers)
+    if (vulkan_config::ENABLE_VALIDATION_LAYERS)
     {
         destroyDebugUtilsMessengerEXT(m_debugMessenger, nullptr);
     }
@@ -129,10 +128,7 @@ VkResult Instance::createDebugUtilsMessengerEXT(const VkDebugUtilsMessengerCreat
     {
         return func(m_instance, pCreateInfo, pAllocator, pDebugMessenger);
     }
-    else
-    {
-        return VK_ERROR_EXTENSION_NOT_PRESENT;
-    }
+    return VK_ERROR_EXTENSION_NOT_PRESENT;
 }
 
 void Instance::destroyDebugUtilsMessengerEXT(VkDebugUtilsMessengerEXT debugMessenger,
@@ -153,13 +149,13 @@ bool Instance::checkValidationLayerSupport()
     std::vector<VkLayerProperties> availableLayers(count);
     vkEnumerateInstanceLayerProperties(&count, availableLayers.data());
 
-    for (const char* name : vulkan_config::validationLayers)
+    for (const char* name : vulkan_config::VALIDATION_LAYERS)
     {
         bool found = false;
 
         for (const auto& props : availableLayers)
         {
-            if (strcmp(name, props.layerName) == 0)
+            if (strcmp(name, static_cast<const char*>(props.layerName)) == 0)
             {
                 found = true;
                 break;
@@ -167,7 +163,9 @@ bool Instance::checkValidationLayerSupport()
         }
 
         if (!found)
+        {
             return false;
+        }
     }
 
     return true;

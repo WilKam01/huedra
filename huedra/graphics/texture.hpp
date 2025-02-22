@@ -17,6 +17,11 @@ public:
     Texture();
     ~Texture();
 
+    Texture(const Texture& rhs) = default;
+    Texture& operator=(const Texture& rhs) = default;
+    Texture(Texture&& rhs) = default;
+    Texture& operator=(Texture&& rhs) = default;
+
     u32 getWidth() const { return m_width; }
     u32 getHeight() const { return m_height; }
     GraphicsDataFormat getFormat() const { return m_format; }

@@ -9,7 +9,12 @@ class VulkanBuffer : public Buffer
 {
 public:
     VulkanBuffer() = default;
-    ~VulkanBuffer() = default;
+    ~VulkanBuffer() override = default;
+
+    VulkanBuffer(const VulkanBuffer& rhs) = default;
+    VulkanBuffer& operator=(const VulkanBuffer& rhs) = default;
+    VulkanBuffer(VulkanBuffer&& rhs) = default;
+    VulkanBuffer& operator=(VulkanBuffer&& rhs) = default;
 
     void init(Device& device, BufferType type, u64 size, BufferUsageFlags usage, VkBufferUsageFlags usageFlags,
               VkMemoryPropertyFlags memoryPropertyFlags, const void* data = nullptr);
@@ -21,13 +26,13 @@ public:
     VkBuffer get();
 
 private:
-    bool map(size_t index);
-    void unmap(size_t index);
+    bool map(u64 index);
+    void unmap(u64 index);
 
-    Device* p_device;
+    Device* m_device{nullptr};
     std::vector<VkBuffer> m_buffers;
     std::vector<VkDeviceMemory> m_memories;
-    std::vector<void*> m_mapped{};
+    std::vector<void*> m_mapped;
 };
 
 } // namespace huedra

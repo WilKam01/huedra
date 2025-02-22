@@ -18,6 +18,11 @@ public:
     Input() = default;
     ~Input() = default;
 
+    Input(const Input& rhs) = delete;
+    Input& operator=(const Input& rhs) = delete;
+    Input(Input&& rhs) = delete;
+    Input& operator=(Input&& rhs) = delete;
+
     void update();
 
     bool isKeyDown(Keys key) const;

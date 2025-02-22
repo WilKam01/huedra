@@ -25,17 +25,17 @@ VkShaderStageFlagBits convertShaderStage(PipelineType type, ShaderStageFlags sha
             return VK_SHADER_STAGE_ALL_GRAPHICS;
         }
 
-        if (shaderStage & HU_SHADER_STAGE_VERTEX)
+        if ((shaderStage & HU_SHADER_STAGE_VERTEX) != 0u)
         {
             result |= VK_SHADER_STAGE_VERTEX_BIT;
         }
-        if (shaderStage & HU_SHADER_STAGE_FRAGMENT)
+        if ((shaderStage & HU_SHADER_STAGE_FRAGMENT) != 0u)
         {
             result |= VK_SHADER_STAGE_FRAGMENT_BIT;
         }
         break;
     case PipelineType::COMPUTE:
-        if (shaderStage & HU_SHADER_STAGE_COMPUTE)
+        if ((shaderStage & HU_SHADER_STAGE_COMPUTE) != 0u)
         {
             return VK_SHADER_STAGE_COMPUTE_BIT;
         }
@@ -56,17 +56,17 @@ VkPipelineStageFlagBits convertPipelineStage(PipelineType type, ShaderStageFlags
             return VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
         }
 
-        if (shaderStage & HU_SHADER_STAGE_VERTEX)
+        if ((shaderStage & HU_SHADER_STAGE_VERTEX) != 0u)
         {
             result |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
         }
-        if (shaderStage & HU_SHADER_STAGE_FRAGMENT)
+        if ((shaderStage & HU_SHADER_STAGE_FRAGMENT) != 0u)
         {
             result |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
         }
         break;
     case PipelineType::COMPUTE:
-        if (shaderStage & HU_SHADER_STAGE_COMPUTE)
+        if ((shaderStage & HU_SHADER_STAGE_COMPUTE) != 0u)
         {
             return VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
         }
@@ -244,22 +244,22 @@ VkBufferUsageFlagBits convertBufferUsage(BufferUsageFlags usage)
 {
     u32 result = 0;
 
-    if (usage & HU_BUFFER_USAGE_VERTEX_BUFFER)
+    if ((usage & HU_BUFFER_USAGE_VERTEX_BUFFER) != 0u)
     {
         result |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     }
 
-    if (usage & HU_BUFFER_USAGE_INDEX_BUFFER)
+    if ((usage & HU_BUFFER_USAGE_INDEX_BUFFER) != 0u)
     {
         result |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
     }
 
-    if (usage & HU_BUFFER_USAGE_UNIFORM_BUFFER)
+    if ((usage & HU_BUFFER_USAGE_UNIFORM_BUFFER) != 0u)
     {
         result |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     }
 
-    if (usage & HU_BUFFER_USAGE_STORAGE_BUFFER)
+    if ((usage & HU_BUFFER_USAGE_STORAGE_BUFFER) != 0u)
     {
         result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     }

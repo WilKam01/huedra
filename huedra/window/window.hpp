@@ -10,19 +10,17 @@ struct WindowInput
 {
     u32 width{0};
     u32 height{0};
-    std::optional<i32> xPos{};
-    std::optional<i32> yPos{};
+    std::optional<i32> xPos;
+    std::optional<i32> yPos;
     bool m_renderDepth{true};
 
     WindowInput() = default;
     WindowInput(u32 width, u32 height, bool renderDepth = true)
         : width(width), height(height), m_renderDepth(renderDepth)
-    {
-    }
+    {}
     WindowInput(u32 width, u32 height, i32 xPos, i32 yPos, bool renderDepth = true)
         : width(width), height(height), xPos(xPos), yPos(yPos), m_renderDepth(renderDepth)
-    {
-    }
+    {}
 };
 
 struct WindowRect
@@ -44,6 +42,11 @@ class Window
 public:
     Window();
     virtual ~Window();
+
+    Window(const Window& rhs) = default;
+    Window& operator=(const Window& rhs) = default;
+    Window(Window&& rhs) = default;
+    Window& operator=(Window&& rhs) = default;
 
     void init(const std::string& title, WindowRect rect);
     virtual void cleanup();
@@ -69,7 +72,7 @@ protected:
 private:
     void setRenderTarget(Ref<RenderTarget> renderTarget);
 
-    std::string m_title{""};
+    std::string m_title;
     WindowRect m_rect;
     bool m_close{false};
 

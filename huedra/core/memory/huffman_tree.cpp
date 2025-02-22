@@ -3,12 +3,12 @@
 
 namespace huedra {
 
-void HuffmanTree::init(const std::vector<u32>& codeLengths, u32 range)
+void HuffmanTree::init(const std::vector<u32>& codeLengths, u32 /*range*/)
 {
     m_elements.push_back(-1); // Add root of tree
 
     u32 maxBits = 0;
-    for (auto& len : codeLengths)
+    for (const auto& len : codeLengths)
     {
         maxBits = std::max(len, maxBits);
     }
@@ -47,11 +47,11 @@ void HuffmanTree::init(const std::vector<u32>& codeLengths, u32 range)
             if (index >= m_elements.size())
             {
                 // Increase the height by one level of nodes
-                u64 newSize = 2 * m_elements.size() + 1;
+                u64 newSize = (2 * m_elements.size()) + 1;
                 m_elements.resize(newSize, -1);
             }
         }
-        m_elements[index] = i;
+        m_elements[index] = static_cast<i32>(i);
         ++nextCode[bitLen];
     }
 }
@@ -61,8 +61,8 @@ u32 HuffmanTree::decodeSymbol(const u8* bytes, u64& bits) const
     u32 index = 0;
     while (m_elements[index] == -1)
     {
-        index = index * 2 + 1;                   // Assume left child
-        index += readBits(&bytes[0], bits++, 1); // Sets to right child if 1
+        index = index * 2 + 1;               // Assume left child
+        index += readBits(bytes, bits++, 1); // Sets to right child if 1
     }
     return m_elements[index];
 }

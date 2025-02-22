@@ -8,12 +8,10 @@ namespace huedra {
 
 class JsonObject;
 class JsonValue;
-
 using JsonArray = std::vector<JsonValue>;
 
 class JsonValue
 {
-
     union Value
     {
         i32 iNum;
@@ -38,9 +36,13 @@ public:
         OBJECT
     };
 
-    JsonValue(JsonObject* parent, Type desiredType = Type::NIL);
+    explicit JsonValue(JsonObject* parent, Type desiredType = Type::NIL);
     virtual ~JsonValue() = default;
+
     JsonValue(const JsonValue& rhs) = default;
+    JsonValue& operator=(const JsonValue& rhs) = default;
+    JsonValue(JsonValue&& rhs) = default;
+    JsonValue& operator=(JsonValue&& rhs) = default;
 
     JsonValue& operator=(std::nullptr_t null);
     JsonValue& operator=(i32 value);
@@ -60,7 +62,8 @@ public:
     JsonArray& asArray();
     JsonObject& asObject();
 
-    template <typename T, typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
+    template <typename T>
+        requires std::is_integral_v<T>
     JsonValue& operator[](T index)
     {
         return (*this)[static_cast<uint64_t>(index)];
@@ -92,7 +95,7 @@ public:
     JsonObject(const JsonObject& rhs);
     JsonObject(const JsonObject&& rhs);
     JsonObject& operator=(const JsonObject& rhs);
-    JsonObject& operator=(const JsonObject&& rhs);
+    JsonObject& operator=(JsonObject&& rhs);
 
     JsonValue& operator[](const std::string& identifier);
     bool hasMember(const std::string& identifier) const;

@@ -34,6 +34,11 @@ public:
     RenderGraphBuilder() = default;
     ~RenderGraphBuilder() = default;
 
+    RenderGraphBuilder(const RenderGraphBuilder& rhs) = default;
+    RenderGraphBuilder& operator=(const RenderGraphBuilder& rhs) = default;
+    RenderGraphBuilder(RenderGraphBuilder&& rhs) = default;
+    RenderGraphBuilder& operator=(RenderGraphBuilder&& rhs) = default;
+
     RenderGraphBuilder& init();
     RenderGraphBuilder& addPass(const std::string& name, const RenderPassBuilder& pass);
 

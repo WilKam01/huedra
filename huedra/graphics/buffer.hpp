@@ -11,12 +11,17 @@ public:
     Buffer();
     virtual ~Buffer();
 
+    Buffer(const Buffer& rhs) = default;
+    Buffer& operator=(const Buffer& rhs) = default;
+    Buffer(Buffer&& rhs) = default;
+    Buffer& operator=(Buffer&& rhs) = default;
+
     virtual void write(u64 size, void* data) = 0;
     virtual void read(u64 size, void* data) = 0;
 
-    BufferType getType() { return m_type; }
-    BufferUsageFlags getBufferUsage() { return m_usage; }
-    u64 getSize() { return m_size; }
+    BufferType getType() const { return m_type; }
+    BufferUsageFlags getBufferUsage() const { return m_usage; }
+    u64 getSize() const { return m_size; }
 
 protected:
     void init(BufferType type, BufferUsageFlags usage, u64 size);

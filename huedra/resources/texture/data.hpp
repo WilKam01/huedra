@@ -19,7 +19,7 @@ struct TextureData
     u32 height{0};
     GraphicsDataFormat format{GraphicsDataFormat::UNDEFINED};
     u32 texelSize{0};
-    std::vector<u8> texels{};
+    std::vector<u8> texels;
 };
 
 } // namespace huedra

@@ -14,7 +14,14 @@ enum class LogLevel
 
 void log(LogLevel level, const char* formatStr, auto&&... args)
 {
-    const char* levelStr;
+#ifndef DEBUG
+    if (level == LogLevel::D_INFO)
+    {
+        return;
+    }
+#endif
+
+    const char* levelStr{nullptr};
     switch (level)
     {
     case LogLevel::D_INFO:

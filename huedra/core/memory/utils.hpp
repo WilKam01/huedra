@@ -9,7 +9,13 @@
 
 namespace huedra {
 
-template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+// The following functions need to have a simple interface for bytes (const u8* bytes)
+// and will therefore use arithmetic (ex: subscript operator) on pointers which is against the rule.
+// However, this is easier to implement than multiple functions (or templates) and should instead be controlled by the
+// user of the functions
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+template <typename T>
+    requires(std::is_integral_v<T>)
 constexpr T convertToHost(T value, std::endian origEndian)
 {
     if (std::endian::native == origEndian)
@@ -19,7 +25,8 @@ constexpr T convertToHost(T value, std::endian origEndian)
     return std::byteswap(value);
 }
 
-template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+template <typename T>
+    requires(std::is_integral_v<T>)
 constexpr T parseFromBytes(const u8* bytes, std::endian origEndian)
 {
     T value;
@@ -27,7 +34,8 @@ constexpr T parseFromBytes(const u8* bytes, std::endian origEndian)
     return convertToHost<T>(value, origEndian);
 }
 
-template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+template <typename T>
+    requires(std::is_integral_v<T>)
 constexpr void parseToBytes(u8* bytes, T value, std::endian desiredEndian)
 {
     value = convertToHost(value, desiredEndian);
@@ -39,7 +47,7 @@ constexpr u32 readBits(const u8* bytes, u32 startBit, u32 length, bool lsbFirst 
 {
     u32 result = 0;
     u32 byteOffset = startBit / 8;
-    u32 bitPos = startBit - byteOffset * 8; // Same as startBit % 8
+    u32 bitPos = startBit - (byteOffset * 8); // Same as startBit % 8
 
     u32 bitsRead = 0;
     while (bitsRead < length)
@@ -79,7 +87,7 @@ constexpr std::vector<u8> inflate(const u8* bytes)
     if (compressionMethod != 8) // "deflate" method
     {
         log(LogLevel::WARNING, "inflate(): Incorrect compression method used: {} (should be 8)", compressionMethod);
-        return std::vector<u8>();
+        return {};
     }
 
     u8 compressionInfo = readBits(&cmf, 4, 4);
@@ -87,14 +95,14 @@ constexpr std::vector<u8> inflate(const u8* bytes)
     {
         log(LogLevel::WARNING, "inflate(): Compression info used: {} is too large (should be 7 or less)",
             compressionInfo);
-        return std::vector<u8>();
+        return {};
     }
 
     u8 flags = bytes[index + 1];
     if ((cmf * 256 + flags) % 31 != 0) // Has to be multiple of 31
     {
         log(LogLevel::WARNING, "inflate(): cmf and flags 16-bit representation is not a multiple of 31");
-        return std::vector<u8>();
+        return {};
     }
 
     bool dictionaryPresent = static_cast<bool>(readBits(&flags, 5, 1));
@@ -111,14 +119,14 @@ constexpr std::vector<u8> inflate(const u8* bytes)
     std::vector<u8> retData;
 
     // Official length and distance codes
-    constexpr std::array<u32, 29> lengthExtraBits{0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2,
+    constexpr std::array<u32, 29> LengthExtraBits{0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2,
                                                   2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0};
-    constexpr std::array<u32, 29> lengthBase{3,  4,  5,  6,  7,  8,  9,  10, 11,  13,  15,  17,  19,  23, 27,
+    constexpr std::array<u32, 29> LengthBase{3,  4,  5,  6,  7,  8,  9,  10, 11,  13,  15,  17,  19,  23, 27,
                                              31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258};
 
-    constexpr std::array<u32, 30> distanceExtraBits{0, 0, 0, 0, 1, 1, 2, 2,  3,  3,  4,  4,  5,  5,  6,
+    constexpr std::array<u32, 30> DistanceExtraBits{0, 0, 0, 0, 1, 1, 2, 2,  3,  3,  4,  4,  5,  5,  6,
                                                     6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13};
-    constexpr std::array<u32, 30> distanceBase{1,    2,    3,    4,    5,    7,    9,    13,    17,    25,
+    constexpr std::array<u32, 30> DistanceBase{1,    2,    3,    4,    5,    7,    9,    13,    17,    25,
                                                33,   49,   65,   97,   129,  193,  257,  385,   513,   769,
                                                1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577};
     while (!finalBlock)
@@ -138,13 +146,13 @@ constexpr std::vector<u8> inflate(const u8* bytes)
             if (len != ~nLen)
             {
                 log(LogLevel::WARNING, "inflate(): len/nLen in uncompressed data block is invalid/corrupt");
-                return std::vector<u8>();
+                return {};
             }
 
             u64 start = retData.size();
             retData.resize(start + len);
             std::memcpy(&retData[start], &bytes[index + offset + 4], len);
-            bits += (len + 4) * 8;
+            bits += static_cast<u64>((len + 4) * 8);
         }
         else if (blockType == 1 || blockType == 2) // Compressed
         {
@@ -193,7 +201,7 @@ constexpr std::vector<u8> inflate(const u8* bytes)
                 codeLenTree.init(codes, 19);
 
                 codes.clear();
-                while (codes.size() < static_cast<u64>(hLit + hDist))
+                while (codes.size() < hLit + hDist)
                 {
                     u32 symbol = codeLenTree.decodeSymbol(&bytes[index], bits);
                     if (symbol >= 0 && symbol <= 15)
@@ -227,7 +235,7 @@ constexpr std::vector<u8> inflate(const u8* bytes)
                         log(LogLevel::WARNING,
                             "inflate(): symbol read of dynamic huffman codes is invalid: {}, should be [0, 18]",
                             symbol);
-                        return std::vector<u8>();
+                        return {};
                     }
                 }
 
@@ -251,12 +259,12 @@ constexpr std::vector<u8> inflate(const u8* bytes)
                 {
                     symbol -= 257;
 
-                    u32 len = readBits(&bytes[index], bits, lengthExtraBits[symbol]) + lengthBase[symbol];
-                    bits += lengthExtraBits[symbol];
+                    u32 len = readBits(&bytes[index], bits, LengthExtraBits[symbol]) + LengthBase[symbol];
+                    bits += LengthExtraBits[symbol];
 
                     u32 distSymbol = distanceTree.decodeSymbol(&bytes[index], bits);
-                    u32 dist = readBits(&bytes[index], bits, distanceExtraBits[distSymbol]) + distanceBase[distSymbol];
-                    bits += distanceExtraBits[distSymbol];
+                    u32 dist = readBits(&bytes[index], bits, DistanceExtraBits[distSymbol]) + DistanceBase[distSymbol];
+                    bits += DistanceExtraBits[distSymbol];
 
                     u64 origSize = retData.size();
                     u64 curIndex = origSize - dist;
@@ -274,7 +282,7 @@ constexpr std::vector<u8> inflate(const u8* bytes)
         else
         {
             log(LogLevel::WARNING, "inflate(): Block Type is {} is undefined/reserved", blockType);
-            return std::vector<u8>();
+            return {};
         }
     }
 
@@ -343,15 +351,16 @@ constexpr std::vector<u8> inflate(const u8* bytes)
     s1 %= 65521;
     s2 %= 65521;
 
-    u32 adler32 = parseFromBytes<u32>(&bytes[index + bits / 8 + 1], std::endian::big);
+    u32 adler32 = parseFromBytes<u32>(&bytes[index + (bits / 8) + 1], std::endian::big);
     if (s2 * 65536 + s1 != adler32)
     {
-        log(LogLevel::WARNING, "inflate(): ADLER32: {} is not accurate (calculated value: %u)", adler32,
-            s2 * 65536 + s1);
+        log(LogLevel::WARNING, "inflate(): ADLER32: {} is not accurate (calculated value: {})", adler32,
+            (s2 * 65536) + s1);
     }
 #endif
 
     return retData;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 } // namespace huedra

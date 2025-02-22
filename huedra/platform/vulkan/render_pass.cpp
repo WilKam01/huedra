@@ -8,17 +8,17 @@ namespace huedra {
 
 void VulkanRenderPass::init(Device& device, const RenderPassBuilder& builder)
 {
-    p_device = &device;
+    m_device = &device;
     m_builder = builder;
     if (m_builder.getType() == RenderPassType::GRAPHICS)
     {
         for (auto& info : m_builder.getRenderTargets())
         {
-            p_targetInfos.push_back({static_cast<VulkanRenderTarget*>(info.target.get())});
-            p_targetInfos.back().renderTarget->addRenderPass(this);
-            if (p_targetInfos.back().renderTarget->getSwapchain() != nullptr)
+            m_targetInfos.push_back({.renderTarget = static_cast<VulkanRenderTarget*>(info.target.get())});
+            m_targetInfos.back().renderTarget->addRenderPass(this);
+            if (m_targetInfos.back().renderTarget->getSwapchain() != nullptr)
             {
-                p_swapchainTarget = p_targetInfos.back().renderTarget;
+                m_swapchainTarget = m_targetInfos.back().renderTarget;
             }
         }
     }
@@ -29,13 +29,13 @@ void VulkanRenderPass::create()
     if (m_builder.getType() == RenderPassType::GRAPHICS)
     {
         createRenderPass();
-        m_pipeline.initGraphics(m_builder.getPipeline(), *p_device, m_renderPass,
+        m_pipeline.initGraphics(m_builder.getPipeline(), *m_device, m_renderPass,
                                 static_cast<u32>(m_builder.getRenderTargets().size()));
         createFramebuffers();
     }
     else
     {
-        m_pipeline.initCompute(m_builder.getPipeline(), *p_device);
+        m_pipeline.initCompute(m_builder.getPipeline(), *m_device);
     }
 }
 
@@ -44,26 +44,26 @@ void VulkanRenderPass::cleanup()
     if (m_builder.getType() == RenderPassType::GRAPHICS)
     {
         cleanupFramebuffers();
-        vkDestroyRenderPass(p_device->getLogical(), m_renderPass, nullptr);
-        p_swapchainTarget = nullptr;
+        vkDestroyRenderPass(m_device->getLogical(), m_renderPass, nullptr);
+        m_swapchainTarget = nullptr;
     }
     m_pipeline.cleanup();
 }
 
 void VulkanRenderPass::createFramebuffers()
 {
-    if (p_swapchainTarget)
+    if (m_swapchainTarget != nullptr)
     {
-        m_framebuffers.resize(p_swapchainTarget->getImageCount());
+        m_framebuffers.resize(m_swapchainTarget->getImageCount());
     }
     else
     {
         m_framebuffers.resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
     }
-    for (size_t i = 0; i < m_framebuffers.size(); i++)
+    for (u64 i = 0; i < m_framebuffers.size(); i++)
     {
         std::vector<VkImageView> attachments;
-        for (auto& info : p_targetInfos)
+        for (auto& info : m_targetInfos)
         {
             u32 imageCount = info.renderTarget->getImageCount();
             if (info.renderTarget->usesColor())
@@ -81,11 +81,11 @@ void VulkanRenderPass::createFramebuffers()
         framebufferInfo.renderPass = m_renderPass;
         framebufferInfo.attachmentCount = static_cast<u32>(attachments.size());
         framebufferInfo.pAttachments = attachments.data();
-        framebufferInfo.width = p_targetInfos[0].renderTarget->getExtent().width;
-        framebufferInfo.height = p_targetInfos[0].renderTarget->getExtent().height;
+        framebufferInfo.width = m_targetInfos[0].renderTarget->getExtent().width;
+        framebufferInfo.height = m_targetInfos[0].renderTarget->getExtent().height;
         framebufferInfo.layers = 1;
 
-        if (vkCreateFramebuffer(p_device->getLogical(), &framebufferInfo, nullptr, &m_framebuffers[i]) != VK_SUCCESS)
+        if (vkCreateFramebuffer(m_device->getLogical(), &framebufferInfo, nullptr, &m_framebuffers[i]) != VK_SUCCESS)
         {
             log(LogLevel::ERR, "Failed to create render target framebuffer!");
         }
@@ -96,7 +96,7 @@ void VulkanRenderPass::cleanupFramebuffers()
 {
     for (auto& framebuffer : m_framebuffers)
     {
-        vkDestroyFramebuffer(p_device->getLogical(), framebuffer, nullptr);
+        vkDestroyFramebuffer(m_device->getLogical(), framebuffer, nullptr);
     }
     m_framebuffers.clear();
 }
@@ -109,7 +109,7 @@ void VulkanRenderPass::begin(VkCommandBuffer commandBuffer)
         return;
     }
 
-    VkExtent2D extent = p_targetInfos[0].renderTarget->getExtent();
+    VkExtent2D extent = m_targetInfos[0].renderTarget->getExtent();
 
     VkViewport viewport;
     viewport.x = 0.0f;
@@ -120,7 +120,7 @@ void VulkanRenderPass::begin(VkCommandBuffer commandBuffer)
     viewport.maxDepth = 1.0f;
 
     VkRect2D scissor;
-    scissor.offset = {0, 0};
+    scissor.offset = {.x = 0, .y = 0};
     scissor.extent = extent;
 
     vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
@@ -129,15 +129,15 @@ void VulkanRenderPass::begin(VkCommandBuffer commandBuffer)
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = m_renderPass;
-    if (p_swapchainTarget)
+    if (m_swapchainTarget != nullptr)
     {
-        renderPassInfo.framebuffer = m_framebuffers[p_swapchainTarget->getSwapchain()->getImageIndex()];
+        renderPassInfo.framebuffer = m_framebuffers[m_swapchainTarget->getSwapchain()->getImageIndex()];
     }
     else
     {
         renderPassInfo.framebuffer = m_framebuffers[global::graphicsManager.getCurrentFrame()];
     }
-    renderPassInfo.renderArea.offset = {0, 0};
+    renderPassInfo.renderArea.offset = {.x = 0, .y = 0};
     renderPassInfo.renderArea.extent = extent;
     renderPassInfo.clearValueCount = 0;
     renderPassInfo.pClearValues = nullptr;
@@ -145,18 +145,18 @@ void VulkanRenderPass::begin(VkCommandBuffer commandBuffer)
     std::vector<VkClearValue> clearValues{};
     if (m_builder.getClearRenderTargets())
     {
-        for (u32 i = 0; i < p_targetInfos.size(); ++i)
+        for (u32 i = 0; i < m_targetInfos.size(); ++i)
         {
             vec3 clearColor = m_builder.getRenderTargets()[i].clearColor;
-            if (p_targetInfos[i].renderTarget->usesColor())
+            if (m_targetInfos[i].renderTarget->usesColor())
             {
                 VkClearValue& value = clearValues.emplace_back();
                 value.color = {clearColor[0], clearColor[1], clearColor[2], 1.0f};
             }
-            if (p_targetInfos[i].renderTarget->usesDepth())
+            if (m_targetInfos[i].renderTarget->usesDepth())
             {
                 VkClearValue& value = clearValues.emplace_back();
-                value.depthStencil = {1.0f, 0};
+                value.depthStencil = {.depth = 1.0f, .stencil = 0};
             }
         }
         renderPassInfo.clearValueCount = static_cast<u32>(clearValues.size());
@@ -172,7 +172,7 @@ void VulkanRenderPass::end(VkCommandBuffer commandBuffer)
     if (m_builder.getType() == RenderPassType::GRAPHICS)
     {
         vkCmdEndRenderPass(commandBuffer);
-        for (auto& info : p_targetInfos)
+        for (auto& info : m_targetInfos)
         {
             if (info.renderTarget->usesColor())
             {
@@ -193,7 +193,7 @@ void VulkanRenderPass::createRenderPass()
     std::vector<VkAttachmentReference> depthAttachmentRef;
     VkAttachmentLoadOp loadOp =
         m_builder.getClearRenderTargets() ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
-    for (auto& info : p_targetInfos)
+    for (auto& info : m_targetInfos)
     {
         if (info.renderTarget->usesColor())
         {
@@ -260,13 +260,13 @@ void VulkanRenderPass::createRenderPass()
     renderPassInfo.pAttachments = attachments.data();
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
-    if (p_targetInfos[0].renderTarget->usesColor())
+    if (m_targetInfos[0].renderTarget->usesColor())
     {
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &dependency;
     }
 
-    if (vkCreateRenderPass(p_device->getLogical(), &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS)
+    if (vkCreateRenderPass(m_device->getLogical(), &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS)
     {
         log(LogLevel::ERR, "Failed to create render pass!");
     }

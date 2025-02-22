@@ -45,8 +45,9 @@ HIDDEN = "\033[8m"
 RESET = "\033[0m"
 
 parser = argparse.ArgumentParser()
-parser.add_argument("dirs", help="Root directories with files to check", type=str, nargs="*")
-parser.add_argument("-f", "--file", help="File to check", type=str)
+parser.add_argument("paths", help="Paths to directories and files to check", type=str, nargs="*")
+parser.add_argument("--fix", help="Automatically tries to fix warnings and errors found", action="store_true")
+parser.add_argument("--fix-warnings", help="Automatically tries to fix warnings found", action="store_true")
 
 num_files = 0
 num_errors = 0
@@ -65,6 +66,11 @@ def run_clang_tidy_file(root, file):
     if(file.endswith(".hpp") or file.endswith(".cpp")):
         path = os.path.join(root, file)
         command = ["clang-tidy", "-p", "build", "--use-color", f"{path}"]
+        if args.fix:
+            command.append("-fix-errors")
+        elif args.fix_warnings:
+            command.append("-fix")
+        
         try:
             print(f"{UNDERLINE}{BOLD}{BRIGHT_WHITE}{path}:{RESET}")
             result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -94,12 +100,14 @@ if __name__ == "__main__":
 
     print("Running clang-tidy...")
 
-    if args.file is not None:
-        run_clang_tidy_file("", args.file)
+    for arg in args.paths:
+        if os.path.isfile(arg):
+            run_clang_tidy_file("", arg)
+        elif os.path.isdir(arg):
+            run_clang_tidy_dir(arg)
+        else:
+            print("{BRIGHT_RED}Invalid path{RESET}: {arg} is not a valid file or directory")
 
-    for dir in args.dirs:
-        run_clang_tidy_dir(dir)
-    
     if num_files != 0:
         print(f"Found {num_errors} {BRIGHT_RED}error(s){RESET} and {num_warnings} {BRIGHT_YELLOW}warning(s){RESET} in {num_files} file(s)")
     else:

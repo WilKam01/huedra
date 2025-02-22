@@ -75,8 +75,11 @@ int main()
         {
             Entity e = global::sceneManager.addEntity();
             Transform transform;
-            transform.position = vec3(-(numEnities / 2.0f) + x + 0.5f, -(numEnities / 2.0f) + y + 0.5f, 0.0f) * 3.0f;
-            transform.rotation = vec3(math::radians(15) * x, math::radians(15) * y, 0.0f);
+            transform.position = vec3(-(numEnities / 2.0f) + static_cast<float>(x) + 0.5f,
+                                      -(numEnities / 2.0f) + static_cast<float>(y) + 0.5f, 0.0f) *
+                                 3.0f;
+            transform.rotation =
+                vec3(math::radians(15) * static_cast<float>(x), math::radians(15) * static_cast<float>(y), 0.0f);
             transform.scale = vec3(1.0f);
             global::sceneManager.setComponent(e, transform);
         }
@@ -109,9 +112,15 @@ int main()
     builder.init(PipelineType::GRAPHICS)
         .addShader(ShaderStage::VERTEX, "assets/shaders/shader.vert")
         .addShader(ShaderStage::FRAGMENT, "assets/shaders/shader.frag")
-        .addVertexInputStream({sizeof(vec3), VertexInputRate::VERTEX, {{GraphicsDataFormat::RGB_32_FLOAT, 0}}})
-        .addVertexInputStream({sizeof(vec2), VertexInputRate::VERTEX, {{GraphicsDataFormat::RG_32_FLOAT, 0}}})
-        .addVertexInputStream({sizeof(vec3), VertexInputRate::VERTEX, {{GraphicsDataFormat::RGB_32_FLOAT, 0}}})
+        .addVertexInputStream({.size = sizeof(vec3),
+                               .inputRate = VertexInputRate::VERTEX,
+                               .attributes{{.format = GraphicsDataFormat::RGB_32_FLOAT, .offset = 0}}})
+        .addVertexInputStream({.size = sizeof(vec2),
+                               .inputRate = VertexInputRate::VERTEX,
+                               .attributes{{.format = GraphicsDataFormat::RG_32_FLOAT, .offset = 0}}})
+        .addVertexInputStream({.size = sizeof(vec3),
+                               .inputRate = VertexInputRate::VERTEX,
+                               .attributes{{.format = GraphicsDataFormat::RGB_32_FLOAT, .offset = 0}}})
         .addPushConstantRange(HU_SHADER_STAGE_VERTEX, sizeof(matrix4))
         .addResourceSet()
         .addResourceBinding(HU_SHADER_STAGE_VERTEX, ResourceType::UNIFORM_BUFFER)
@@ -150,7 +159,7 @@ int main()
     {
         vec4 pos;
         vec4 color;
-    } lightData{vec4(0.0f, 10.0f, 5.0f, 1.0f), vec4(0.2f, 0.1f, 0.5f, 2.0f)};
+    } lightData{.pos = vec4(0.0f, 10.0f, 5.0f, 1.0f), .color = vec4(0.2f, 0.1f, 0.5f, 2.0f)};
 
     Ref<Buffer> computeBuffer = global::graphicsManager.createBuffer(
         BufferType::DYNAMIC, HU_BUFFER_USAGE_UNIFORM_BUFFER, sizeof(LightData), &lightData);
@@ -196,13 +205,16 @@ int main()
         if (lock)
         {
             ivec2 mouseDt = global::input.getMouseDelta();
-            rot -= vec3(mouseDt.y, mouseDt.x, 0.0f) * 1.0f * global::timer.dt();
+            rot -= vec3(static_cast<float>(mouseDt.y), static_cast<float>(mouseDt.x), 0.0f) * 1.0f * global::timer.dt();
         }
         else
         {
-            rot += vec3(global::input.isKeyDown(Keys::K) - global::input.isKeyDown(Keys::I),
-                        global::input.isKeyDown(Keys::J) - global::input.isKeyDown(Keys::L),
-                        global::input.isKeyDown(Keys::O) - global::input.isKeyDown(Keys::U)) *
+            rot += vec3(static_cast<float>(global::input.isKeyDown(Keys::K)) -
+                            static_cast<float>(global::input.isKeyDown(Keys::I)),
+                        static_cast<float>(global::input.isKeyDown(Keys::J)) -
+                            static_cast<float>(global::input.isKeyDown(Keys::L)),
+                        static_cast<float>(global::input.isKeyDown(Keys::O)) -
+                            static_cast<float>(global::input.isKeyDown(Keys::U))) *
                    1.0f * global::timer.dt();
         }
 
@@ -213,10 +225,13 @@ int main()
         vec3 up = vec3(rMat(0, 1), rMat(1, 1), rMat(2, 1));
         vec3 forward = vec3(rMat(0, 2), rMat(1, 2), rMat(2, 2));
 
-        float eyeSpeed = 5.0f + 10.0f * global::input.isKeyDown(Keys::SHIFT);
-        eye += (static_cast<float>(global::input.isKeyDown(Keys::D) - global::input.isKeyDown(Keys::A)) * right +
-                static_cast<float>(global::input.isKeyDown(Keys::Q) - global::input.isKeyDown(Keys::E)) * up +
-                static_cast<float>(global::input.isKeyDown(Keys::S) - global::input.isKeyDown(Keys::W)) * forward) *
+        float eyeSpeed = 5.0f + (10.0f * static_cast<float>(global::input.isKeyDown(Keys::SHIFT)));
+        eye += (static_cast<float>(global::input.isKeyDown(Keys::D)) -
+                static_cast<float>(global::input.isKeyDown(Keys::A)) * right +
+                static_cast<float>(global::input.isKeyDown(Keys::Q)) -
+                static_cast<float>(global::input.isKeyDown(Keys::E)) * up +
+                static_cast<float>(global::input.isKeyDown(Keys::S)) -
+                static_cast<float>(global::input.isKeyDown(Keys::W)) * forward) *
                eyeSpeed * global::timer.dt();
 
         RenderGraphBuilder renderGraph;
@@ -269,7 +284,7 @@ int main()
 
         if (global::input.isKeyActive(KeyToggles::CAPS_LOCK))
         {
-            log(LogLevel::INFO, "Caps is on");
+            log(LogLevel::D_INFO, "Caps is on");
         }
 
         static u32 i = 0;
@@ -284,7 +299,7 @@ int main()
                 sum += fps;
             }
 
-            log(LogLevel::INFO, "Elapsed: {:.5f}, Delta: {:.5f}, FPS: {}", global::timer.secondsElapsed(),
+            log(LogLevel::D_INFO, "Elapsed: {:.5f}, Delta: {:.5f}, FPS: {}", global::timer.secondsElapsed(),
                 global::timer.dt(), sum / 500);
             i = 0;
         }

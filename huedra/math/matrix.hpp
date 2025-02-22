@@ -12,7 +12,7 @@ class Matrix
 {
 public:
     Matrix() = default;
-    Matrix(T scalar)
+    explicit Matrix(T scalar)
     {
         static_assert(R == C, "Scalar constructor only works on square matrices");
         for (u64 i = 0; i < C; ++i)
@@ -20,23 +20,23 @@ public:
             m_elements[i][i] = scalar;
         }
     }
-    Matrix(std::array<std::array<T, R>, C> values) { m_elements = values; }
-    Matrix(std::array<T, R * C> values)
+    explicit Matrix(std::array<std::array<T, R>, C> values) : m_elements(values) {}
+    explicit Matrix(std::array<T, R * C> values)
     {
         for (u64 i = 0; i < C; ++i)
         {
             for (u64 j = 0; j < R; ++j)
             {
-                m_elements[i][j] = values[i * R + j];
+                m_elements[i][j] = values[(i * R) + j];
             }
         }
     }
 
-    inline T operator[](u64 index) const { return m_elements[index / C][index % C]; }
-    inline T& operator[](u64 index) { return m_elements[index / C][index % C]; }
+    T operator[](u64 index) const { return m_elements[index / C][index % C]; }
+    T& operator[](u64 index) { return m_elements[index / C][index % C]; }
 
-    inline T operator()(u64 row, u64 column) const { return m_elements[column][row]; }
-    inline T& operator()(u64 row, u64 column) { return m_elements[column][row]; }
+    T operator()(u64 row, u64 column) const { return m_elements[column][row]; }
+    T& operator()(u64 row, u64 column) { return m_elements[column][row]; }
 
     constexpr Matrix<T, R, C> operator+(T scalar)
     {

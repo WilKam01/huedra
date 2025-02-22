@@ -13,20 +13,31 @@ public:
     Timer() = default;
     ~Timer() = default;
 
+    Timer(const Timer& rhs) = default;
+    Timer& operator=(const Timer& rhs) = default;
+    Timer(Timer&& rhs) = default;
+    Timer& operator=(Timer&& rhs) = default;
+
     void init();
     void update();
 
     // In nanoseconds
-    i64 timeElapsed() { return m_currentTime - m_startTime; }
-    i64 dtNano() { return m_deltaTime; }
+    i64 timeElapsed() const { return m_currentTime - m_startTime; }
+    i64 dtNano() const { return m_deltaTime; }
 
     // In milliseconds
-    float msElapsed() { return (m_currentTime - m_startTime) / static_cast<float>(MILLISECONDS_TO_NANO); }
-    float msDt() { return m_deltaTime / static_cast<float>(MILLISECONDS_TO_NANO); }
+    float msElapsed() const
+    {
+        return static_cast<float>(m_currentTime - m_startTime) / static_cast<float>(MILLISECONDS_TO_NANO);
+    }
+    float msDt() const { return static_cast<float>(m_deltaTime) / static_cast<float>(MILLISECONDS_TO_NANO); }
 
     // In seconds
-    float secondsElapsed() { return (m_currentTime - m_startTime) / static_cast<float>(SECONDS_TO_NANO); }
-    float dt() { return m_deltaTime / static_cast<float>(SECONDS_TO_NANO); }
+    float secondsElapsed() const
+    {
+        return static_cast<float>(m_currentTime - m_startTime) / static_cast<float>(SECONDS_TO_NANO);
+    }
+    float dt() const { return static_cast<float>(m_deltaTime) / static_cast<float>(SECONDS_TO_NANO); }
 
 private:
     i64 m_startTime;

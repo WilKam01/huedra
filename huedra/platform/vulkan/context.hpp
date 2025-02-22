@@ -17,13 +17,18 @@ class VulkanContext : public GraphicalContext
 {
 public:
     VulkanContext() = default;
-    ~VulkanContext() = default;
+    ~VulkanContext() override = default;
+
+    VulkanContext(const VulkanContext& rhs) = delete;
+    VulkanContext& operator=(const VulkanContext& rhs) = delete;
+    VulkanContext(VulkanContext&& rhs) = delete;
+    VulkanContext& operator=(VulkanContext&& rhs) = delete;
 
     void init() override;
     void cleanup() override;
 
     void createSwapchain(Window* window, bool renderDepth) override;
-    void removeSwapchain(size_t index) override;
+    void removeSwapchain(u64 index) override;
 
     Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) override;
     Texture* createTexture(const TextureData& textureData) override;
@@ -61,6 +66,11 @@ private:
     void submitComputeQueue(u32 batchIndex);
     void presentSwapchains();
 
+    static void transitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkFormat format,
+                                      VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask,
+                                      VkAccessFlags dstAccessMask, VkPipelineStageFlags srcStageMask,
+                                      VkPipelineStageFlags dstStageMask);
+
     Instance m_instance;
     Device m_device;
     VulkanBuffer m_stagingBuffer;
@@ -88,7 +98,7 @@ private:
     struct SamplerInfo
     {
         SamplerSettings settings;
-        VkSampler sampler;
+        VkSampler sampler{nullptr};
     };
     std::vector<SamplerInfo> m_samplers;
 

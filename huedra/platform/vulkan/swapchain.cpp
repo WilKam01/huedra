@@ -6,18 +6,18 @@ namespace huedra {
 
 void VulkanSwapchain::init(Window* window, Device& device, VkSurfaceKHR surface, bool renderDepth)
 {
-    p_window = window;
-    p_device = &device;
+    m_window = window;
+    m_device = &device;
     m_surface = surface;
     m_renderDepth = renderDepth;
 
     create();
-    p_window->setRenderTarget(&m_renderTarget);
+    m_window->setRenderTarget(Ref<RenderTarget>(&m_renderTarget));
 }
 
 void VulkanSwapchain::cleanup()
 {
-    p_device->waitIdle();
+    m_device->waitIdle();
 
     partialCleanup();
     m_renderTarget.cleanup();
@@ -25,7 +25,7 @@ void VulkanSwapchain::cleanup()
 
 void VulkanSwapchain::aquireNextImage()
 {
-    if (p_window->isMinimized())
+    if (m_window->isMinimized())
     {
         m_renderTarget.setAvailability(false);
         return;
@@ -40,7 +40,7 @@ void VulkanSwapchain::aquireNextImage()
     m_renderTarget.setAvailability(false);
 
     VkResult result =
-        vkAcquireNextImageKHR(p_device->getLogical(), m_swapchain, UINT64_MAX,
+        vkAcquireNextImageKHR(m_device->getLogical(), m_swapchain, UINT64_MAX,
                               m_imageAvailableSemaphores[m_semaphoreIndex], VK_NULL_HANDLE, &m_imageIndex);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
@@ -57,7 +57,6 @@ void VulkanSwapchain::aquireNextImage()
         m_alreadyAquiredFrame = true;
         m_renderTarget.setAvailability(true);
     }
-    return;
 }
 
 void VulkanSwapchain::handlePresentResult(VkResult result)
@@ -75,7 +74,9 @@ VkPresentModeKHR VulkanSwapchain::choosePresentMode(const std::vector<VkPresentM
     for (const auto& availablePresentMode : availablePresentModes)
     {
         if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
+        {
             return availablePresentMode;
+        }
     }
 
     return VK_PRESENT_MODE_FIFO_KHR;
@@ -87,25 +88,22 @@ VkExtent2D VulkanSwapchain::chooseExtent(const VkSurfaceCapabilitiesKHR& capabil
     {
         return capabilities.currentExtent;
     }
-    else
-    {
-        WindowRect rect = p_window->getRect();
-        VkExtent2D actualExtent = {rect.screenWidth, rect.screenHeight};
+    WindowRect rect = m_window->getRect();
+    VkExtent2D actualExtent = {rect.screenWidth, rect.screenHeight};
 
-        actualExtent.width =
-            std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-        actualExtent.height =
-            std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+    actualExtent.width =
+        std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+    actualExtent.height =
+        std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 
-        return actualExtent;
-    }
+    return actualExtent;
 }
 
 void VulkanSwapchain::recreate()
 {
     // TODO: Wait for window events?
 
-    p_device->waitIdle();
+    m_device->waitIdle();
     partialCleanup();
 
     create();
@@ -114,11 +112,11 @@ void VulkanSwapchain::recreate()
 void VulkanSwapchain::partialCleanup()
 {
     m_renderTarget.partialCleanup();
-    vkDestroySwapchainKHR(p_device->getLogical(), m_swapchain, nullptr);
+    vkDestroySwapchainKHR(m_device->getLogical(), m_swapchain, nullptr);
 
-    for (u32 i = 0; i < m_imageAvailableSemaphores.size(); i++)
+    for (auto& semaphore : m_imageAvailableSemaphores)
     {
-        vkDestroySemaphore(p_device->getLogical(), m_imageAvailableSemaphores[i], nullptr);
+        vkDestroySemaphore(m_device->getLogical(), semaphore, nullptr);
     }
 }
 
@@ -129,17 +127,16 @@ void VulkanSwapchain::create()
     VkSemaphoreCreateInfo semaphoreInfo{};
     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-    for (size_t i = 0; i < m_imageAvailableSemaphores.size(); i++)
+    for (auto& semaphore : m_imageAvailableSemaphores)
     {
-        if (vkCreateSemaphore(p_device->getLogical(), &semaphoreInfo, nullptr, &m_imageAvailableSemaphores[i]) !=
-            VK_SUCCESS)
+        if (vkCreateSemaphore(m_device->getLogical(), &semaphoreInfo, nullptr, &semaphore) != VK_SUCCESS)
         {
             log(LogLevel::ERR, "Failed to create swap chain synchronization objects!");
         }
     }
 
-    VulkanSurfaceSupport surfaceSupport = p_device->querySurfaceSupport(p_device->getPhysical(), m_surface);
-    VkSurfaceFormatKHR surfaceFormat = p_device->chooseSurfaceFormat(surfaceSupport.formats);
+    VulkanSurfaceSupport surfaceSupport = Device::querySurfaceSupport(m_device->getPhysical(), m_surface);
+    VkSurfaceFormatKHR surfaceFormat = Device::chooseSurfaceFormat(surfaceSupport.formats);
     VkPresentModeKHR presentMode = choosePresentMode(surfaceSupport.presentModes);
     VkExtent2D extent = chooseExtent(surfaceSupport.capabilities);
 
@@ -160,14 +157,15 @@ void VulkanSwapchain::create()
     createInfo.imageUsage =
         VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
 
-    QueueFamilyIndices indices = p_device->getQueueFamilyIndices();
-    u32 queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+    u32 graphicsFamily = m_device->getGraphicsQueueFamilyIndex();
+    u32 presentFamily = m_device->getPresentQueueFamilyIndex();
+    std::array<u32, 2> queueFamilyIndices = {graphicsFamily, presentFamily};
 
-    if (indices.graphicsFamily != indices.presentFamily)
+    if (graphicsFamily != presentFamily)
     {
         createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         createInfo.queueFamilyIndexCount = 2;
-        createInfo.pQueueFamilyIndices = queueFamilyIndices;
+        createInfo.pQueueFamilyIndices = queueFamilyIndices.data();
     }
     else
     {
@@ -182,12 +180,12 @@ void VulkanSwapchain::create()
     createInfo.clipped = VK_TRUE;
     createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-    if (vkCreateSwapchainKHR(p_device->getLogical(), &createInfo, nullptr, &m_swapchain) != VK_SUCCESS)
+    if (vkCreateSwapchainKHR(m_device->getLogical(), &createInfo, nullptr, &m_swapchain) != VK_SUCCESS)
     {
         log(LogLevel::ERR, "Failed to create swap chain!");
     }
 
-    m_renderTarget.init(*p_device, *this, surfaceFormat.format, extent);
+    m_renderTarget.init(*m_device, *this, surfaceFormat.format, extent);
 }
 
 } // namespace huedra

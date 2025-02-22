@@ -1,5 +1,8 @@
 #pragma once
 
+#include "core/log.hpp"
+#include "math/matrix.hpp"
+
 namespace huedra {
 
 // Determinant
@@ -135,4 +138,4 @@ constexpr Matrix<T, 4, 4> invert(const Matrix<T, 4, 4>& matrix)
     return adj / det;
 }
 
-}
+} // namespace huedra

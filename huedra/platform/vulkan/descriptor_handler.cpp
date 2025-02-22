@@ -8,8 +8,8 @@ namespace huedra {
 void DescriptorHandler::init(Device& device, VulkanRenderPass& renderPass, VkDescriptorPool descriptorPool,
                              const std::vector<std::vector<VkDescriptorType>>& bindingTypes)
 {
-    p_device = &device;
-    p_renderPass = &renderPass;
+    m_device = &device;
+    m_renderPass = &renderPass;
     m_pool = descriptorPool;
     m_layouts = renderPass.getPipeline().getDescriptorLayouts();
 
@@ -64,8 +64,8 @@ void DescriptorHandler::bindSets(VkCommandBuffer commandBuffer)
         descriptors[i] = m_sets[i].instances[m_sets[i].curIndex];
     }
 
-    vkCmdBindDescriptorSets(commandBuffer, converter::convertPipelineType(p_renderPass->getPipelineType()),
-                            p_renderPass->getPipeline().getLayout(), 0, static_cast<u32>(descriptors.size()),
+    vkCmdBindDescriptorSets(commandBuffer, converter::convertPipelineType(m_renderPass->getPipelineType()),
+                            m_renderPass->getPipeline().getLayout(), 0, static_cast<u32>(descriptors.size()),
                             descriptors.data(), 0, nullptr);
 }
 
@@ -103,7 +103,7 @@ void DescriptorHandler::writeBuffer(VulkanBuffer& buffer, u32 set, u32 binding)
     descriptorWrite.descriptorCount = 1;
     descriptorWrite.pBufferInfo = &bufferInfo;
 
-    vkUpdateDescriptorSets(p_device->getLogical(), 1, &descriptorWrite, 0, nullptr);
+    vkUpdateDescriptorSets(m_device->getLogical(), 1, &descriptorWrite, 0, nullptr);
     m_updatedSinceLastUpdate = true;
 }
 
@@ -141,14 +141,14 @@ void DescriptorHandler::writeTexture(VulkanTexture& texture, VkSampler sampler, 
     descriptorWrite.descriptorCount = 1;
     descriptorWrite.pImageInfo = &imageInfo;
 
-    vkUpdateDescriptorSets(p_device->getLogical(), 1, &descriptorWrite, 0, nullptr);
+    vkUpdateDescriptorSets(m_device->getLogical(), 1, &descriptorWrite, 0, nullptr);
     m_updatedSinceLastUpdate = true;
 }
 
 VkDescriptorSet DescriptorHandler::createDescriptorSet(u32 set)
 {
-    VkDescriptorSet descriptor;
-    VkDescriptorSetLayout layout = p_renderPass->getPipeline().getDescriptorLayout(set);
+    VkDescriptorSet descriptor{nullptr};
+    VkDescriptorSetLayout layout = m_renderPass->getPipeline().getDescriptorLayout(set);
 
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -156,7 +156,7 @@ VkDescriptorSet DescriptorHandler::createDescriptorSet(u32 set)
     allocInfo.descriptorSetCount = 1;
     allocInfo.pSetLayouts = &layout;
 
-    if (vkAllocateDescriptorSets(p_device->getLogical(), &allocInfo, &descriptor) != VK_SUCCESS)
+    if (vkAllocateDescriptorSets(m_device->getLogical(), &allocInfo, &descriptor) != VK_SUCCESS)
     {
         log(LogLevel::ERR, "Failed to allocate descriptor set!");
     }

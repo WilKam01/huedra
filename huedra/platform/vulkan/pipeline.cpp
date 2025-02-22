@@ -8,7 +8,7 @@ namespace huedra {
 void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device& device, VkRenderPass renderPass,
                                   u32 targetCount)
 {
-    p_device = &device;
+    m_device = &device;
     m_builder = pipelineBuilder;
     initLayout();
 
@@ -158,7 +158,7 @@ void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
     pipelineInfo.basePipelineIndex = -1;
 
-    if (vkCreateGraphicsPipelines(p_device->getLogical(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) !=
+    if (vkCreateGraphicsPipelines(m_device->getLogical(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) !=
         VK_SUCCESS)
     {
         log(LogLevel::ERR, "Failed to create graphics pipeline!");
@@ -166,13 +166,13 @@ void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device
 
     for (auto& module : shaderModules)
     {
-        vkDestroyShaderModule(p_device->getLogical(), module, nullptr);
+        vkDestroyShaderModule(m_device->getLogical(), module, nullptr);
     }
 }
 
 void VulkanPipeline::initCompute(const PipelineBuilder& pipelineBuilder, Device& device)
 {
-    p_device = &device;
+    m_device = &device;
     m_builder = pipelineBuilder;
     initLayout();
 
@@ -188,23 +188,23 @@ void VulkanPipeline::initCompute(const PipelineBuilder& pipelineBuilder, Device&
     pipelineInfo.layout = m_pipelineLayout;
     pipelineInfo.stage = shaderStageInfo;
 
-    if (vkCreateComputePipelines(p_device->getLogical(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) !=
+    if (vkCreateComputePipelines(m_device->getLogical(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) !=
         VK_SUCCESS)
     {
         log(LogLevel::ERR, "Failed to create compute pipeline!");
     }
 
-    vkDestroyShaderModule(p_device->getLogical(), shaderModule, nullptr);
+    vkDestroyShaderModule(m_device->getLogical(), shaderModule, nullptr);
 }
 
 void VulkanPipeline::cleanup()
 {
-    vkDestroyPipeline(p_device->getLogical(), m_pipeline, nullptr);
-    vkDestroyPipelineLayout(p_device->getLogical(), m_pipelineLayout, nullptr);
+    vkDestroyPipeline(m_device->getLogical(), m_pipeline, nullptr);
+    vkDestroyPipelineLayout(m_device->getLogical(), m_pipelineLayout, nullptr);
 
     for (auto& descriptorLayout : m_descriptorLayout)
     {
-        vkDestroyDescriptorSetLayout(p_device->getLogical(), descriptorLayout, nullptr);
+        vkDestroyDescriptorSetLayout(m_device->getLogical(), descriptorLayout, nullptr);
     }
 }
 
@@ -216,10 +216,10 @@ void VulkanPipeline::initLayout()
     std::vector<std::vector<VkDescriptorSetLayoutBinding>> bindings(resources.size());
     m_descriptorLayout.resize(resources.size());
 
-    for (size_t i = 0; i < resources.size(); ++i)
+    for (u64 i = 0; i < resources.size(); ++i)
     {
         bindings[i].resize(resources[i].size());
-        for (size_t j = 0; j < resources[i].size(); ++j)
+        for (u64 j = 0; j < resources[i].size(); ++j)
         {
             bindings[i][j].binding = j;
             bindings[i][j].descriptorType = converter::convertResourceType(resources[i][j].resource);
@@ -232,7 +232,7 @@ void VulkanPipeline::initLayout()
         layoutInfo.bindingCount = static_cast<u32>(bindings[i].size());
         layoutInfo.pBindings = bindings[i].data();
 
-        if (vkCreateDescriptorSetLayout(p_device->getLogical(), &layoutInfo, nullptr, &m_descriptorLayout[i]) !=
+        if (vkCreateDescriptorSetLayout(m_device->getLogical(), &layoutInfo, nullptr, &m_descriptorLayout[i]) !=
             VK_SUCCESS)
         {
             log(LogLevel::ERR, "Failed to create descriptor set layout!");
@@ -244,7 +244,7 @@ void VulkanPipeline::initLayout()
     std::vector<VkPushConstantRange> pushConstants(pushConstantRanges.size());
 
     u32 pushConstantOffset = 0;
-    for (size_t i = 0; i < pushConstants.size(); ++i)
+    for (u64 i = 0; i < pushConstants.size(); ++i)
     {
         pushConstants[i].stageFlags = converter::convertShaderStage(builder.getType(), pushConstantsStages[i]);
         pushConstants[i].offset = pushConstantOffset;
@@ -272,7 +272,7 @@ void VulkanPipeline::initLayout()
         pipelineLayoutInfo.pPushConstantRanges = pushConstants.data();
     }
 
-    if (vkCreatePipelineLayout(p_device->getLogical(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS)
+    if (vkCreatePipelineLayout(m_device->getLogical(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS)
     {
         log(LogLevel::ERR, "Failed to create pipeline layout!");
     }
@@ -287,8 +287,8 @@ VkShaderModule VulkanPipeline::loadShader(const std::string& path)
     createInfo.codeSize = buffer.size();
     createInfo.pCode = reinterpret_cast<const u32*>(buffer.data());
 
-    VkShaderModule shaderModule;
-    if (vkCreateShaderModule(p_device->getLogical(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+    VkShaderModule shaderModule{nullptr};
+    if (vkCreateShaderModule(m_device->getLogical(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
     {
         log(LogLevel::ERR, "Failed to create shader module!");
     }

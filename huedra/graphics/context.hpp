@@ -17,11 +17,16 @@ public:
     GraphicalContext() = default;
     virtual ~GraphicalContext() = default;
 
+    GraphicalContext(const GraphicalContext& rhs) = delete;
+    GraphicalContext& operator=(const GraphicalContext& rhs) = delete;
+    GraphicalContext(GraphicalContext&& rhs) = delete;
+    GraphicalContext& operator=(GraphicalContext&& rhs) = delete;
+
     virtual void init() = 0;
     virtual void cleanup() = 0;
 
     virtual void createSwapchain(Window* window, bool renderDepth) = 0;
-    virtual void removeSwapchain(size_t index) = 0;
+    virtual void removeSwapchain(u64 index) = 0;
 
     virtual Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) = 0;
     virtual Texture* createTexture(const TextureData& textureData) = 0;

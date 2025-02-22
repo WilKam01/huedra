@@ -12,11 +12,16 @@ public:
     PipelineBuilder() = default;
     ~PipelineBuilder() = default;
 
+    PipelineBuilder(const PipelineBuilder& rhs) = default;
+    PipelineBuilder& operator=(const PipelineBuilder& rhs) = default;
+    PipelineBuilder(PipelineBuilder&& rhs) = default;
+    PipelineBuilder& operator=(PipelineBuilder&& rhs) = default;
+
     PipelineBuilder& init(PipelineType type);
 
-    PipelineBuilder& addShader(ShaderStage stage, std::string shader);
+    PipelineBuilder& addShader(ShaderStage stage, const std::string& shader);
 
-    PipelineBuilder& addVertexInputStream(VertexInputStream inputStream);
+    PipelineBuilder& addVertexInputStream(const VertexInputStream& inputStream);
 
     PipelineBuilder& addPushConstantRange(u32 stage, u32 size);
     PipelineBuilder& addResourceSet();
@@ -40,12 +45,12 @@ private:
     bool m_initialized{false};
     u64 m_hash{0};
 
-    PipelineType m_type;
+    PipelineType m_type{PipelineType::GRAPHICS};
     std::map<ShaderStage, std::string> m_shaderStages;
-    std::vector<std::vector<ResourceBinding>> m_resources{};
+    std::vector<std::vector<ResourceBinding>> m_resources;
 
-    std::vector<u32> m_pushConstantRanges{};
-    std::vector<ShaderStageFlags> m_pushConstantShaderStages{};
+    std::vector<u32> m_pushConstantRanges;
+    std::vector<ShaderStageFlags> m_pushConstantShaderStages;
 
     // Graphics specific
     std::vector<VertexInputStream> m_vertexStreams;

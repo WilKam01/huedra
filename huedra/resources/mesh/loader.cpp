@@ -36,15 +36,15 @@ std::vector<MeshData> loadObj(const std::string& path)
             switch (line[1])
             {
             case 'n': // Normal
-                normals.push_back(vec3(std::stof(elements[1]), std::stof(elements[2]), std::stof(elements[3])));
+                normals.emplace_back(std::stof(elements[1]), std::stof(elements[2]), std::stof(elements[3]));
                 break;
             case 't': // Uv
-                uvs.push_back(vec2(std::stof(elements[1]),
-                                   1.0f - std::stof(elements[2]))); // TODO: Add option, 1.0f - y is only Vulkan
+                uvs.emplace_back(std::stof(elements[1]),
+                                 1.0f - std::stof(elements[2])); // TODO: Add option, 1.0f - y is only Vulkan
                 break;
 
             default: // Position
-                positions.push_back(vec3(std::stof(elements[1]), std::stof(elements[2]), std::stof(elements[3])));
+                positions.emplace_back(std::stof(elements[1]), std::stof(elements[2]), std::stof(elements[3]));
                 break;
             }
             break;
@@ -144,7 +144,7 @@ std::vector<MeshData> loadObj(const std::string& path)
             std::string line(reinterpret_cast<char*>(&bytes[lineStart]), i - lineStart);
             lineStart = i + 1;
 
-            if (line.length() == 0)
+            if (line.empty())
             {
                 continue;
             }
@@ -155,7 +155,7 @@ std::vector<MeshData> loadObj(const std::string& path)
 
     // Parse left over line
     std::string line(reinterpret_cast<char*>(&bytes[lineStart]), bytes.size() - lineStart);
-    if (line.length() != 0)
+    if (!line.empty())
     {
         parseLine(line);
     }
@@ -168,6 +168,7 @@ std::vector<MeshData> loadObj(const std::string& path)
     return meshDatas;
 }
 
+namespace {
 std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
                                const std::vector<std::vector<u8>>& byteBuffers)
 {
@@ -195,7 +196,7 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
         {
             log(LogLevel::WARNING, "loadGltf(): {} with accessor[{}]: accessor is incorrect or out of bounds",
                 path.c_str(), accessorIndex);
-            return std::vector<u8>();
+            return {};
         }
         JsonObject& accessor = accessors[accessorIndex].asObject();
 
@@ -204,19 +205,19 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
         {
             log(LogLevel::WARNING, "loadGltf(): {} with accessor[{}]: incorrect componentType", path.c_str(),
                 accessorIndex);
-            return std::vector<u8>();
+            return {};
         }
 
         if (!accessor.hasMember("type", JsonValue::Type::STRING) || accessor["type"].asString() != type)
         {
             log(LogLevel::WARNING, "loadGltf(): {} with accessor[{}]: incorrect type", path.c_str(), accessorIndex);
-            return std::vector<u8>();
+            return {};
         }
 
         if (!accessor.hasMember("count", JsonValue::Type::UINT))
         {
             log(LogLevel::WARNING, "loadGltf(): {} with accessor[{}]: incorrect count", path.c_str(), accessorIndex);
-            return std::vector<u8>();
+            return {};
         }
         u32 typeSize = accessor["count"].asUint() * typeCount;
 
@@ -230,7 +231,7 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
         {
             log(LogLevel::WARNING, "loadGltf(): {} with accessor[{}]: incorrect bufferView index/object", path.c_str(),
                 accessorIndex);
-            return std::vector<u8>();
+            return {};
         }
         JsonObject& bufferView = bufferViews[accessor["bufferView"].asUint()].asObject();
 
@@ -239,7 +240,7 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
         {
             log(LogLevel::WARNING, "loadGltf(): {} with bufferView[{}]: incorrect bufferView values", path.c_str(),
                 accessor["bufferView"].asUint());
-            return std::vector<u8>();
+            return {};
         }
 
         const std::vector<u8>& byteBuffer = byteBuffers[bufferView["buffer"].asUint()];
@@ -253,10 +254,10 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
         if (accessorByteOffset + byteLen > viewByteLen)
         {
             log(LogLevel::WARNING,
-                "loadGltf(): %s with accessor[{}] and bufferView[{}]: byte range larger than view buffer "
+                "loadGltf(): {} with accessor[{}] and bufferView[{}]: byte range larger than view buffer "
                 "byte range",
                 path.c_str(), accessorIndex, accessor["bufferView"].asUint());
-            return std::vector<u8>();
+            return {};
         }
 
         bytes.resize(byteLen);
@@ -283,18 +284,18 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
                 break;
             case ComponentType::INT16:
             case ComponentType::UINT16: {
-                u16 value = parseFromBytes<u16>(&byteBuffer[byteOffset + i * byteStride], std::endian::little);
+                u16 value = parseFromBytes<u16>(&byteBuffer[byteOffset + (i * byteStride)], std::endian::little);
                 bytes[i * sizeof(u16)] = static_cast<u8>(value & 0x00ff);
-                bytes[i * sizeof(u16) + 1] = static_cast<u8>(value >> 8);
+                bytes[(i * sizeof(u16)) + 1] = static_cast<u8>(value >> 8);
             }
             break;
             case ComponentType::UINT32:
             case ComponentType::FLOAT: {
-                u32 value = parseFromBytes<u32>(&byteBuffer[byteOffset + i * byteStride], std::endian::little);
+                u32 value = parseFromBytes<u32>(&byteBuffer[byteOffset + (i * byteStride)], std::endian::little);
                 bytes[i * sizeof(u32)] = static_cast<u8>((value) & 0x000000ff);
-                bytes[i * sizeof(u32) + 1] = static_cast<u8>((value >> 8) & 0x000000ff);
-                bytes[i * sizeof(u32) + 2] = static_cast<u8>((value >> 16) & 0x000000ff);
-                bytes[i * sizeof(u32) + 3] = static_cast<u8>(value >> 24);
+                bytes[(i * sizeof(u32)) + 1] = static_cast<u8>((value >> 8) & 0x000000ff);
+                bytes[(i * sizeof(u32)) + 2] = static_cast<u8>((value >> 16) & 0x000000ff);
+                bytes[(i * sizeof(u32)) + 3] = static_cast<u8>(value >> 24);
             }
             break;
             }
@@ -308,14 +309,14 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
         if (meshes[i].getType() != JsonValue::Type::OBJECT)
         {
             log(LogLevel::WARNING, "loadGltf(): {} with mesh[{}]: not an object", path.c_str(), i);
-            return std::vector<MeshData>();
+            return {};
         }
         JsonObject& mesh = meshes[i].asObject();
 
         if (!mesh.hasMember("primitives", JsonValue::Type::ARRAY))
         {
             log(LogLevel::WARNING, "loadGltf(): {} with mesh[{}]: incorrect primitives member", path.c_str(), i);
-            return std::vector<MeshData>();
+            return {};
         }
         JsonArray& primitives = mesh["primitives"].asArray();
         MeshData& meshData = meshDatas.emplace_back();
@@ -326,7 +327,7 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
             {
                 log(LogLevel::WARNING, "loadGltf(): {} with mesh[{}].primitives[{}]: not an object", path.c_str(), i,
                     j);
-                return std::vector<MeshData>();
+                return {};
             }
             JsonObject& primitive = primitives[j].asObject();
 
@@ -334,7 +335,7 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
             {
                 log(LogLevel::WARNING, "loadGltf(): {} with mesh[{}].primitives[{}]: incorrect attributes member",
                     path.c_str(), i, j);
-                return std::vector<MeshData>();
+                return {};
             }
             JsonObject& attribute = primitive["attributes"].asObject();
 
@@ -343,19 +344,19 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
             {
                 log(LogLevel::WARNING, "loadGltf(): {} with mesh[{}].primitives[{}]: incorrect vertex data",
                     path.c_str(), i, j);
-                return std::vector<MeshData>();
+                return {};
             }
 
             std::vector<u8> bytes = readAccessor(attribute["POSITION"].asUint(), "VEC3", 3, ComponentType::FLOAT, 4);
-            meshData.positions = std::vector<vec3>(reinterpret_cast<vec3*>(bytes.data()),
-                                                   reinterpret_cast<vec3*>(bytes.data() + bytes.size()));
+            meshData.positions =
+                std::vector<vec3>(reinterpret_cast<vec3*>(bytes.data()), reinterpret_cast<vec3*>(&bytes[bytes.size()]));
 
             if (primitive["indices"].asUint() >= accessors.size() ||
                 accessors[primitive["indices"].asUint()].getType() != JsonValue::Type::OBJECT)
             {
                 log(LogLevel::WARNING, "loadGltf(): {} with accessor[{}]: accessor is incorrect or out of bounds",
                     path.c_str(), primitive["indices"].asUint());
-                return std::vector<MeshData>();
+                return {};
             }
             JsonObject& accessor = accessors[primitive["indices"].asUint()].asObject();
 
@@ -366,7 +367,7 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
             {
                 log(LogLevel::WARNING, "loadGltf(): {} with accessor[{}]: incorrect componentType", path.c_str(),
                     primitive["indices"].asUint());
-                return std::vector<MeshData>();
+                return {};
             }
             ComponentType indexType = static_cast<ComponentType>(accessor["componentType"].asUint());
 
@@ -379,33 +380,34 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
             {
                 bytes = readAccessor(primitive["indices"].asUint(), "SCALAR", 1, ComponentType::UINT16, 2);
                 std::vector<u16> bytes16 = std::vector<u16>(reinterpret_cast<u16*>(bytes.data()),
-                                                            reinterpret_cast<u16*>(bytes.data() + bytes.size()));
+                                                            reinterpret_cast<u16*>(&bytes[bytes.size()]));
                 meshData.indices = std::vector<u32>(bytes16.begin(), bytes16.end());
             }
             else if (indexType == ComponentType::UINT32)
             {
                 bytes = readAccessor(primitive["indices"].asUint(), "SCALAR", 1, ComponentType::UINT32, 4);
                 meshData.indices = std::vector<u32>(reinterpret_cast<u32*>(bytes.data()),
-                                                    reinterpret_cast<u32*>(bytes.data() + bytes.size()));
+                                                    reinterpret_cast<u32*>(&bytes[bytes.size()]));
             }
 
             if (attribute.hasMember("NORMAL", JsonValue::Type::UINT))
             {
                 bytes = readAccessor(attribute["NORMAL"].asUint(), "VEC3", 3, ComponentType::FLOAT, 4);
                 meshData.normals = std::vector<vec3>(reinterpret_cast<vec3*>(bytes.data()),
-                                                     reinterpret_cast<vec3*>(bytes.data() + bytes.size()));
+                                                     reinterpret_cast<vec3*>(&bytes[bytes.size()]));
             }
             if (attribute.hasMember("TEXCOORD_0", JsonValue::Type::UINT))
             {
                 bytes = readAccessor(attribute["TEXCOORD_0"].asUint(), "VEC2", 2, ComponentType::FLOAT, 4);
                 meshData.uvs = std::vector<vec2>(reinterpret_cast<vec2*>(bytes.data()),
-                                                 reinterpret_cast<vec2*>(bytes.data() + bytes.size()));
+                                                 reinterpret_cast<vec2*>(&bytes[bytes.size()]));
             }
         }
     }
 
     return meshDatas;
 }
+} // namespace
 
 std::vector<MeshData> loadGltf(const std::string& path)
 {
@@ -426,7 +428,7 @@ std::vector<MeshData> loadGltf(const std::string& path)
         !json.hasMember("bufferViews", JsonValue::Type::ARRAY) || !json.hasMember("buffers", JsonValue::Type::ARRAY))
     {
         log(LogLevel::WARNING, "loadGltf(): {} has incorrect mesh data", path.c_str());
-        return std::vector<MeshData>();
+        return {};
     }
     JsonArray& buffers = json["buffers"].asArray();
 
@@ -436,14 +438,14 @@ std::vector<MeshData> loadGltf(const std::string& path)
         if (buffers[i].getType() != JsonValue::Type::OBJECT)
         {
             log(LogLevel::WARNING, "loadGltf(): {} with buffer[{}]: not an object", path.c_str(), i);
-            return std::vector<MeshData>();
+            return {};
         }
         JsonObject& buffer = buffers[i].asObject();
 
         if (!buffer.hasMember("byteLength", JsonValue::Type::UINT))
         {
             log(LogLevel::WARNING, "loadGltf(): {} with buffer[{}]: incorrect byteLength", path.c_str(), i);
-            return std::vector<MeshData>();
+            return {};
         }
 
         if (buffer.hasMember("uri", JsonValue::Type::STRING))
@@ -451,8 +453,8 @@ std::vector<MeshData> loadGltf(const std::string& path)
             std::string& uri = buffer["uri"].asString();
             if (uri.starts_with("data:"))
             {
-                std::string type = splitByChar(uri.substr(5), ';')[0];
                 // TODO: Check support?
+                // std::string type = splitByChar(uri.substr(5), ';')[0];
                 byteBuffers[i] = decodeBase64(splitByChar(uri, ',')[1]);
             }
             // Path
@@ -480,11 +482,11 @@ std::vector<MeshData> loadGlb(const std::string& path)
     const u32 jsonSignature = 0x4e4f534a; // "JSON"
     const u32 binSignature = 0x004e4942;  // "\0BIN"
 
-    if (parseFromBytes<u32>(&bytes[0], std::endian::little) != gltfSignature)
+    if (parseFromBytes<u32>(bytes.data(), std::endian::little) != gltfSignature)
     {
         log(LogLevel::WARNING, "loadGlb(): {} incorrect magic number: {}, expected {}", path.c_str(),
-            parseFromBytes<u32>(&bytes[0], std::endian::little), gltfSignature);
-        return std::vector<MeshData>();
+            parseFromBytes<u32>(bytes.data(), std::endian::little), gltfSignature);
+        return {};
     }
 
     u32 byteIndex = 12;
@@ -505,20 +507,20 @@ std::vector<MeshData> loadGlb(const std::string& path)
             if (foundJson)
             {
                 log(LogLevel::WARNING, "loadGlb(): {} chunk[{}]: duplicate json data", path.c_str(), chunkIndex);
-                return std::vector<MeshData>();
+                return {};
             }
             json = parseJson(std::vector<u8>(bytes.begin() + byteIndex, bytes.begin() + byteIndex + chunkLen));
             foundJson = true;
         }
         else if (chunkType == binSignature)
         {
-            byteBuffers.push_back(std::vector<u8>(bytes.begin() + byteIndex, bytes.begin() + byteIndex + chunkLen));
+            byteBuffers.emplace_back(bytes.begin() + byteIndex, bytes.begin() + byteIndex + chunkLen);
         }
         else
         {
             log(LogLevel::WARNING, "loadGlb(): {} chunk[{}]: incorrect chunkType: {}", path.c_str(), chunkIndex,
                 chunkType);
-            return std::vector<MeshData>();
+            return {};
         }
 
         byteIndex += chunkLen;
@@ -530,7 +532,7 @@ std::vector<MeshData> loadGlb(const std::string& path)
         byteBuffers.size() != json["buffers"].asArray().size())
     {
         log(LogLevel::WARNING, "loadGlb(): {} has incorrect mesh data", path.c_str());
-        return std::vector<MeshData>();
+        return {};
     }
 
     return loadGltf(path, json, byteBuffers);

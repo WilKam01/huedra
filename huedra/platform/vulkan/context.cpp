@@ -133,7 +133,7 @@ void VulkanContext::cleanup()
 
 void VulkanContext::createSwapchain(Window* window, bool renderDepth)
 {
-    VulkanSwapchain* swapchain = new VulkanSwapchain();
+    auto* swapchain = new VulkanSwapchain();
     VkSurfaceKHR surface = createSurface(m_instance, window);
     swapchain->init(window, m_device, surface, renderDepth);
 
@@ -141,16 +141,16 @@ void VulkanContext::createSwapchain(Window* window, bool renderDepth)
     m_surfaces.push_back(surface);
 }
 
-void VulkanContext::removeSwapchain(size_t index)
+void VulkanContext::removeSwapchain(u64 index)
 {
     VulkanSwapchain* swapchain = m_swapchains[index];
-    m_swapchains.erase(m_swapchains.begin() + index);
+    m_swapchains.erase(m_swapchains.begin() + static_cast<i64>(index));
 
     swapchain->cleanup();
     delete swapchain;
 
     vkDestroySurfaceKHR(m_instance.get(), m_surfaces[index], nullptr);
-    m_surfaces.erase(m_surfaces.begin() + index);
+    m_surfaces.erase(m_surfaces.begin() + static_cast<i64>(index));
 }
 
 Buffer* VulkanContext::createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data)
@@ -158,7 +158,7 @@ Buffer* VulkanContext::createBuffer(BufferType type, BufferUsageFlags usage, u64
     VulkanBuffer& buffer = m_buffers.emplace_back();
     VkBufferUsageFlagBits bufferUsage = converter::convertBufferUsage(usage);
 
-    if (type == BufferType::STATIC && data)
+    if (type == BufferType::STATIC && data != nullptr)
     {
         m_stagingBuffer.init(m_device, BufferType::STATIC, size, HU_BUFFER_USAGE_UNDEFINED,
                              VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -190,10 +190,11 @@ Texture* VulkanContext::createTexture(const TextureData& textureData)
 {
     VulkanTexture& texture = m_textures.emplace_back();
 
-    VkDeviceSize size = textureData.width * textureData.height * textureData.texelSize;
+    auto size = static_cast<u64>(textureData.width) * static_cast<u64>(textureData.height) *
+                static_cast<u64>(textureData.texelSize);
     VkFormat format = converter::convertDataFormat(textureData.format);
-    VkImage image;
-    VkDeviceMemory memory;
+    VkImage image = nullptr;
+    VkDeviceMemory memory = nullptr;
 
     m_stagingBuffer.init(
         m_device, BufferType::STATIC, size, HU_BUFFER_USAGE_UNDEFINED, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -237,9 +238,9 @@ Texture* VulkanContext::createTexture(const TextureData& textureData)
 
     VkCommandBuffer commandBuffer = m_graphicsCommandPool.beginSingleTimeCommand();
 
-    m_graphicsCommandPool.transistionImageLayout(
-        commandBuffer, image, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_ACCESS_NONE,
-        VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+    transitionImageLayout(commandBuffer, image, format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                          VK_ACCESS_NONE, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                          VK_PIPELINE_STAGE_TRANSFER_BIT);
 
     VkBufferImageCopy region{};
     region.bufferOffset = 0;
@@ -249,8 +250,8 @@ Texture* VulkanContext::createTexture(const TextureData& textureData)
     region.imageSubresource.mipLevel = 0;
     region.imageSubresource.baseArrayLayer = 0;
     region.imageSubresource.layerCount = 1;
-    region.imageOffset = {0, 0, 0};
-    region.imageExtent = {textureData.width, textureData.height, 1};
+    region.imageOffset = {.x = 0, .y = 0, .z = 0};
+    region.imageExtent = {.width = textureData.width, .height = textureData.height, .depth = 1};
 
     vkCmdCopyBufferToImage(commandBuffer, m_stagingBuffer.get(), image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
                            &region);
@@ -272,8 +273,7 @@ RenderTarget* VulkanContext::createRenderTarget(RenderTargetType type, GraphicsD
 
 void VulkanContext::removeBuffer(Buffer* buffer)
 {
-    auto it =
-        std::find_if(m_buffers.begin(), m_buffers.end(), [&](VulkanBuffer& vkBuffer) { return &vkBuffer == buffer; });
+    auto it = std::ranges::find_if(m_buffers, [&](VulkanBuffer& vkBuffer) { return &vkBuffer == buffer; });
     if (it != m_buffers.end())
     {
         it->cleanup();
@@ -283,8 +283,7 @@ void VulkanContext::removeBuffer(Buffer* buffer)
 
 void VulkanContext::removeTexture(Texture* texture)
 {
-    auto it = std::find_if(m_textures.begin(), m_textures.end(),
-                           [&](VulkanTexture& vkTexture) { return &vkTexture == texture; });
+    auto it = std::ranges::find_if(m_textures, [&](VulkanTexture& vkTexture) { return &vkTexture == texture; });
     if (it != m_textures.end())
     {
         it->cleanup();
@@ -294,8 +293,8 @@ void VulkanContext::removeTexture(Texture* texture)
 
 void VulkanContext::removeRenderTarget(RenderTarget* renderTarget)
 {
-    auto it = std::find_if(m_renderTargets.begin(), m_renderTargets.end(),
-                           [&](VulkanRenderTarget& vkRenderTarget) { return &vkRenderTarget == renderTarget; });
+    auto it = std::ranges::find_if(m_renderTargets,
+                                   [&](VulkanRenderTarget& vkRenderTarget) { return &vkRenderTarget == renderTarget; });
     if (it != m_renderTargets.end())
     {
         it->cleanup();
@@ -404,8 +403,8 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
 
             if (input.type == RenderPassReference::Type::TEXTURE)
             {
-                VulkanTexture* texture = static_cast<VulkanTexture*>(input.texture);
-                if (texture->getRenderTarget() && texture->getRenderTarget()->getSwapchain())
+                auto* texture = static_cast<VulkanTexture*>(input.texture);
+                if (texture->getRenderTarget() != nullptr && texture->getRenderTarget()->getSwapchain() != nullptr)
                 {
                     swapchains.push_back(texture->getRenderTarget()->getSwapchain());
                     m_activeSwapchains.insert(texture->getRenderTarget()->getSwapchain());
@@ -447,8 +446,8 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
 
             if (output.type == RenderPassReference::Type::TEXTURE)
             {
-                VulkanTexture* texture = static_cast<VulkanTexture*>(output.texture);
-                if (texture->getRenderTarget() && texture->getRenderTarget()->getSwapchain())
+                auto* texture = static_cast<VulkanTexture*>(output.texture);
+                if (texture->getRenderTarget() != nullptr && texture->getRenderTarget()->getSwapchain() != nullptr)
                 {
                     swapchains.push_back(texture->getRenderTarget()->getSwapchain());
                     m_activeSwapchains.insert(texture->getRenderTarget()->getSwapchain());
@@ -517,7 +516,7 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
                 }
             }
 
-            if (target->getSwapchain())
+            if (target->getSwapchain() != nullptr)
             {
                 swapchains.push_back(target->getSwapchain());
                 m_activeSwapchains.insert(target->getSwapchain());
@@ -559,15 +558,15 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
                 {
                     data.firstRenderPass->setInitialColorLayout(data.curRenderTargetIndex, data.curLayout);
                 }
-                VulkanTexture* tex = static_cast<VulkanTexture*>(ptr);
-                if (tex->getRenderTarget() && tex->getRenderTarget()->getSwapchain())
+                auto* tex = static_cast<VulkanTexture*>(ptr);
+                if (tex->getRenderTarget() != nullptr && tex->getRenderTarget()->getSwapchain() != nullptr)
                 {
                     if (!clearTarget)
                     {
                         data.firstRenderPass->setInitialColorLayout(data.curRenderTargetIndex,
                                                                     VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
                     }
-                    if (data.curRenderPass)
+                    if (data.curRenderPass != nullptr)
                     {
                         data.curRenderPass->setFinalColorLayout(data.curRenderTargetIndex,
                                                                 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
@@ -621,7 +620,7 @@ void VulkanContext::render()
 
         for (auto& info : m_passBatches[i].passes)
         {
-            VkCommandBuffer commandBuffer;
+            VkCommandBuffer commandBuffer{nullptr};
             switch (info.pass->getPipelineType())
             {
             case PipelineType::GRAPHICS:
@@ -636,12 +635,12 @@ void VulkanContext::render()
 
             for (auto& transition : info.transitions)
             {
-                m_graphicsCommandPool.transistionImageLayout(
-                    transitionCommandBuffer, transition.texture->get(), transition.texture->getFormat(),
-                    transition.texture->getLayout(), transition.newLayout,
-                    vulkan_config::layoutToAccess.at(transition.texture->getLayout()),
-                    vulkan_config::layoutToAccess.at(transition.newLayout), transition.texture->getLayoutStage(),
-                    transition.newStage);
+                transitionImageLayout(transitionCommandBuffer, transition.texture->get(),
+                                      transition.texture->getFormat(), transition.texture->getLayout(),
+                                      transition.newLayout,
+                                      vulkan_config::LAYOUT_TO_ACCESS.at(transition.texture->getLayout()),
+                                      vulkan_config::LAYOUT_TO_ACCESS.at(transition.newLayout),
+                                      transition.texture->getLayoutStage(), transition.newStage);
 
                 transition.texture->setLayout(transition.newLayout);
                 transition.texture->setLayoutStage(transition.newStage);
@@ -654,11 +653,11 @@ void VulkanContext::render()
                 {
                     VulkanTexture& texture = targetInfo.renderTarget->getVkColorTexture();
 
-                    m_graphicsCommandPool.transistionImageLayout(
-                        transitionCommandBuffer, texture.get(), texture.getFormat(), texture.getLayout(),
-                        targetInfo.initialColorLayout, vulkan_config::layoutToAccess.at(texture.getLayout()),
-                        vulkan_config::layoutToAccess.at(targetInfo.initialColorLayout), texture.getLayoutStage(),
-                        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+                    transitionImageLayout(transitionCommandBuffer, texture.get(), texture.getFormat(),
+                                          texture.getLayout(), targetInfo.initialColorLayout,
+                                          vulkan_config::LAYOUT_TO_ACCESS.at(texture.getLayout()),
+                                          vulkan_config::LAYOUT_TO_ACCESS.at(targetInfo.initialColorLayout),
+                                          texture.getLayoutStage(), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 
                     texture.setLayout(targetInfo.initialColorLayout);
                     texture.setLayoutStage(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
@@ -667,11 +666,11 @@ void VulkanContext::render()
                 {
                     VulkanTexture& texture = targetInfo.renderTarget->getVkDepthTexture();
 
-                    m_graphicsCommandPool.transistionImageLayout(
-                        transitionCommandBuffer, texture.get(), texture.getFormat(), texture.getLayout(),
-                        targetInfo.initialDepthLayout, vulkan_config::layoutToAccess.at(texture.getLayout()),
-                        vulkan_config::layoutToAccess.at(targetInfo.initialDepthLayout), texture.getLayoutStage(),
-                        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+                    transitionImageLayout(transitionCommandBuffer, texture.get(), texture.getFormat(),
+                                          texture.getLayout(), targetInfo.initialDepthLayout,
+                                          vulkan_config::LAYOUT_TO_ACCESS.at(texture.getLayout()),
+                                          vulkan_config::LAYOUT_TO_ACCESS.at(targetInfo.initialDepthLayout),
+                                          texture.getLayoutStage(), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 
                     texture.setLayout(targetInfo.initialDepthLayout);
                     texture.setLayoutStage(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
@@ -699,24 +698,24 @@ void VulkanContext::render()
             submitComputeQueue(i);
         }
 
-        for (auto& swapchain : m_passBatches[i].swapchains)
+        for (const auto& swapchain : m_passBatches[i].swapchains)
         {
             swapchain->setAlreadyWaited();
         }
     }
 
-    for (auto& swapchain : m_activeSwapchains)
+    for (const auto& swapchain : m_activeSwapchains)
     {
         VulkanTexture& texture = swapchain->getRenderTarget().getVkColorTexture();
         if (texture.getLayout() != VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
         {
             VkCommandBuffer transitionCommandBuffer = m_graphicsCommandPool.beginSingleTimeCommand();
 
-            m_graphicsCommandPool.transistionImageLayout(
-                transitionCommandBuffer, texture.get(), texture.getFormat(), texture.getLayout(),
-                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, vulkan_config::layoutToAccess.at(texture.getLayout()),
-                vulkan_config::layoutToAccess.at(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR), texture.getLayoutStage(),
-                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+            transitionImageLayout(transitionCommandBuffer, texture.get(), texture.getFormat(), texture.getLayout(),
+                                  VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                                  vulkan_config::LAYOUT_TO_ACCESS.at(texture.getLayout()),
+                                  vulkan_config::LAYOUT_TO_ACCESS.at(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR),
+                                  texture.getLayoutStage(), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 
             texture.setLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
             texture.setLayoutStage(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
@@ -733,8 +732,7 @@ void VulkanContext::render()
 
 VkSampler VulkanContext::getSampler(const SamplerSettings& settings)
 {
-    auto it = std::find_if(m_samplers.begin(), m_samplers.end(),
-                           [&](const SamplerInfo& info) { return info.settings == settings; });
+    auto it = std::ranges::find_if(m_samplers, [&](const SamplerInfo& info) { return info.settings == settings; });
     if (it != m_samplers.end())
     {
         return it->sampler;
@@ -760,7 +758,7 @@ void VulkanContext::createDescriptorHandlers(const RenderPassBuilder& builder, P
     }
 
     std::vector<VkDescriptorPoolSize> poolSizes;
-    for (auto& type : poolSizeSet)
+    for (const auto& type : poolSizeSet)
     {
         VkDescriptorPoolSize poolSize;
         poolSize.type = type;
@@ -849,7 +847,7 @@ void VulkanContext::createSampler(const SamplerSettings& settings)
     {
         log(LogLevel::ERR, "Failed to create sampler!");
     }
-    m_samplers.push_back({settings, sampler});
+    m_samplers.push_back({.settings = settings, .sampler = sampler});
 }
 
 void VulkanContext::submitGraphicsQueue(u32 batchIndex)
@@ -861,7 +859,7 @@ void VulkanContext::submitGraphicsQueue(u32 batchIndex)
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    for (auto& swapchain : m_passBatches[batchIndex].swapchains)
+    for (const auto& swapchain : m_passBatches[batchIndex].swapchains)
     {
         if (!swapchain->alreadyWaited())
         {
@@ -917,7 +915,7 @@ void VulkanContext::submitComputeQueue(u32 batchIndex)
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    for (auto& swapchain : m_passBatches[batchIndex].swapchains)
+    for (const auto& swapchain : m_passBatches[batchIndex].swapchains)
     {
         if (!swapchain->alreadyWaited())
         {
@@ -969,7 +967,7 @@ void VulkanContext::presentSwapchains()
     std::vector<VkSwapchainKHR> swapchains;
     std::vector<u32> imageIndices;
     std::vector<VkResult> results;
-    for (auto& swapchain : m_activeSwapchains)
+    for (const auto& swapchain : m_activeSwapchains)
     {
         swapchains.push_back(swapchain->get());
         imageIndices.push_back(swapchain->getImageIndex());
@@ -1005,10 +1003,44 @@ void VulkanContext::presentSwapchains()
     }
 
     u32 index = 0;
-    for (auto& swapchain : m_activeSwapchains)
+    for (const auto& swapchain : m_activeSwapchains)
     {
         swapchain->handlePresentResult(results[index++]);
     }
+}
+
+void VulkanContext::transitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkFormat format,
+                                          VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccessMask,
+                                          VkAccessFlags dstAccessMask, VkPipelineStageFlags srcStageMask,
+                                          VkPipelineStageFlags dstStageMask)
+{
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.oldLayout = oldLayout;
+    barrier.newLayout = newLayout;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+    barrier.image = image;
+    barrier.srcAccessMask = srcAccessMask;
+    barrier.dstAccessMask = dstAccessMask;
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 1;
+
+    if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+    {
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+        if (format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT)
+        {
+            barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+    }
+
+    vkCmdPipelineBarrier(commandBuffer, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
 
 } // namespace huedra

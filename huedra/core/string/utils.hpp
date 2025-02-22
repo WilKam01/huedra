@@ -24,9 +24,11 @@ inline std::vector<std::string> splitLastByChar(const std::string& str, char del
 {
     std::vector<std::string> tokens;
     u64 i = str.length() - 1;
-    while (str[i--] != delim && i >= 0)
+    while (str[i] != delim && i >= 0)
     {
+        --i;
     }
+    --i;
 
     if (i < 0)
     {

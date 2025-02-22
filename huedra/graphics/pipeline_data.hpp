@@ -17,7 +17,7 @@ enum class ShaderStage
     COMPUTE
 };
 
-typedef enum ShaderStageFlags
+enum ShaderStageFlags
 {
     HU_SHADER_STAGE_NONE = 0x0000,
 
@@ -28,7 +28,7 @@ typedef enum ShaderStageFlags
     HU_SHADER_STAGE_COMPUTE = 0x0004,
 
     HU_SHADER_STAGE_ALL = 0xFFFF
-} ShaderStageFlags;
+};
 
 enum class ResourceType
 {
@@ -183,10 +183,16 @@ struct SamplerSettings
     }
 };
 
-constexpr SamplerSettings SAMPLER_NEAR{SamplerFilter::NEAREST, SamplerAddressMode::REPEAT, SamplerAddressMode::REPEAT,
-                                       SamplerAddressMode::REPEAT, SamplerColor::WHITE};
+constexpr SamplerSettings SAMPLER_NEAR{.filter = SamplerFilter::NEAREST,
+                                       .adressModeU = SamplerAddressMode::REPEAT,
+                                       .adressModeV = SamplerAddressMode::REPEAT,
+                                       .adressModeW = SamplerAddressMode::REPEAT,
+                                       .color = SamplerColor::WHITE};
 
-constexpr SamplerSettings SAMPLER_LINEAR{SamplerFilter::LINEAR, SamplerAddressMode::REPEAT, SamplerAddressMode::REPEAT,
-                                         SamplerAddressMode::REPEAT, SamplerColor::WHITE};
+constexpr SamplerSettings SAMPLER_LINEAR{.filter = SamplerFilter::LINEAR,
+                                         .adressModeU = SamplerAddressMode::REPEAT,
+                                         .adressModeV = SamplerAddressMode::REPEAT,
+                                         .adressModeW = SamplerAddressMode::REPEAT,
+                                         .color = SamplerColor::WHITE};
 
 } // namespace huedra

@@ -4,44 +4,50 @@
 
 namespace huedra {
 
-std::map<void*, std::vector<RefBase*>> ReferenceCounter::m_references = {};
+namespace {
+std::map<void*, std::vector<RefBase*>>& getRefs()
+{
+    static std::map<void*, std::vector<RefBase*>> references;
+    return references;
+}
+} // namespace
 
 void ReferenceCounter::addResource(void* resource)
 {
-    if (!m_references.contains(resource))
+    if (!getRefs().contains(resource))
     {
         std::vector<RefBase*> vec; // Empty vec
-        m_references.insert(std::make_pair(resource, vec));
+        getRefs().insert(std::make_pair(resource, vec));
     }
 }
 
 void ReferenceCounter::removeResource(void* resource)
 {
-    if (m_references.contains(resource))
+    if (getRefs().contains(resource))
     {
-        for (auto& ref : m_references[resource])
+        for (auto& ref : getRefs()[resource])
         {
             ref->setInvalid();
         }
-        m_references.erase(resource);
+        getRefs().erase(resource);
     }
 }
 
 void ReferenceCounter::reportState()
 {
-    if (!m_references.empty())
+    if (!getRefs().empty())
     {
-        log(LogLevel::WARNING, "ReferenceCounter: found {} resources not removed", m_references.size());
-        for (auto& [ptr, refs] : m_references)
+        log(LogLevel::WARNING, "ReferenceCounter: found {} resources not removed", getRefs().size());
+        for (auto& [ptr, refs] : getRefs())
         {
-            log(LogLevel::WARNING, "Address: 0x{:x} | References alive: {}", ptr, refs.size());
+            log(LogLevel::WARNING, "Address: 0x{:x} | getRefs() alive: {}", ptr, refs.size());
         }
     }
 }
 
 bool ReferenceCounter::addRef(void* resource, RefBase* ref)
 {
-    if (!m_references.contains(resource))
+    if (!getRefs().contains(resource))
     {
         ref->setInvalid();
 #ifdef DEBUG
@@ -50,7 +56,7 @@ bool ReferenceCounter::addRef(void* resource, RefBase* ref)
         return false;
     }
 
-    m_references[resource].push_back(ref);
+    getRefs()[resource].push_back(ref);
     return true;
 }
 
@@ -61,9 +67,9 @@ void ReferenceCounter::removeRef(void* resource, RefBase* ref)
         return;
     }
 
-    if (m_references.contains(resource))
+    if (getRefs().contains(resource))
     {
-        std::vector<RefBase*>& refs = m_references[resource];
+        std::vector<RefBase*>& refs = getRefs()[resource];
         for (auto it = refs.begin(); it != refs.end(); ++it)
         {
             if ((*it) == ref)

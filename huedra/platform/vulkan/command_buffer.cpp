@@ -5,8 +5,8 @@ namespace huedra {
 
 void CommandBuffer::init(Device& device, CommandPool& commandPool, u32 size)
 {
-    p_device = &device;
-    p_commandPool = &commandPool;
+    m_device = &device;
+    m_commandPool = &commandPool;
     m_commandBuffers.resize(size);
 
     VkCommandBufferAllocateInfo allocInfo{};
@@ -23,12 +23,12 @@ void CommandBuffer::init(Device& device, CommandPool& commandPool, u32 size)
 
 void CommandBuffer::cleanup()
 {
-    vkFreeCommandBuffers(p_device->getLogical(), p_commandPool->get(), static_cast<u32>(m_commandBuffers.size()),
+    vkFreeCommandBuffers(m_device->getLogical(), m_commandPool->get(), static_cast<u32>(m_commandBuffers.size()),
                          m_commandBuffers.data());
     m_commandBuffers.clear();
 }
 
-void CommandBuffer::begin(size_t index)
+void CommandBuffer::begin(u64 index)
 {
     vkResetCommandBuffer(m_commandBuffers[index], 0);
     VkCommandBufferBeginInfo beginInfo{};
@@ -42,7 +42,7 @@ void CommandBuffer::begin(size_t index)
     }
 }
 
-void CommandBuffer::end(size_t index)
+void CommandBuffer::end(u64 index)
 {
     if (vkEndCommandBuffer(m_commandBuffers[index]) != VK_SUCCESS)
     {

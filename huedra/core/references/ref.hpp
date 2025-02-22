@@ -12,6 +12,11 @@ public:
     RefBase() = default;
     virtual ~RefBase() = default;
 
+    RefBase(const RefBase& rhs) = default;
+    RefBase& operator=(const RefBase& rhs) = default;
+    RefBase(RefBase&& rhs) = default;
+    RefBase& operator=(RefBase&& rhs) = default;
+
     virtual bool valid() = 0;
 
 private:
@@ -23,16 +28,14 @@ class Ref : public RefBase
 {
 public:
     Ref() = default;
-    Ref(T* ptr);
-    ~Ref();
+    explicit Ref(T* ptr);
+    ~Ref() override;
 
     Ref(const Ref<T>& ref);
     Ref(Ref<T>& ref);
     Ref(const Ref<T>&& ref);
     Ref(Ref<T>&& ref);
     Ref<T>& operator=(const Ref<T>& rhs);
-    Ref<T>& operator=(Ref<T>& rhs);
-    Ref<T>& operator=(const Ref<T>&& rhs);
     Ref<T>& operator=(Ref<T>&& rhs);
 
     T* get();
@@ -101,28 +104,6 @@ inline Ref<T>& Ref<T>::operator=(const Ref<T>& rhs)
     if (this != &rhs)
     {
         init(rhs.m_ptr, rhs.m_valid);
-    }
-    return *this;
-}
-
-template <typename T>
-inline Ref<T>& Ref<T>::operator=(Ref<T>& rhs)
-{
-    if (this != &rhs)
-    {
-        init(rhs.m_ptr, rhs.m_valid);
-    }
-    return *this;
-}
-
-template <typename T>
-inline Ref<T>& Ref<T>::operator=(const Ref<T>&& rhs)
-{
-    if (this != &rhs)
-    {
-        bool valid = rhs.m_valid;
-        cleanup();
-        init(rhs.m_ptr, valid);
     }
     return *this;
 }

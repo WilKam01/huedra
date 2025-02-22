@@ -10,17 +10,17 @@ void VulkanRenderContext::init(VkCommandBuffer commandBuffer, VulkanContext* con
                                DescriptorHandler& descriptorHandler)
 {
     m_commandBuffer = commandBuffer;
-    p_context = context;
-    p_renderPass = renderPass;
-    p_descriptorHandler = &descriptorHandler;
+    m_context = context;
+    m_renderPass = renderPass;
+    m_descriptorHandler = &descriptorHandler;
     m_boundVertexBuffer = false;
     m_boundIndexBuffer = false;
-    p_descriptorHandler->resetSetInstance();
+    m_descriptorHandler->resetSetInstance();
 }
 
 void VulkanRenderContext::bindVertexBuffers(std::vector<Ref<Buffer>> buffers)
 {
-    if (p_renderPass->getPipelineType() != PipelineType::GRAPHICS)
+    if (m_renderPass->getPipelineType() != PipelineType::GRAPHICS)
     {
         log(LogLevel::WARNING, "Could not execute draw command, not using a graphics pipeline");
         return;
@@ -28,7 +28,7 @@ void VulkanRenderContext::bindVertexBuffers(std::vector<Ref<Buffer>> buffers)
 
     std::vector<VkBuffer> vkBuffers(buffers.size());
     std::vector<VkDeviceSize> offsets(buffers.size(), 0);
-    for (size_t i = 0; i < buffers.size(); ++i)
+    for (u64 i = 0; i < buffers.size(); ++i)
     {
         if (!buffers[i].valid())
         {
@@ -43,7 +43,7 @@ void VulkanRenderContext::bindVertexBuffers(std::vector<Ref<Buffer>> buffers)
 
 void VulkanRenderContext::bindIndexBuffer(Ref<Buffer> buffer)
 {
-    if (p_renderPass->getPipelineType() != PipelineType::GRAPHICS)
+    if (m_renderPass->getPipelineType() != PipelineType::GRAPHICS)
     {
         log(LogLevel::WARNING, "Could not execute draw command, not using a graphics pipeline");
         return;
@@ -66,7 +66,7 @@ void VulkanRenderContext::bindBuffer(Ref<Buffer> buffer, u32 set, u32 binding)
         log(LogLevel::WARNING, "Could not bind buffer, reference invalid");
     }
 
-    p_descriptorHandler->writeBuffer(*static_cast<VulkanBuffer*>(buffer.get()), set, binding);
+    m_descriptorHandler->writeBuffer(*static_cast<VulkanBuffer*>(buffer.get()), set, binding);
 }
 
 void VulkanRenderContext::bindTexture(Ref<Texture> texture, u32 set, u32 binding, const SamplerSettings& sampler)
@@ -76,19 +76,19 @@ void VulkanRenderContext::bindTexture(Ref<Texture> texture, u32 set, u32 binding
         log(LogLevel::WARNING, "Could not bind texture, reference invalid");
     }
 
-    p_descriptorHandler->writeTexture(*static_cast<VulkanTexture*>(texture.get()), p_context->getSampler(sampler), set,
+    m_descriptorHandler->writeTexture(*static_cast<VulkanTexture*>(texture.get()), m_context->getSampler(sampler), set,
                                       binding);
 }
 
 void VulkanRenderContext::pushConstants(ShaderStageFlags shaderStage, u32 size, void* data)
 {
-    vkCmdPushConstants(m_commandBuffer, p_renderPass->getPipeline().getLayout(),
-                       converter::convertShaderStage(p_renderPass->getPipelineType(), shaderStage), 0, size, data);
+    vkCmdPushConstants(m_commandBuffer, m_renderPass->getPipeline().getLayout(),
+                       converter::convertShaderStage(m_renderPass->getPipelineType(), shaderStage), 0, size, data);
 }
 
 void VulkanRenderContext::draw(u32 vertexCount, u32 instanceCount, u32 vertexOffset, u32 instanceOffset)
 {
-    if (p_renderPass->getPipelineType() != PipelineType::GRAPHICS)
+    if (m_renderPass->getPipelineType() != PipelineType::GRAPHICS)
     {
         log(LogLevel::WARNING, "Could not execute draw command, not using a graphics pipeline");
         return;
@@ -100,14 +100,14 @@ void VulkanRenderContext::draw(u32 vertexCount, u32 instanceCount, u32 vertexOff
         return;
     }
 
-    p_descriptorHandler->bindSets(m_commandBuffer);
+    m_descriptorHandler->bindSets(m_commandBuffer);
     vkCmdDraw(m_commandBuffer, vertexCount, instanceCount, vertexOffset, instanceOffset);
-    p_descriptorHandler->updateSetInstance();
+    m_descriptorHandler->updateSetInstance();
 }
 
 void VulkanRenderContext::drawIndexed(u32 indexCount, u32 instanceCount, u32 indexOffset, u32 instanceOffset)
 {
-    if (p_renderPass->getPipelineType() != PipelineType::GRAPHICS)
+    if (m_renderPass->getPipelineType() != PipelineType::GRAPHICS)
     {
         log(LogLevel::WARNING, "Could not execute draw call, not using a graphics pipeline");
         return;
@@ -125,22 +125,22 @@ void VulkanRenderContext::drawIndexed(u32 indexCount, u32 instanceCount, u32 ind
         return;
     }
 
-    p_descriptorHandler->bindSets(m_commandBuffer);
+    m_descriptorHandler->bindSets(m_commandBuffer);
     vkCmdDrawIndexed(m_commandBuffer, indexCount, instanceCount, indexOffset, 0, instanceOffset);
-    p_descriptorHandler->updateSetInstance();
+    m_descriptorHandler->updateSetInstance();
 }
 
 void VulkanRenderContext::dispatch(u32 groupX, u32 groupY, u32 groupZ)
 {
-    if (p_renderPass->getPipelineType() != PipelineType::COMPUTE)
+    if (m_renderPass->getPipelineType() != PipelineType::COMPUTE)
     {
         log(LogLevel::WARNING, "Could not execute dispatch call, not using a compute pipeline");
         return;
     }
 
-    p_descriptorHandler->bindSets(m_commandBuffer);
+    m_descriptorHandler->bindSets(m_commandBuffer);
     vkCmdDispatch(m_commandBuffer, groupX, groupY, groupZ);
-    p_descriptorHandler->updateSetInstance();
+    m_descriptorHandler->updateSetInstance();
 }
 
 } // namespace huedra

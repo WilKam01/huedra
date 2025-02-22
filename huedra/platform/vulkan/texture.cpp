@@ -14,7 +14,7 @@ void VulkanTexture::init(Device& device, const TextureData& textureData, VkForma
 {
     Texture::init(textureData.width, textureData.height, textureData.format, TextureType::COLOR);
 
-    p_device = &device;
+    m_device = &device;
     m_externallyCreated = false;
     m_format = format;
 
@@ -32,8 +32,8 @@ void VulkanTexture::init(Device& device, TextureType type, GraphicsDataFormat fo
 {
     Texture::init(width, height, format, type);
 
-    p_device = &device;
-    p_renderTarget = &renderTarget;
+    m_device = &device;
+    m_renderTarget = &renderTarget;
     m_externallyCreated = false;
     m_format = findFormat(type, format);
 
@@ -62,12 +62,12 @@ void VulkanTexture::init(Device& device, std::vector<VkImage> images, VkFormat f
 {
     Texture::init(extent.width, extent.height, converter::convertVkFormat(format), TextureType::COLOR);
 
-    p_device = &device;
-    p_renderTarget = &renderTarget;
+    m_device = &device;
+    m_renderTarget = &renderTarget;
     m_externallyCreated = true;
     m_format = format;
 
-    m_images = images;
+    m_images = std::move(images);
     m_imageViews.resize(m_images.size());
     m_memories.resize(m_images.size());
     m_imageLayouts.resize(m_images.size(), VK_IMAGE_LAYOUT_UNDEFINED);
@@ -78,13 +78,13 @@ void VulkanTexture::init(Device& device, std::vector<VkImage> images, VkFormat f
 
 void VulkanTexture::cleanup()
 {
-    for (size_t i = 0; i < m_images.size(); ++i)
+    for (u64 i = 0; i < m_images.size(); ++i)
     {
-        vkDestroyImageView(p_device->getLogical(), m_imageViews[i], nullptr);
+        vkDestroyImageView(m_device->getLogical(), m_imageViews[i], nullptr);
         if (!m_externallyCreated)
         {
-            vkDestroyImage(p_device->getLogical(), m_images[i], nullptr);
-            vkFreeMemory(p_device->getLogical(), m_memories[i], nullptr);
+            vkDestroyImage(m_device->getLogical(), m_images[i], nullptr);
+            vkFreeMemory(m_device->getLogical(), m_memories[i], nullptr);
         }
     }
     m_imageViews.clear();
@@ -92,32 +92,33 @@ void VulkanTexture::cleanup()
     m_memories.clear();
     m_imageLayouts.clear();
     m_layoutStages.clear();
-    p_renderTarget = nullptr;
+    m_renderTarget = nullptr;
 }
 
-u32 VulkanTexture::getIndex()
+u32 VulkanTexture::getIndex() const
 {
-    return p_renderTarget ? (p_renderTarget->getSwapchain() ? p_renderTarget->getSwapchain()->getImageIndex()
-                                                            : global::graphicsManager.getCurrentFrame())
-                          : 0;
+    if (m_renderTarget != nullptr)
+    {
+        return (m_renderTarget->getSwapchain() != nullptr ? m_renderTarget->getSwapchain()->getImageIndex()
+                                                          : global::graphicsManager.getCurrentFrame());
+    }
+    return 0;
 }
 
 VkFormat VulkanTexture::findFormat(TextureType type, GraphicsDataFormat format)
 {
     if (type == TextureType::DEPTH)
     {
-        return p_device->findDepthFormat();
+        return m_device->findDepthFormat();
     }
-    else
-    {
-        VkFormat vkFormat = converter::convertDataFormat(format);
-        VkFormatProperties formatProperties;
-        vkGetPhysicalDeviceFormatProperties(p_device->getPhysical(), vkFormat, &formatProperties);
 
-        if (formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT)
-        {
-            return vkFormat;
-        }
+    VkFormat vkFormat = converter::convertDataFormat(format);
+    VkFormatProperties formatProperties;
+    vkGetPhysicalDeviceFormatProperties(m_device->getPhysical(), vkFormat, &formatProperties);
+
+    if ((formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT) != 0u)
+    {
+        return vkFormat;
     }
 
     log(LogLevel::ERR, "Failed to find supported format!");
@@ -126,7 +127,7 @@ VkFormat VulkanTexture::findFormat(TextureType type, GraphicsDataFormat format)
 
 void VulkanTexture::createImages(VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties)
 {
-    for (size_t i = 0; i < m_images.size(); ++i)
+    for (u64 i = 0; i < m_images.size(); ++i)
     {
         VkImageCreateInfo imageInfo{};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -143,31 +144,31 @@ void VulkanTexture::createImages(VkImageTiling tiling, VkImageUsageFlags usage, 
         imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
         imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-        if (vkCreateImage(p_device->getLogical(), &imageInfo, nullptr, &m_images[i]) != VK_SUCCESS)
+        if (vkCreateImage(m_device->getLogical(), &imageInfo, nullptr, &m_images[i]) != VK_SUCCESS)
         {
             log(LogLevel::ERR, "Failed to create image!");
         }
 
         VkMemoryRequirements memRequirements;
-        vkGetImageMemoryRequirements(p_device->getLogical(), m_images[i], &memRequirements);
+        vkGetImageMemoryRequirements(m_device->getLogical(), m_images[i], &memRequirements);
 
         VkMemoryAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = p_device->findMemoryType(memRequirements.memoryTypeBits, properties);
+        allocInfo.memoryTypeIndex = m_device->findMemoryType(memRequirements.memoryTypeBits, properties);
 
-        if (vkAllocateMemory(p_device->getLogical(), &allocInfo, nullptr, &m_memories[i]) != VK_SUCCESS)
+        if (vkAllocateMemory(m_device->getLogical(), &allocInfo, nullptr, &m_memories[i]) != VK_SUCCESS)
         {
             log(LogLevel::ERR, "Failed to allocate image memory!");
         }
 
-        vkBindImageMemory(p_device->getLogical(), m_images[i], m_memories[i], 0);
+        vkBindImageMemory(m_device->getLogical(), m_images[i], m_memories[i], 0);
     }
 }
 
 void VulkanTexture::createImageViews(VkImageAspectFlags aspectFlags)
 {
-    for (size_t i = 0; i < m_images.size(); ++i)
+    for (u64 i = 0; i < m_images.size(); ++i)
     {
         VkImageViewCreateInfo viewInfo{};
         viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -180,7 +181,7 @@ void VulkanTexture::createImageViews(VkImageAspectFlags aspectFlags)
         viewInfo.subresourceRange.baseArrayLayer = 0;
         viewInfo.subresourceRange.layerCount = 1;
 
-        if (vkCreateImageView(p_device->getLogical(), &viewInfo, nullptr, &m_imageViews[i]) != VK_SUCCESS)
+        if (vkCreateImageView(m_device->getLogical(), &viewInfo, nullptr, &m_imageViews[i]) != VK_SUCCESS)
         {
             log(LogLevel::ERR, "Failed to create image view!");
         }

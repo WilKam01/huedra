@@ -13,7 +13,12 @@ class VulkanRenderContext : public RenderContext
 {
 public:
     VulkanRenderContext() = default;
-    ~VulkanRenderContext() = default;
+    ~VulkanRenderContext() override = default;
+
+    VulkanRenderContext(const VulkanRenderContext& rhs) = delete;
+    VulkanRenderContext& operator=(const VulkanRenderContext& rhs) = delete;
+    VulkanRenderContext(VulkanRenderContext&& rhs) = delete;
+    VulkanRenderContext& operator=(VulkanRenderContext&& rhs) = delete;
 
     void init(VkCommandBuffer commandBuffer, VulkanContext* context, VulkanRenderPass* renderPass,
               DescriptorHandler& descriptorHandler);
@@ -30,10 +35,10 @@ public:
     void dispatch(u32 groupX, u32 groupY, u32 groupZ) override;
 
 private:
-    VkCommandBuffer m_commandBuffer;
-    VulkanContext* p_context;
-    VulkanRenderPass* p_renderPass;
-    DescriptorHandler* p_descriptorHandler;
+    VkCommandBuffer m_commandBuffer{nullptr};
+    VulkanContext* m_context{nullptr};
+    VulkanRenderPass* m_renderPass{nullptr};
+    DescriptorHandler* m_descriptorHandler{nullptr};
 
     bool m_boundVertexBuffer{false};
     bool m_boundIndexBuffer{false};

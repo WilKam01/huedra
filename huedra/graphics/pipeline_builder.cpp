@@ -17,7 +17,7 @@ PipelineBuilder& PipelineBuilder::init(PipelineType type)
     return *this;
 }
 
-PipelineBuilder& PipelineBuilder::addShader(ShaderStage stage, std::string shader)
+PipelineBuilder& PipelineBuilder::addShader(ShaderStage stage, const std::string& shader)
 {
     if (m_type == PipelineType::COMPUTE && stage != ShaderStage::COMPUTE)
     {
@@ -35,7 +35,7 @@ PipelineBuilder& PipelineBuilder::addShader(ShaderStage stage, std::string shade
     return *this;
 }
 
-PipelineBuilder& PipelineBuilder::addVertexInputStream(VertexInputStream inputStream)
+PipelineBuilder& PipelineBuilder::addVertexInputStream(const VertexInputStream& inputStream)
 {
     if (m_type != PipelineType::GRAPHICS)
     {
@@ -50,7 +50,7 @@ PipelineBuilder& PipelineBuilder::addPushConstantRange(u32 stage, u32 size)
 {
     for (auto& shaderStage : m_pushConstantShaderStages)
     {
-        if (stage & shaderStage)
+        if ((stage & shaderStage) != 0u)
         {
             log(LogLevel::ERR, "Could not add push constant range, shader stage was previously defined");
         }
@@ -65,7 +65,7 @@ PipelineBuilder& PipelineBuilder::addResourceSet()
 {
     if (m_resources.empty() || !m_resources.back().empty())
     {
-        m_resources.push_back({});
+        m_resources.emplace_back();
     }
     return *this;
 }
@@ -79,7 +79,7 @@ PipelineBuilder& PipelineBuilder::addResourceBinding(u32 stage, ResourceType res
         return *this;
     }
 
-    m_resources.back().push_back({static_cast<ShaderStageFlags>(stage), resource});
+    m_resources.back().push_back({.shaderStage = static_cast<ShaderStageFlags>(stage), .resource = resource});
     return *this;
 }
 

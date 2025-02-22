@@ -25,8 +25,6 @@ public:
 private:
     static bool addRef(void* resource, RefBase* ref);
     static void removeRef(void* resource, RefBase* ref);
-
-    static std::map<void*, std::vector<RefBase*>> m_references;
 };
 
 } // namespace huedra

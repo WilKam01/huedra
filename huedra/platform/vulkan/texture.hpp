@@ -16,6 +16,11 @@ public:
     VulkanTexture() = default;
     ~VulkanTexture() = default;
 
+    VulkanTexture(const VulkanTexture& rhs) = default;
+    VulkanTexture& operator=(const VulkanTexture& rhs) = default;
+    VulkanTexture(VulkanTexture&& rhs) = default;
+    VulkanTexture& operator=(VulkanTexture&& rhs) = default;
+
     void init(Device& device, const TextureData& textureData, VkFormat format, VkImage image,
               VkDeviceMemory memory); // Static texture
     void init(Device& device, TextureType type, GraphicsDataFormat format, u32 width, u32 height, u32 imageCount,
@@ -24,29 +29,29 @@ public:
               VulkanRenderTarget& renderTarget); // Render target texture with swap chain
     void cleanup();
 
-    VkImage get() { return m_images[getIndex()]; }
-    VkImageView getView() { return m_imageViews[getIndex()]; }
-    VkImageView getView(u32 index) { return m_imageViews[index]; }
-    VkImageLayout getLayout() { return m_imageLayouts[getIndex()]; }
-    VkPipelineStageFlags getLayoutStage() { return m_layoutStages[getIndex()]; }
-    VulkanRenderTarget* getRenderTarget() { return p_renderTarget; }
-    VkFormat getFormat() { return m_format; }
+    VkImage get() const { return m_images[getIndex()]; }
+    VkImageView getView() const { return m_imageViews[getIndex()]; }
+    VkImageView getView(u32 index) const { return m_imageViews[index]; }
+    VkImageLayout getLayout() const { return m_imageLayouts[getIndex()]; }
+    VkPipelineStageFlags getLayoutStage() const { return m_layoutStages[getIndex()]; }
+    VulkanRenderTarget* getRenderTarget() const { return m_renderTarget; }
+    VkFormat getFormat() const { return m_format; }
 
     void setLayout(VkImageLayout layout) { m_imageLayouts[getIndex()] = layout; }
     void setLayoutStage(VkPipelineStageFlags stage) { m_layoutStages[getIndex()] = stage; }
 
 private:
-    u32 getIndex();
+    u32 getIndex() const;
     VkFormat findFormat(TextureType type, GraphicsDataFormat format);
 
     void createImages(VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties);
     void createImageViews(VkImageAspectFlags aspectFlags);
 
-    Device* p_device;
-    VulkanRenderTarget* p_renderTarget{nullptr};
+    Device* m_device{nullptr};
+    VulkanRenderTarget* m_renderTarget{nullptr};
     bool m_externallyCreated{false};
 
-    VkFormat m_format;
+    VkFormat m_format{VK_FORMAT_UNDEFINED};
     std::vector<VkImage> m_images;
     std::vector<VkDeviceMemory> m_memories;
     std::vector<VkImageView> m_imageViews;

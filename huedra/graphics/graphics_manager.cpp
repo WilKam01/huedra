@@ -128,6 +128,6 @@ void GraphicsManager::createSwapchain(Window* window, bool renderDepth)
     m_context->createSwapchain(window, renderDepth);
 }
 
-void GraphicsManager::removeSwapchain(size_t index) { m_context->removeSwapchain(index); }
+void GraphicsManager::removeSwapchain(u64 index) { m_context->removeSwapchain(index); }
 
 }; // namespace huedra

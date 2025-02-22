@@ -9,13 +9,13 @@ namespace huedra {
 
 VkSurfaceKHR createSurface(Instance& instance, Window* window)
 {
-    VkSurfaceKHR surface;
+    VkSurfaceKHR surface{nullptr};
 
 #ifdef WIN32
-    Win32Window* win = static_cast<Win32Window*>(window);
+    auto* win = static_cast<Win32Window*>(window);
     VkWin32SurfaceCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    createInfo.hinstance = GetModuleHandle(NULL);
+    createInfo.hinstance = GetModuleHandle(nullptr);
     createInfo.hwnd = win->getHandle();
 
     if (vkCreateWin32SurfaceKHR(instance.get(), &createInfo, nullptr, &surface) != VK_SUCCESS)

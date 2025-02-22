@@ -45,7 +45,7 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
 
     // Check for png signature
     constexpr u64 pngSignature = 0x89504e470d0a1a0a; // 137, 80, 78, 71, 13, 10, 26, 10
-    if (parseFromBytes<u64>(&bytes[0], std::endian::big) != pngSignature)
+    if (parseFromBytes<u64>(bytes.data(), std::endian::big) != pngSignature)
     {
         log(LogLevel::WARNING, "loadPng(): {} does not have a valid png signature", path.c_str());
         return textureData;
@@ -64,11 +64,11 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
             GRAYSCALE_ALPHA = 4,
             TRUECOLOR_ALPHA = 6
         } colorType{ColorType::GRAYSCALE};
-        const std::array<u8, 7> channelsPerType{1, 0, 3, 1, 2, 0, 4};
         u8 compressionMethod{0};
         u8 filterMethod{0};
         u8 interlaceMethod{0};
     } header;
+    const std::array<u8, 7> CHANNELS_PER_TYPE{1, 0, 3, 1, 2, 0, 4};
     std::vector<uvec3> colorPalette;
     std::vector<u8> imageBytes;
     u32 channelSize = 0;
@@ -97,7 +97,7 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
         {
             log(LogLevel::WARNING, "loadPng(): CRC for chunk: {} is invalid (c = {}, crc = {})", chunkType.c_str(),
                 calcCrc, crc);
-            return TextureData();
+            return {};
         }
 
         // Header
@@ -111,14 +111,14 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
                 header.bitDepth != 16)
             {
                 log(LogLevel::WARNING, "loadPng(): Incorrect bit depth in IHDR: {}", header.bitDepth);
-                return TextureData();
+                return {};
             }
 
             u8 colorType = bytes[i + 9];
             if (colorType == 1 || colorType == 5 || colorType > 6)
             {
                 log(LogLevel::WARNING, "loadPng(): Incorrect colorType in IHDR: {}", colorType);
-                return TextureData();
+                return {};
             }
             header.colorType = static_cast<HeaderInfo::ColorType>(colorType);
 
@@ -126,26 +126,26 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
             if (header.compressionMethod != 0)
             {
                 log(LogLevel::WARNING, "loadPng(): Incorrect compression method in IHDR: {}", header.compressionMethod);
-                return TextureData();
+                return {};
             }
 
             header.filterMethod = bytes[i + 11];
             if (header.filterMethod != 0)
             {
                 log(LogLevel::WARNING, "loadPng(): Incorrect filter method in IHDR: {}", header.filterMethod);
-                return TextureData();
+                return {};
             }
 
             header.interlaceMethod = bytes[i + 12];
             if (header.interlaceMethod == 1)
             {
                 log(LogLevel::WARNING, "loadPng(): Interlace method 1 (Adam7) not supported");
-                return TextureData();
+                return {};
             }
             if (header.interlaceMethod != 0)
             {
                 log(LogLevel::WARNING, "loadPng(): Incorrect interlace method in IHDR: {}", header.interlaceMethod);
-                return TextureData();
+                return {};
             }
 
             textureData.width = header.width;
@@ -179,20 +179,21 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
             if (chunkLen % 3 != 0)
             {
                 log(LogLevel::WARNING, "loadPng(): PLTE chunk length is not divisible by 3");
-                return TextureData();
+                return {};
             }
             colorPalette.resize(chunkLen / 3);
             for (u64 j = 0; j < colorPalette.size(); ++j)
             {
-                colorPalette[j].r = bytes[i + j * 3];
-                colorPalette[j].g = bytes[i + j * 3 + 1];
-                colorPalette[j].b = bytes[i + j * 3 + 2];
+                colorPalette[j].r = bytes[i + (j * 3)];
+                colorPalette[j].g = bytes[i + (j * 3) + 1];
+                colorPalette[j].b = bytes[i + (j * 3) + 2];
             }
         }
         // Image Data
         else if (chunkType == "IDAT")
         {
-            imageBytes.insert(imageBytes.end(), bytes.begin() + i, bytes.begin() + i + chunkLen);
+            imageBytes.insert(imageBytes.end(), bytes.begin() + static_cast<i64>(i),
+                              bytes.begin() + static_cast<i64>(i + chunkLen));
         }
         // End Chunk
         else if (chunkType == "IEND")
@@ -204,19 +205,16 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
         {
             // If first char is uppercase (5th bit == 1) the chunk is critical
             // Critical chunks has to be supported for correct decoding of png image data
-            bool isCritical = static_cast<bool>((readBits(reinterpret_cast<u8*>(&chunkType[0]), 5, 1)) == 0);
+            bool isCritical = static_cast<bool>((readBits(reinterpret_cast<u8*>(chunkType.data()), 5, 1)) == 0);
             if (isCritical)
             {
                 log(LogLevel::WARNING, "loadPng(): Chunk type: {} is critical but not supported, aborting load",
                     chunkType.c_str());
-                return TextureData();
+                return {};
             }
 #ifdef DEBUG
-            else
-            {
-                log(LogLevel::INFO, "loadPng(): Ancilliary Chunk type: {} not supported, will be ignored",
-                    chunkType.c_str());
-            }
+            log(LogLevel::INFO, "loadPng(): Ancilliary Chunk type: {} not supported, will be ignored",
+                chunkType.c_str());
 #endif
         }
 
@@ -226,7 +224,7 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
     if (imageBytes.empty())
     {
         log(LogLevel::WARNING, "loadPng(): No IDAT chunks present");
-        return TextureData();
+        return {};
     }
 
     // Inflate image data
@@ -234,23 +232,25 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
 
     if (imageBytes.empty())
     {
-        return TextureData();
+        return {};
     }
 
     // Allocate texels
-    textureData.texels.resize(textureData.width * textureData.height * textureData.texelSize);
+    textureData.texels.resize(static_cast<u64>(textureData.width) * static_cast<u64>(textureData.height) *
+                              static_cast<u64>(textureData.texelSize));
 
     // Reconstruct image data for each scanline (reverse filtering)
-    float bytesPerPixel = (header.bitDepth / 8.0f) * header.channelsPerType[static_cast<u64>(header.colorType)];
-    u64 scanlineByteWidth = static_cast<u64>(std::round(header.width * bytesPerPixel) + 1);
-    bytesPerPixel = std::round(bytesPerPixel); // Sets it to 1 if less for use in filtering
+    float bytesPerPixel = (static_cast<float>(header.bitDepth) / 8.0f) *
+                          static_cast<float>(CHANNELS_PER_TYPE[static_cast<u64>(header.colorType)]);
+    u64 scanlineByteWidth = static_cast<u64>(std::round(static_cast<float>(header.width) * bytesPerPixel) + 1);
+    u64 wholeBytesPerPixel = static_cast<u64>(std::round(bytesPerPixel)); // Sets it to 1 if less for use in filtering
     for (u64 i = 0; i < header.height; ++i)
     {
         u8 filterType = imageBytes[i * scanlineByteWidth];
         if (filterType > 4)
         {
             log(LogLevel::WARNING, "loadPng(): filter type: {} is not valid for filter method 0", filterType);
-            return TextureData();
+            return {};
         }
         for (u64 j = 0; j < scanlineByteWidth - 1; ++j)
         {
@@ -265,14 +265,16 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
             // |a x|
             // where x is the current color channel
 
-            u64 curIndex = i * scanlineByteWidth + j + 1;
-            u8 a = 0, b = 0, c = 0;
+            u64 curIndex = (i * scanlineByteWidth) + j + 1;
+            u8 a = 0;
+            u8 b = 0;
+            u8 c = 0;
             switch (filterType)
             {
             case 0: // None
                 break;
             case 1: // Sub
-                a = j - bytesPerPixel < 0 ? 0 : imageBytes[curIndex - bytesPerPixel];
+                a = static_cast<i64>(j - wholeBytesPerPixel) < 0 ? 0 : imageBytes[curIndex - wholeBytesPerPixel];
                 imageBytes[curIndex] += a;
                 break;
             case 2: // Up
@@ -280,19 +282,21 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
                 imageBytes[curIndex] += b;
                 break;
             case 3: // Average
-                a = j - bytesPerPixel < 0 ? 0 : imageBytes[curIndex - bytesPerPixel];
+                a = static_cast<i64>(j - wholeBytesPerPixel) < 0 ? 0 : imageBytes[curIndex - wholeBytesPerPixel];
                 b = i == 0 ? 0 : imageBytes[curIndex - scanlineByteWidth];
                 imageBytes[curIndex] += static_cast<u8>((static_cast<u16>(a) + static_cast<u16>(b)) / 2);
                 break;
             case 4: { // Paeth
-                a = j - bytesPerPixel < 0 ? 0 : imageBytes[curIndex - bytesPerPixel];
+                a = static_cast<i64>(j - wholeBytesPerPixel) < 0 ? 0 : imageBytes[curIndex - wholeBytesPerPixel];
                 b = i == 0 ? 0 : imageBytes[curIndex - scanlineByteWidth];
-                c = i == 0 || j - bytesPerPixel < 0 ? 0 : imageBytes[curIndex - scanlineByteWidth - bytesPerPixel];
+                c = i == 0 || static_cast<i64>(j - wholeBytesPerPixel) < 0
+                        ? 0
+                        : imageBytes[curIndex - scanlineByteWidth - wholeBytesPerPixel];
 
-                i16 p = a + b - c;
-                i16 pa = std::abs(p - a);
-                i16 pb = std::abs(p - b);
-                i16 pc = std::abs(p - c);
+                i16 p = static_cast<i16>(static_cast<i16>(a) + static_cast<i16>(b) - static_cast<i16>(c));
+                u16 pa = std::abs(p - static_cast<i16>(a));
+                u16 pb = std::abs(p - static_cast<i16>(b));
+                u16 pc = std::abs(p - static_cast<i16>(c));
                 if (pa <= pb && pa <= pc)
                 {
                     imageBytes[curIndex] += a;
@@ -307,6 +311,8 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
                 }
             }
             break;
+            default:
+                break;
             }
         }
 
@@ -318,7 +324,7 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
             if (header.colorType == HeaderInfo::ColorType::INDEXED_COLOR)
             {
                 pngChannels.resize(3, 0);
-                u8 index = readBits(&imageBytes[i * scanlineByteWidth + byteIndex], bits, header.bitDepth, false);
+                u8 index = readBits(&imageBytes[(i * scanlineByteWidth) + byteIndex], bits, header.bitDepth, false);
                 bits += header.bitDepth;
                 pngChannels[0] = colorPalette[index].r;
                 pngChannels[1] = colorPalette[index].g;
@@ -326,26 +332,26 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
             }
             else
             {
-                pngChannels.resize(header.channelsPerType[static_cast<u64>(header.colorType)], 0);
-                for (u64 k = 0; k < pngChannels.size(); ++k)
+                pngChannels.resize(CHANNELS_PER_TYPE[static_cast<u64>(header.colorType)], 0);
+                for (auto& pngChannel : pngChannels)
                 {
                     if (header.bitDepth == 8)
                     {
-                        pngChannels[k] =
-                            parseFromBytes<u8>(&imageBytes[i * scanlineByteWidth + byteIndex++], std::endian::big);
+                        pngChannel =
+                            parseFromBytes<u8>(&imageBytes[(i * scanlineByteWidth) + byteIndex++], std::endian::big);
                     }
                     else if (header.bitDepth == 16)
                     {
-                        pngChannels[k] =
-                            parseFromBytes<u16>(&imageBytes[i * scanlineByteWidth + byteIndex], std::endian::big);
+                        pngChannel =
+                            parseFromBytes<u16>(&imageBytes[(i * scanlineByteWidth) + byteIndex], std::endian::big);
                         byteIndex += 2;
                     }
                     else // 1, 2, 4 bits
                     {
-                        pngChannels[k] =
-                            static_cast<u16>(static_cast<float>(readBits(&imageBytes[i * scanlineByteWidth + byteIndex],
-                                                                         bits, header.bitDepth, false)) *
-                                             255.0 / static_cast<float>((1u << header.bitDepth) - 1));
+                        pngChannel = static_cast<u16>(
+                            static_cast<float>(readBits(&imageBytes[(i * scanlineByteWidth) + byteIndex], bits,
+                                                        header.bitDepth, false)) *
+                            255.0 / static_cast<float>((1u << header.bitDepth) - 1));
                         bits += header.bitDepth;
                     }
                 }
@@ -386,7 +392,7 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
             {
                 if (header.bitDepth == 16)
                 {
-                    parseToBytes<u16>(&textureData.texels[scanlineStart + texelStart + k * 2], pngChannels[k],
+                    parseToBytes<u16>(&textureData.texels[scanlineStart + texelStart + (k * 2)], pngChannels[k],
                                       std::endian::native);
                 }
                 else

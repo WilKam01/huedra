@@ -10,23 +10,24 @@ public:
     CommandPool() = default;
     ~CommandPool() = default;
 
+    CommandPool(const CommandPool& rhs) = default;
+    CommandPool& operator=(const CommandPool& rhs) = default;
+    CommandPool(CommandPool&& rhs) = default;
+    CommandPool& operator=(CommandPool&& rhs) = default;
+
     void init(Device& device, VkPipelineBindPoint pipeline);
     void cleanup();
 
     VkCommandBuffer beginSingleTimeCommand();
     void endSingleTimeCommand(VkCommandBuffer buffer);
 
-    void transistionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkFormat format, VkImageLayout oldLayout,
-                                VkImageLayout newLayout, VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask,
-                                VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask);
-
     VkCommandPool get() { return m_commandPool; }
 
 private:
-    Device* p_device;
+    Device* m_device{nullptr};
 
-    VkCommandPool m_commandPool;
-    VkPipelineBindPoint m_pipeline;
+    VkCommandPool m_commandPool{nullptr};
+    VkPipelineBindPoint m_pipeline{VK_PIPELINE_BIND_POINT_GRAPHICS};
 };
 
 } // namespace huedra

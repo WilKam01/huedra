@@ -50,6 +50,11 @@ public:
     RenderPassBuilder() = default;
     virtual ~RenderPassBuilder() = default;
 
+    RenderPassBuilder(const RenderPassBuilder& rhs) = default;
+    RenderPassBuilder& operator=(const RenderPassBuilder& rhs) = default;
+    RenderPassBuilder(RenderPassBuilder&& rhs) = default;
+    RenderPassBuilder& operator=(RenderPassBuilder&& rhs) = default;
+
     RenderPassBuilder& init(RenderPassType type, const PipelineBuilder& pipeline);
     RenderPassBuilder& setCommands(const RenderCommands& commands);
     RenderPassBuilder& setClearRenderTargets(bool clearRenderTargets);
@@ -72,7 +77,7 @@ public:
 private:
     bool m_initialized{false};
 
-    RenderPassType m_type;
+    RenderPassType m_type{RenderPassType::GRAPHICS};
     PipelineBuilder m_pipeline;
     RenderCommands m_commands{nullptr};
     bool m_clearTargets{true};

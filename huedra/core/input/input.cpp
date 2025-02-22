@@ -20,9 +20,9 @@ bool Input::isKeyDown(Keys key) const
     {
         return false;
     }
-    u64 index = static_cast<u64>(static_cast<u64>(key) > 63);
+    u64 index = static_cast<u64>(static_cast<u8>(key) > 63);
     u64 bit = 1ULL << (static_cast<u64>(key) - index * 64);
-    return m_keyDown[index] & bit;
+    return (m_keyDown[index] & bit) != 0u;
 }
 
 bool Input::isKeyPressed(Keys key) const
@@ -33,7 +33,7 @@ bool Input::isKeyPressed(Keys key) const
     }
     u64 index = static_cast<u64>(static_cast<u64>(key) > 63);
     u64 bit = 1ULL << (static_cast<u64>(key) - index * 64);
-    return (m_keyDown[index] & bit) && !(m_prevKeyDown[index] & bit);
+    return (m_keyDown[index] & bit) != 0u && (m_prevKeyDown[index] & bit) == 0u;
 }
 
 bool Input::isKeyReleased(Keys key) const
@@ -44,13 +44,13 @@ bool Input::isKeyReleased(Keys key) const
     }
     u64 index = static_cast<u64>(static_cast<u64>(key) > 63);
     u64 bit = 1ULL << (static_cast<u64>(key) - index * 64);
-    return !(m_keyDown[index] & bit) && (m_prevKeyDown[index] & bit);
+    return (m_keyDown[index] & bit) == 0u && (m_prevKeyDown[index] & bit) != 0u;
 }
 
 bool Input::isKeyActive(KeyToggles keyToggle) const
 {
     u64 bit = 1ULL << (static_cast<u64>(keyToggle));
-    return m_keyToggle & bit;
+    return (m_keyToggle & bit) != 0u;
 }
 
 bool Input::isMouseButtonDown(MouseButton button) const
@@ -60,7 +60,7 @@ bool Input::isMouseButtonDown(MouseButton button) const
         return false;
     }
     u8 bit = 1ULL << (static_cast<u8>(button));
-    return (m_mouseButtonDown & bit) || (m_mouseButtonDoubleClicked & bit);
+    return (m_mouseButtonDown & bit) != 0u || (m_mouseButtonDoubleClicked & bit) != 0u;
 }
 
 bool Input::isMouseButtonPressed(MouseButton button) const
@@ -70,7 +70,8 @@ bool Input::isMouseButtonPressed(MouseButton button) const
         return false;
     }
     u8 bit = 1ULL << (static_cast<u8>(button));
-    return (m_mouseButtonDown & bit) && !(m_prevMouseButtonDown & bit) || (m_mouseButtonDoubleClicked & bit);
+    return (m_mouseButtonDown & bit) != 0u && (m_prevMouseButtonDown & bit) == 0u ||
+           (m_mouseButtonDoubleClicked & bit) != 0u;
 }
 
 bool Input::isMouseButtonReleased(MouseButton button) const
@@ -80,7 +81,8 @@ bool Input::isMouseButtonReleased(MouseButton button) const
         return false;
     }
     u8 bit = 1ULL << (static_cast<u8>(button));
-    return !(m_mouseButtonDown & bit) && (m_prevMouseButtonDown & bit) || (m_mouseButtonDoubleClicked & bit);
+    return (m_mouseButtonDown & bit) == 0u && (m_prevMouseButtonDown & bit) != 0u ||
+           (m_mouseButtonDoubleClicked & bit) != 0u;
 }
 
 bool Input::isMouseButtonDoubleClicked(MouseButton button) const
@@ -90,14 +92,14 @@ bool Input::isMouseButtonDoubleClicked(MouseButton button) const
         return false;
     }
     u8 bit = 1ULL << (static_cast<u8>(button));
-    return m_mouseButtonDoubleClicked & bit;
+    return (m_mouseButtonDoubleClicked & bit) != 0u;
 }
 
 ivec2 Input::getAbsoluteMousePos() const
 {
     if (m_mouseMode == MouseMode::DISABLED)
     {
-        return ivec2();
+        return {};
     }
     return m_mousePos;
 }
@@ -106,7 +108,7 @@ ivec2 Input::getRelativeMousePos(Ref<Window> window) const
 {
     if (m_mouseMode == MouseMode::DISABLED)
     {
-        return ivec2();
+        return {};
     }
     if (!window.valid())
     {
@@ -120,7 +122,7 @@ ivec2 Input::getMouseDelta() const
 {
     if (m_mouseMode == MouseMode::DISABLED)
     {
-        return ivec2();
+        return {};
     }
     return m_mouseDelta;
 }
@@ -129,7 +131,7 @@ ivec2 Input::getMouseScroll() const
 {
     if (m_mouseMode == MouseMode::DISABLED)
     {
-        return ivec2();
+        return {};
     }
     return m_mouseScroll;
 }

@@ -12,6 +12,11 @@ public:
     ResourceManager() = default;
     ~ResourceManager() = default;
 
+    ResourceManager(const ResourceManager& rhs) = default;
+    ResourceManager& operator=(const ResourceManager& rhs) = default;
+    ResourceManager(ResourceManager&& rhs) = default;
+    ResourceManager& operator=(ResourceManager&& rhs) = default;
+
     void init();
     void cleanup();
 

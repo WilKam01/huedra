@@ -23,8 +23,10 @@ u32 Device::findMemoryType(u32 typeBits, VkMemoryPropertyFlags properties)
 
     for (u32 i = 0; i < memProperties.memoryTypeCount; i++)
     {
-        if (typeBits & (1 << i) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+        if ((typeBits & (1 << i)) != 0u && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+        {
             return i;
+        }
     }
 
     log(LogLevel::ERR, "Failed to find suitable memory type!");
@@ -37,7 +39,7 @@ VulkanSurfaceSupport Device::querySurfaceSupport(VkPhysicalDevice device, VkSurf
 
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
 
-    uint32_t formatCount;
+    uint32_t formatCount{0};
     vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
 
     if (formatCount != 0)
@@ -46,7 +48,7 @@ VulkanSurfaceSupport Device::querySurfaceSupport(VkPhysicalDevice device, VkSurf
         vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
     }
 
-    uint32_t presentModeCount;
+    uint32_t presentModeCount{0};
     vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
 
     if (presentModeCount != 0)
@@ -84,10 +86,11 @@ VkFormat Device::findDepthFormat()
         VkFormatProperties props;
         vkGetPhysicalDeviceFormatProperties(m_physicalDevice, vkFormat, &props);
 
-        if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
+        if ((tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) ||
+            (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features))
+        {
             return vkFormat;
-        else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
-            return vkFormat;
+        }
     }
 
     log(LogLevel::ERR, "Failed to find supported depth format!");
@@ -134,8 +137,8 @@ bool Device::isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface)
     VkPhysicalDeviceFeatures supportedFeatures;
     vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
 
-    return indices.isComplete() && extensionsSupported && swapchainAdequate && supportedFeatures.samplerAnisotropy &&
-           supportedFeatures.fillModeNonSolid;
+    return indices.isComplete() && extensionsSupported && swapchainAdequate &&
+           supportedFeatures.samplerAnisotropy != 0u && supportedFeatures.fillModeNonSolid != 0u;
 }
 
 QueueFamilyIndices Device::findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface)
@@ -147,21 +150,21 @@ QueueFamilyIndices Device::findQueueFamilies(VkPhysicalDevice device, VkSurfaceK
     std::vector<VkQueueFamilyProperties> queueFamilies(count);
     vkGetPhysicalDeviceQueueFamilyProperties(device, &count, queueFamilies.data());
 
-    int i = 0;
+    int i{0};
     for (const auto& queueFamily : queueFamilies)
     {
-        if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+        if ((queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0u)
         {
             indices.graphicsFamily = i;
         }
-        if (queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT)
+        if ((queueFamily.queueFlags & VK_QUEUE_COMPUTE_BIT) != 0u)
         {
             indices.computeFamily = i;
         }
 
-        VkBool32 presentSupport = false;
+        VkBool32 presentSupport = 0u;
         vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
-        if (presentSupport)
+        if (presentSupport != 0u)
         {
             indices.presentFamily = i;
         }
@@ -178,16 +181,16 @@ QueueFamilyIndices Device::findQueueFamilies(VkPhysicalDevice device, VkSurfaceK
 
 bool Device::checkDeviceExtensionSupport(VkPhysicalDevice device)
 {
-    u32 count = 0;
+    u32 count{0};
     vkEnumerateDeviceExtensionProperties(device, nullptr, &count, nullptr);
     std::vector<VkExtensionProperties> availableExtensions(count);
     vkEnumerateDeviceExtensionProperties(device, nullptr, &count, availableExtensions.data());
 
-    std::set<std::string> requiredExtensions(vulkan_config::deviceExtensions.begin(),
-                                             vulkan_config::deviceExtensions.end());
+    std::set<std::string> requiredExtensions(vulkan_config::DEVICE_EXTENSIONS.begin(),
+                                             vulkan_config::DEVICE_EXTENSIONS.end());
     for (const auto& extension : availableExtensions)
     {
-        requiredExtensions.erase(extension.extensionName);
+        requiredExtensions.erase(static_cast<const char*>(extension.extensionName));
     }
 
     return requiredExtensions.empty();
@@ -195,10 +198,14 @@ bool Device::checkDeviceExtensionSupport(VkPhysicalDevice device)
 
 void Device::createLogicalDevice(VkSurfaceKHR surface)
 {
-    m_indices = findQueueFamilies(m_physicalDevice, surface);
+    QueueFamilyIndices indices = findQueueFamilies(m_physicalDevice, surface);
+    m_graphicsQueueuFamilyIndex = indices.graphicsFamily.value_or(~0u);
+    m_presentQueueuFamilyIndex = indices.presentFamily.value_or(~0u);
+    m_computeQueueuFamilyIndex = indices.computeFamily.value_or(~0u);
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    std::set<u32> uniqueQueueFamilies = {m_indices.graphicsFamily.value(), m_indices.presentFamily.value()};
+    std::set<u32> uniqueQueueFamilies = {m_graphicsQueueuFamilyIndex, m_presentQueueuFamilyIndex,
+                                         m_computeQueueuFamilyIndex};
 
     float queuePriority = 1.0f;
     for (u32 queueFamily : uniqueQueueFamilies)
@@ -224,14 +231,14 @@ void Device::createLogicalDevice(VkSurfaceKHR surface)
     createInfo.queueCreateInfoCount = static_cast<u32>(queueCreateInfos.size());
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
     createInfo.pEnabledFeatures = nullptr;
-    createInfo.enabledExtensionCount = static_cast<u32>(vulkan_config::deviceExtensions.size());
-    createInfo.ppEnabledExtensionNames = vulkan_config::deviceExtensions.data();
+    createInfo.enabledExtensionCount = static_cast<u32>(vulkan_config::DEVICE_EXTENSIONS.size());
+    createInfo.ppEnabledExtensionNames = vulkan_config::DEVICE_EXTENSIONS.data();
 
     createInfo.enabledLayerCount = 0;
-    if (vulkan_config::enableValidationLayers)
+    if (vulkan_config::ENABLE_VALIDATION_LAYERS)
     {
-        createInfo.enabledLayerCount = static_cast<u32>(vulkan_config::validationLayers.size());
-        createInfo.ppEnabledLayerNames = vulkan_config::validationLayers.data();
+        createInfo.enabledLayerCount = static_cast<u32>(vulkan_config::VALIDATION_LAYERS.size());
+        createInfo.ppEnabledLayerNames = vulkan_config::VALIDATION_LAYERS.data();
     }
 
     if (vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device) != VK_SUCCESS)
@@ -239,9 +246,9 @@ void Device::createLogicalDevice(VkSurfaceKHR surface)
         log(LogLevel::ERR, "Failed to create logical device!");
     }
 
-    vkGetDeviceQueue(m_device, m_indices.graphicsFamily.value(), 0, &m_graphicsQueue);
-    vkGetDeviceQueue(m_device, m_indices.presentFamily.value(), 0, &m_presentQueue);
-    vkGetDeviceQueue(m_device, m_indices.computeFamily.value(), 0, &m_computeQueue);
+    vkGetDeviceQueue(m_device, m_graphicsQueueuFamilyIndex, 0, &m_graphicsQueue);
+    vkGetDeviceQueue(m_device, m_presentQueueuFamilyIndex, 0, &m_presentQueue);
+    vkGetDeviceQueue(m_device, m_computeQueueuFamilyIndex, 0, &m_computeQueue);
 }
 
 VkSampleCountFlagBits Device::getMaxUsableSampleCount()
@@ -252,27 +259,27 @@ VkSampleCountFlagBits Device::getMaxUsableSampleCount()
     VkSampleCountFlags counts = physicalDeviceProperties.limits.framebufferColorSampleCounts &
                                 physicalDeviceProperties.limits.framebufferDepthSampleCounts;
 
-    if (counts & VK_SAMPLE_COUNT_64_BIT)
+    if ((counts & VK_SAMPLE_COUNT_64_BIT) != 0u)
     {
         return VK_SAMPLE_COUNT_64_BIT;
     }
-    if (counts & VK_SAMPLE_COUNT_32_BIT)
+    if ((counts & VK_SAMPLE_COUNT_32_BIT) != 0u)
     {
         return VK_SAMPLE_COUNT_32_BIT;
     }
-    if (counts & VK_SAMPLE_COUNT_16_BIT)
+    if ((counts & VK_SAMPLE_COUNT_16_BIT) != 0u)
     {
         return VK_SAMPLE_COUNT_16_BIT;
     }
-    if (counts & VK_SAMPLE_COUNT_8_BIT)
+    if ((counts & VK_SAMPLE_COUNT_8_BIT) != 0u)
     {
         return VK_SAMPLE_COUNT_8_BIT;
     }
-    if (counts & VK_SAMPLE_COUNT_4_BIT)
+    if ((counts & VK_SAMPLE_COUNT_4_BIT) != 0u)
     {
         return VK_SAMPLE_COUNT_4_BIT;
     }
-    if (counts & VK_SAMPLE_COUNT_2_BIT)
+    if ((counts & VK_SAMPLE_COUNT_2_BIT) != 0u)
     {
         return VK_SAMPLE_COUNT_2_BIT;
     }

@@ -11,13 +11,13 @@ void VulkanRenderTarget::init(Device& device, VulkanSwapchain& swapchain, VkForm
 {
     RenderTarget::init(swapchain.renderDepth() ? RenderTargetType::COLOR_AND_DEPTH : RenderTargetType::COLOR,
                        converter::convertVkFormat(format), extent.width, extent.height);
-    p_device = &device;
-    p_swapchain = &swapchain;
+    m_device = &device;
+    m_swapchain = &swapchain;
     m_extent = extent;
 
-    vkGetSwapchainImagesKHR(p_device->getLogical(), p_swapchain->get(), &m_imageCount, nullptr);
+    vkGetSwapchainImagesKHR(m_device->getLogical(), m_swapchain->get(), &m_imageCount, nullptr);
     std::vector<VkImage> images(m_imageCount);
-    vkGetSwapchainImagesKHR(p_device->getLogical(), p_swapchain->get(), &m_imageCount, images.data());
+    vkGetSwapchainImagesKHR(m_device->getLogical(), m_swapchain->get(), &m_imageCount, images.data());
 
     m_texture.init(device, images, format, extent, *this);
 
@@ -27,7 +27,7 @@ void VulkanRenderTarget::init(Device& device, VulkanSwapchain& swapchain, VkForm
                             m_imageCount, *this);
     }
 
-    for (auto& renderPass : p_renderPasses)
+    for (auto& renderPass : m_renderPasses)
     {
         renderPass->createFramebuffers();
     }
@@ -36,9 +36,9 @@ void VulkanRenderTarget::init(Device& device, VulkanSwapchain& swapchain, VkForm
 void VulkanRenderTarget::init(Device& device, RenderTargetType type, GraphicsDataFormat format, u32 width, u32 height)
 {
     RenderTarget::init(type, format, width, height);
-    p_device = &device;
-    p_swapchain = nullptr;
-    m_extent = {width, height};
+    m_device = &device;
+    m_swapchain = nullptr;
+    m_extent = {.width = width, .height = height};
     m_imageCount = GraphicsManager::MAX_FRAMES_IN_FLIGHT;
 
     if (type == RenderTargetType::COLOR || type == RenderTargetType::COLOR_AND_DEPTH)
@@ -51,7 +51,7 @@ void VulkanRenderTarget::init(Device& device, RenderTargetType type, GraphicsDat
                             *this);
     }
 
-    for (auto& renderPass : p_renderPasses)
+    for (auto& renderPass : m_renderPasses)
     {
         renderPass->createFramebuffers();
     }
@@ -60,12 +60,12 @@ void VulkanRenderTarget::init(Device& device, RenderTargetType type, GraphicsDat
 void VulkanRenderTarget::cleanup()
 {
     partialCleanup();
-    p_renderPasses.clear();
+    m_renderPasses.clear();
 }
 
 void VulkanRenderTarget::partialCleanup()
 {
-    for (auto& renderPass : p_renderPasses)
+    for (auto& renderPass : m_renderPasses)
     {
         renderPass->cleanupFramebuffers();
     }
@@ -79,7 +79,7 @@ void VulkanRenderTarget::partialCleanup()
     }
 }
 
-void VulkanRenderTarget::addRenderPass(VulkanRenderPass* renderPass) { p_renderPasses.push_back(renderPass); }
+void VulkanRenderTarget::addRenderPass(VulkanRenderPass* renderPass) { m_renderPasses.push_back(renderPass); }
 
 Ref<Texture> VulkanRenderTarget::getColorTexture()
 {
@@ -99,6 +99,6 @@ Ref<Texture> VulkanRenderTarget::getDepthTexture()
     return Ref<Texture>(nullptr);
 }
 
-void VulkanRenderTarget::setAvailability(bool available) { m_available = available; }
+void VulkanRenderTarget::setAvailability(bool available) { RenderTarget::setAvailability(available); }
 
 } // namespace huedra

@@ -11,6 +11,11 @@ public:
     VulkanPipeline() = default;
     ~VulkanPipeline() = default;
 
+    VulkanPipeline(const VulkanPipeline& rhs) = default;
+    VulkanPipeline& operator=(const VulkanPipeline& rhs) = default;
+    VulkanPipeline(VulkanPipeline&& rhs) = default;
+    VulkanPipeline& operator=(VulkanPipeline&& rhs) = default;
+
     void initGraphics(const PipelineBuilder& pipelineBuilder, Device& device, VkRenderPass renderPass, u32 targetCount);
     void initCompute(const PipelineBuilder& pipelineBuilder, Device& device);
     void cleanup();
@@ -20,19 +25,19 @@ public:
     VkPipeline get() { return m_pipeline; };
     VkPipelineLayout getLayout() { return m_pipelineLayout; };
     std::vector<VkDescriptorSetLayout> getDescriptorLayouts() { return m_descriptorLayout; }
-    VkDescriptorSetLayout getDescriptorLayout(size_t index) { return m_descriptorLayout[index]; }
+    VkDescriptorSetLayout getDescriptorLayout(u64 index) { return m_descriptorLayout[index]; }
 
 private:
     void initLayout();
 
     VkShaderModule loadShader(const std::string& path);
 
-    Device* p_device;
+    Device* m_device{nullptr};
     PipelineBuilder m_builder;
 
     std::vector<VkDescriptorSetLayout> m_descriptorLayout;
-    VkPipelineLayout m_pipelineLayout;
-    VkPipeline m_pipeline;
+    VkPipelineLayout m_pipelineLayout{nullptr};
+    VkPipeline m_pipeline{nullptr};
 };
 
 } // namespace huedra

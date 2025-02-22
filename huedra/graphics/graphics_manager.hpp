@@ -19,6 +19,11 @@ public:
     GraphicsManager() = default;
     ~GraphicsManager() = default;
 
+    GraphicsManager(const GraphicsManager& rhs) = delete;
+    GraphicsManager& operator=(const GraphicsManager& rhs) = delete;
+    GraphicsManager(GraphicsManager&& rhs) = delete;
+    GraphicsManager& operator=(GraphicsManager&& rhs) = delete;
+
     void init();
     void cleanup();
     void update();
@@ -32,13 +37,13 @@ public:
     void removeTexture(Ref<Texture> texture);
     void removeRenderTarget(Ref<RenderTarget> renderTarget);
 
-    u32 getCurrentFrame() { return m_currentFrame; }
+    u32 getCurrentFrame() const { return m_currentFrame; }
 
 private:
     void createSwapchain(Window* window, bool renderDepth);
-    void removeSwapchain(size_t index);
+    void removeSwapchain(u64 index);
 
-    GraphicalContext* m_context;
+    GraphicalContext* m_context{nullptr};
     u32 m_currentFrame{0};
 };
 

@@ -14,6 +14,11 @@ public:
     SceneManager() = default;
     ~SceneManager() = default;
 
+    SceneManager(const SceneManager& rhs) = default;
+    SceneManager& operator=(const SceneManager& rhs) = default;
+    SceneManager(SceneManager&& rhs) = default;
+    SceneManager& operator=(SceneManager&& rhs) = default;
+
     void init();
     void cleanup();
 
@@ -96,7 +101,7 @@ inline void SceneManager::setComponent(Entity entity, const T& component)
     SparseSet& set = m_componentSets[typeid(T)];
     set.dense.push_back(entity);
 
-    ComponentList<T>* componentList = static_cast<ComponentList<T>*>(set.componentList);
+    auto* componentList = static_cast<ComponentList<T>*>(set.componentList);
     componentList->components.push_back(component);
 
     u32 id = getId(entity);
@@ -125,7 +130,7 @@ inline void SceneManager::removeComponent(Entity entity)
     SparseSet& set = m_componentSets[typeid(T)];
     u32 denseIndex = set.sparse[getId(entity)];
 
-    ComponentList<T>* componentList = static_cast<ComponentList<T>*>(set.componentList);
+    auto* componentList = static_cast<ComponentList<T>*>(set.componentList);
     set.dense[denseIndex] = set.dense.back();
     componentList->components[denseIndex] = componentList->components.back();
     set.sparse[getId(set.dense[denseIndex])] = denseIndex;
@@ -182,7 +187,7 @@ inline void SceneManager::query(auto&& func) const
     }
 
     u32 min = ~0u;
-    const SparseSet* sets[] = {&m_componentSets.at(typeid(Args))...};
+    const std::array<const SparseSet*, sizeof...(Args)> sets = {&m_componentSets.at(typeid(Args))...};
     const std::vector<Entity>* entities = nullptr;
     for (auto& set : sets)
     {
@@ -193,7 +198,7 @@ inline void SceneManager::query(auto&& func) const
         }
     }
 
-    for (auto& entity : *entities)
+    for (const auto& entity : *entities)
     {
         if (hasComponents<Args...>(entity))
         {

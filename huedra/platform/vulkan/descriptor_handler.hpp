@@ -12,6 +12,11 @@ public:
     DescriptorHandler() = default;
     virtual ~DescriptorHandler() = default;
 
+    DescriptorHandler(const DescriptorHandler& rhs) = default;
+    DescriptorHandler& operator=(const DescriptorHandler& rhs) = default;
+    DescriptorHandler(DescriptorHandler&& rhs) = default;
+    DescriptorHandler& operator=(DescriptorHandler&& rhs) = default;
+
     void init(Device& device, VulkanRenderPass& renderPass, VkDescriptorPool descriptorPool,
               const std::vector<std::vector<VkDescriptorType>>& bindingTypes);
     void cleanup();
@@ -26,9 +31,9 @@ public:
 private:
     VkDescriptorSet createDescriptorSet(u32 set);
 
-    Device* p_device;
-    VulkanRenderPass* p_renderPass;
-    VkDescriptorPool m_pool;
+    Device* m_device{nullptr};
+    VulkanRenderPass* m_renderPass{nullptr};
+    VkDescriptorPool m_pool{nullptr};
     std::vector<VkDescriptorSetLayout> m_layouts;
     struct SetInfo
     {

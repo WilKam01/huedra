@@ -8,7 +8,7 @@ void VulkanBuffer::init(Device& device, BufferType type, u64 size, BufferUsageFl
                         VkBufferUsageFlags usageFlags, VkMemoryPropertyFlags memoryPropertyFlags, const void* data)
 {
     Buffer::init(type, usage, size);
-    p_device = &device;
+    m_device = &device;
 
     m_buffers.clear();
     m_memories.clear();
@@ -46,10 +46,10 @@ void VulkanBuffer::init(Device& device, BufferType type, u64 size, BufferUsageFl
     VkMemoryAllocateInfo memAlloc{};
     memAlloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
     memAlloc.allocationSize = memReqs.size;
-    memAlloc.memoryTypeIndex = p_device->findMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags);
+    memAlloc.memoryTypeIndex = m_device->findMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags);
 
     VkMemoryAllocateFlagsInfoKHR allocFlagsInfo{};
-    if (usageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
+    if ((usageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) != 0u)
     {
         allocFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO_KHR;
         allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
@@ -65,7 +65,7 @@ void VulkanBuffer::init(Device& device, BufferType type, u64 size, BufferUsageFl
 
     if (data != nullptr)
     {
-        for (size_t i = 0; i < m_buffers.size(); ++i)
+        for (u64 i = 0; i < m_buffers.size(); ++i)
         {
             if (map(i))
             {
@@ -79,15 +79,15 @@ void VulkanBuffer::init(Device& device, BufferType type, u64 size, BufferUsageFl
                 mappedRange.memory = m_memories[i];
                 mappedRange.offset = 0;
                 mappedRange.size = VK_WHOLE_SIZE;
-                vkFlushMappedMemoryRanges(p_device->getLogical(), 1, &mappedRange);
+                vkFlushMappedMemoryRanges(m_device->getLogical(), 1, &mappedRange);
             }
             unmap(i);
         }
     }
 
-    for (size_t i = 0; i < m_buffers.size(); ++i)
+    for (u64 i = 0; i < m_buffers.size(); ++i)
     {
-        if (vkBindBufferMemory(p_device->getLogical(), m_buffers[i], m_memories[i], 0) != VK_SUCCESS)
+        if (vkBindBufferMemory(m_device->getLogical(), m_buffers[i], m_memories[i], 0) != VK_SUCCESS)
         {
             log(LogLevel::ERR, "Failed to bind buffer to memory!");
         }
@@ -100,14 +100,14 @@ void VulkanBuffer::init(Device& device, BufferType type, u64 size, BufferUsageFl
 
 void VulkanBuffer::cleanup()
 {
-    for (size_t i = 0; i < m_buffers.size(); ++i)
+    for (u64 i = 0; i < m_buffers.size(); ++i)
     {
         if (getType() == BufferType::DYNAMIC)
         {
             unmap(i);
         }
-        vkFreeMemory(p_device->getLogical(), m_memories[i], nullptr);
-        vkDestroyBuffer(p_device->getLogical(), m_buffers[i], nullptr);
+        vkFreeMemory(m_device->getLogical(), m_memories[i], nullptr);
+        vkDestroyBuffer(m_device->getLogical(), m_buffers[i], nullptr);
     }
 }
 
@@ -121,7 +121,7 @@ void VulkanBuffer::write(u64 size, void* data)
         map(index);
     }
 
-    if (!m_mapped[index])
+    if (m_mapped[index] == nullptr)
     {
         log(LogLevel::WARNING, "Could not write to buffer, memory is not mapped, therefore unaccessible");
         return;
@@ -144,7 +144,7 @@ void VulkanBuffer::read(u64 size, void* data)
         map(index);
     }
 
-    if (!m_mapped[index])
+    if (m_mapped[index] == nullptr)
     {
         log(LogLevel::WARNING, "Could not read from buffer, memory is not mapped, therefore unaccessible");
         return;
@@ -162,16 +162,16 @@ VkBuffer VulkanBuffer::get()
     return m_buffers[getType() == BufferType::STATIC ? 0 : global::graphicsManager.getCurrentFrame()];
 }
 
-bool VulkanBuffer::map(size_t index)
+bool VulkanBuffer::map(u64 index)
 {
-    return vkMapMemory(p_device->getLogical(), m_memories[index], 0, VK_WHOLE_SIZE, 0, &m_mapped[index]);
+    return vkMapMemory(m_device->getLogical(), m_memories[index], 0, VK_WHOLE_SIZE, 0, &m_mapped[index]) != VK_SUCCESS;
 }
 
-void VulkanBuffer::unmap(size_t index)
+void VulkanBuffer::unmap(u64 index)
 {
-    if (m_mapped[index])
+    if (m_mapped[index] != nullptr)
     {
-        vkUnmapMemory(p_device->getLogical(), m_memories[index]);
+        vkUnmapMemory(m_device->getLogical(), m_memories[index]);
         m_mapped[index] = nullptr;
     }
 }

@@ -13,7 +13,7 @@ public:
     Vec() = default;
 
     template <u64 L2>
-    inline Vec(Vec<T, L2> vec)
+    explicit Vec(Vec<T, L2> vec)
     {
         u64 largest = L > L2 ? L2 : L;
         for (u64 i = 0; i < largest; ++i)
@@ -22,12 +22,12 @@ public:
         }
     }
 
-    template <typename... Ts, typename = std::enable_if_t<(sizeof...(Ts) == L || sizeof...(Ts) == 1) &&
-                                                          std::conjunction_v<std::is_convertible<T, Ts>...>>>
-    inline Vec(Ts... values)
+    template <typename... Ts>
+        requires((sizeof...(Ts) == L || sizeof...(Ts) == 1) && (std::is_convertible_v<T, Ts> && ...))
+    explicit Vec(Ts... values)
     {
         const u64 num = sizeof...(Ts);
-        T elements[] = {static_cast<T>(values)...};
+        std::array<T, sizeof...(Ts)> elements = {static_cast<T>(values)...};
         if (num == 1)
         {
             m_elements.fill(elements[0]);
@@ -41,8 +41,8 @@ public:
         }
     }
 
-    inline T operator[](u64 index) const { return m_elements[index]; }
-    inline T& operator[](u64 index) { return m_elements[index]; }
+    T operator[](u64 index) const { return m_elements[index]; }
+    T& operator[](u64 index) { return m_elements[index]; }
 
 private:
     std::array<T, L> m_elements{static_cast<T>(0)};

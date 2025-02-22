@@ -4,12 +4,15 @@
 
 namespace huedra {
 
-LRESULT CALLBACK Win32Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+// Win32 is notorious for converting actual bytes to other types
+// Therefore, it's permissable to use reinterpret_cast and other pointer arithmetic
+// NOLINTBEGIN(performance-no-int-to-ptr, performance-no-int-to-ptr)
+LRESULT CALLBACK Win32Window::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     Win32Window* self = nullptr;
     if (uMsg == WM_NCCREATE)
     {
-        LPCREATESTRUCT lpcs = reinterpret_cast<LPCREATESTRUCT>(lParam);
+        auto* lpcs = reinterpret_cast<LPCREATESTRUCT>(lParam);
         self = static_cast<Win32Window*>(lpcs->lpCreateParams);
         SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
     }
@@ -18,11 +21,11 @@ LRESULT CALLBACK Win32Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
         self = reinterpret_cast<Win32Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
     }
 
-    if (self)
+    if (self != nullptr)
     {
         WindowRect rect = self->getRect();
         MouseButton button = MouseButton::NONE;
-        RECT winRect;
+        RECT winRect{};
         POINT point{};
 
         switch (uMsg)
@@ -34,7 +37,7 @@ LRESULT CALLBACK Win32Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
             rect.screenWidth = LOWORD(lParam);
             rect.screenHeight = HIWORD(lParam);
 
-            if (GetWindowRect(self->m_handle, &winRect))
+            if (GetWindowRect(self->m_handle, &winRect) != 0)
             {
                 rect.width = winRect.right - winRect.left;
                 rect.height = winRect.bottom - winRect.top;
@@ -44,7 +47,7 @@ LRESULT CALLBACK Win32Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
             rect.xScreenPos = static_cast<i32>(static_cast<i16>(LOWORD(lParam)));
             rect.yScreenPos = static_cast<i32>(static_cast<i16>(HIWORD(lParam)));
 
-            if (GetWindowRect(self->m_handle, &winRect))
+            if (GetWindowRect(self->m_handle, &winRect) != 0)
             {
                 rect.xPos = winRect.left;
                 rect.yPos = winRect.top;
@@ -55,7 +58,7 @@ LRESULT CALLBACK Win32Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
             rect.xScreenPos = winRect.left;
             rect.yScreenPos = winRect.top;
 
-            if (GetWindowRect(self->m_handle, &winRect))
+            if (GetWindowRect(self->m_handle, &winRect) != 0)
             {
                 rect.xPos = winRect.left;
                 rect.yPos = winRect.top;
@@ -64,7 +67,7 @@ LRESULT CALLBACK Win32Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
         case WM_INPUT: {
             RAWINPUT raw;
             UINT size = sizeof(RAWINPUT);
-            GetRawInputData((HRAWINPUT)lParam, RID_INPUT, &raw, &size, sizeof(RAWINPUTHEADER));
+            GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, &raw, &size, sizeof(RAWINPUTHEADER));
 
             if (raw.header.dwType == RIM_TYPEMOUSE)
             {
@@ -149,49 +152,50 @@ LRESULT CALLBACK Win32Window::WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
         case WM_PAINT: {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
-            FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW + 1));
+            FillRect(hdc, &ps.rcPaint, reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1));
             EndPaint(hwnd, &ps);
             break;
         }
+        default:
+            break;
         }
         self->updateRect(rect);
         rect = self->getRect();
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
+// NOLINTEND(performance-no-int-to-ptr, performance-no-int-to-ptr)
 
 bool Win32Window::init(const std::string& title, const WindowInput& input, HINSTANCE instance)
 {
     Window::init(title, {});
 
-    const char CLASS_NAME[] = "Window Class";
-
     RECT rect;
     rect.left = 0;
     rect.top = 0;
-    rect.right = input.width;
-    rect.bottom = input.height;
+    rect.right = static_cast<i32>(input.width);
+    rect.bottom = static_cast<i32>(input.height);
 
     AdjustWindowRectEx(&rect, WS_OVERLAPPEDWINDOW, 0, 0);
 
     // clang-format off
     m_handle = CreateWindowEx(
         0,
-        CLASS_NAME,
+        "Window Class",
         title.c_str(),
         WS_OVERLAPPEDWINDOW,
         input.xPos.value_or(CW_USEDEFAULT),
         input.yPos.value_or(CW_USEDEFAULT),
         rect.right - rect.left,
         rect.bottom - rect.top,
-        NULL,
-        NULL,
+        nullptr,
+        nullptr,
         instance,
         this
     );
     // clang-format on
 
-    if (m_handle == NULL)
+    if (m_handle == nullptr)
     {
         log(LogLevel::WARNING, "Failed to create win32 window!");
         return false;
@@ -205,7 +209,7 @@ bool Win32Window::init(const std::string& title, const WindowInput& input, HINST
 void Win32Window::cleanup()
 {
     Window::cleanup();
-    if (IsWindow(m_handle))
+    if (IsWindow(m_handle) != 0)
     {
         DestroyWindow(m_handle);
     }
@@ -214,9 +218,9 @@ void Win32Window::cleanup()
 // TODO: Run on another thread since resizing and moving window will halt execution in DispatchMessage
 bool Win32Window::update()
 {
-    global::input.setKeyToggle(KeyToggles::CAPS_LOCK, GetKeyState(VK_CAPITAL) & 1);
-    global::input.setKeyToggle(KeyToggles::NUM_LOCK, GetKeyState(VK_NUMLOCK) & 1);
-    global::input.setKeyToggle(KeyToggles::SCR_LOCK, GetKeyState(VK_SCROLL) & 1);
+    global::input.setKeyToggle(KeyToggles::CAPS_LOCK, (GetKeyState(VK_CAPITAL) & 1) != 0);
+    global::input.setKeyToggle(KeyToggles::NUM_LOCK, (GetKeyState(VK_NUMLOCK) & 1) != 0);
+    global::input.setKeyToggle(KeyToggles::SCR_LOCK, (GetKeyState(VK_SCROLL) & 1) != 0);
 
     MSG msg{};
     while (PeekMessage(&msg, m_handle, 0, 0, PM_REMOVE))
@@ -225,12 +229,12 @@ bool Win32Window::update()
         DispatchMessage(&msg);
     }
 
-    return IsWindow(m_handle);
+    return IsWindow(m_handle) != 0;
 }
 
 void Win32Window::setTitle(const std::string& title)
 {
-    if (SetWindowTextA(m_handle, title.c_str()))
+    if (SetWindowTextA(m_handle, title.c_str()) != 0)
     {
         updateTitle(title);
     }
@@ -238,12 +242,12 @@ void Win32Window::setTitle(const std::string& title)
 
 void Win32Window::setResolution(u32 width, u32 height)
 {
-    SetWindowPos(m_handle, NULL, 0, 0, width, height, SWP_NOMOVE);
+    SetWindowPos(m_handle, nullptr, 0, 0, static_cast<i32>(width), static_cast<i32>(height), SWP_NOMOVE);
 }
 
-void Win32Window::setPos(i32 x, i32 y) { SetWindowPos(m_handle, NULL, x, y, 0, 0, SWP_NOSIZE); }
+void Win32Window::setPos(i32 x, i32 y) { SetWindowPos(m_handle, nullptr, x, y, 0, 0, SWP_NOSIZE); }
 
-Keys Win32Window::convertKey(i64 code)
+Keys Win32Window::convertKey(u32 code)
 {
     char letter = static_cast<char>(code);
     if (letter >= 'A' && letter <= 'Z')
@@ -410,11 +414,13 @@ Keys Win32Window::convertKey(i64 code)
     case VK_NUMPAD9:
         key = Keys::NUMPAD_9;
         break;
+    default:
+        break;
     }
 
     if (key == Keys::NONE && letter >= '0' && letter <= '9')
     {
-        return static_cast<Keys>(static_cast<u32>(Keys::_0) + static_cast<u32>(letter - '0'));
+        return static_cast<Keys>(static_cast<u32>(Keys::NUM_0) + static_cast<u32>(letter - '0'));
     }
 
     return key;
