@@ -4,6 +4,7 @@
 #include "graphics/buffer.hpp"
 #include "graphics/context.hpp"
 #include "graphics/render_graph_builder.hpp"
+#include "platform/slang/context.hpp"
 #include "resources/texture/data.hpp"
 #include "window/window.hpp"
 
@@ -32,6 +33,8 @@ public:
     Ref<Buffer> createBuffer(BufferType type, u32 usage, u64 size, void* data = nullptr);
     Ref<Texture> createTexture(const TextureData& textureData);
     Ref<RenderTarget> createRenderTarget(RenderTargetType type, GraphicsDataFormat format, u32 width, u32 height);
+    ShaderModule createShaderModule(const std::string& name, const u8* sourceCode, u64 sourceCodeLength);
+    ShaderModule createShaderModule(const std::string& name, std::string& sourceString);
 
     void removeBuffer(Ref<Buffer> buffer);
     void removeTexture(Ref<Texture> texture);
@@ -44,6 +47,7 @@ private:
     void removeSwapchain(u64 index);
 
     GraphicalContext* m_context{nullptr};
+    SlangContext m_slangContext;
     u32 m_currentFrame{0};
 };
 

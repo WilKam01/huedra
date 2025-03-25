@@ -1,7 +1,8 @@
 #pragma once
 
+#include "core/file/types.hpp"
 #include "core/log.hpp"
-#include "core/types.hpp"
+#include "core/string/utils.hpp"
 
 #include <fstream>
 
@@ -43,6 +44,25 @@ inline bool writeBytes(const std::string& path, const std::vector<u8>& bytes)
     file.write(reinterpret_cast<const char*>(bytes.data()), static_cast<i64>(bytes.size()));
     file.close();
     return true;
+}
+
+inline FilePathInfo transformFilePath(const std::string& path)
+{
+    FilePathInfo filePathInfo{};
+    filePathInfo.directories = splitByChars(path, "/\\");
+
+    std::array<std::string, 2> nameAndExtension = splitFirstByChar(filePathInfo.directories.back(), '.');
+    filePathInfo.fileName = nameAndExtension[0];
+    filePathInfo.extension = nameAndExtension[1];
+    if (filePathInfo.extension.empty())
+    {
+        log(LogLevel::WARNING, "transformFilePath(): No extension found for %s", path.c_str());
+    }
+
+    // Keep only directories
+    filePathInfo.directories.pop_back();
+
+    return filePathInfo;
 }
 
 } // namespace huedra

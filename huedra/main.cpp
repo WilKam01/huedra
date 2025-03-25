@@ -95,23 +95,13 @@ int main()
     Ref<Buffer> viewProjBuffer = global::graphicsManager.createBuffer(
         BufferType::DYNAMIC, HU_BUFFER_USAGE_UNIFORM_BUFFER, sizeof(viewProj), &viewProj);
 
-    TextureData& tex = global::resourceManager.loadTextureData("assets/textures/1x1.png", TexelChannelFormat::RGBA);
+    TextureData& tex = global::resourceManager.loadTextureData("assets/textures/test.png", TexelChannelFormat::RGBA);
     Ref<Texture> texture = global::graphicsManager.createTexture(tex);
-
-    const u32 gBufferCount = 3;
-    uvec2 gBufferDimensions(rect.screenWidth, rect.screenHeight);
-    std::array<Ref<RenderTarget>, gBufferCount> gBuffers{};
-    for (auto& gBuffer : gBuffers)
-    {
-        gBuffer = global::graphicsManager.createRenderTarget(RenderTargetType::COLOR_AND_DEPTH,
-                                                             GraphicsDataFormat::RGBA_8_UNORM, gBufferDimensions.x,
-                                                             gBufferDimensions.y);
-    }
 
     PipelineBuilder builder;
     builder.init(PipelineType::GRAPHICS)
-        .addShader(ShaderStage::VERTEX, "assets/shaders/shader.vert")
-        .addShader(ShaderStage::FRAGMENT, "assets/shaders/shader.frag")
+        .addShader(ShaderStage::VERTEX, global::resourceManager.loadShaderModule("assets/shaders/vert.slang"))
+        .addShader(ShaderStage::FRAGMENT, global::resourceManager.loadShaderModule("assets/shaders/frag.slang"))
         .addVertexInputStream({.size = sizeof(vec3),
                                .inputRate = VertexInputRate::VERTEX,
                                .attributes{{.format = GraphicsDataFormat::RGB_32_FLOAT, .offset = 0}}})
@@ -139,40 +129,6 @@ int main()
             renderContext.pushConstants(HU_SHADER_STAGE_VERTEX, sizeof(matrix4), &mat);
             renderContext.drawIndexed(static_cast<u32>(meshes[0].indices.size()), 1, 0, 0);
         });
-    };
-
-    // Compute pipeline and info
-    PipelineBuilder computeBuilder;
-    computeBuilder.init(PipelineType::COMPUTE)
-        .addShader(ShaderStage::COMPUTE, "assets/shaders/shader.comp")
-        .addResourceSet();
-
-    for (auto& gBuffer : gBuffers)
-    {
-        computeBuilder.addResourceBinding(HU_SHADER_STAGE_COMPUTE, ResourceType::UNFIFORM_TEXTURE);
-    }
-
-    computeBuilder.addResourceBinding(HU_SHADER_STAGE_COMPUTE, ResourceType::UNIFORM_BUFFER)
-        .addResourceBinding(HU_SHADER_STAGE_COMPUTE, ResourceType::STORAGE_TEXTURE);
-
-    struct LightData
-    {
-        vec4 pos;
-        vec4 color;
-    } lightData{.pos = vec4(0.0f, 10.0f, 5.0f, 1.0f), .color = vec4(0.2f, 0.1f, 0.5f, 2.0f)};
-
-    Ref<Buffer> computeBuffer = global::graphicsManager.createBuffer(
-        BufferType::DYNAMIC, HU_BUFFER_USAGE_UNIFORM_BUFFER, sizeof(LightData), &lightData);
-
-    RenderCommands computeCommands = [&gBuffers, &computeBuffer, &window](RenderContext& renderContext) {
-        for (u32 i = 0; i < gBufferCount; ++i)
-        {
-            renderContext.bindTexture(gBuffers[i]->getColorTexture(), 0, i, SAMPLER_NEAR);
-        }
-        renderContext.bindBuffer(computeBuffer, 0, gBufferCount);
-        renderContext.bindTexture(window->getRenderTarget()->getColorTexture(), 0, gBufferCount + 1, SAMPLER_NEAR);
-        WindowRect rect = window->getRect();
-        renderContext.dispatch((rect.width + 31) / 32, (rect.height + 31) / 32, 1);
     };
 
     vec3 eye(0.0f, 0.0f, 12.0f);
@@ -237,40 +193,14 @@ int main()
         RenderGraphBuilder renderGraph;
         if (window.valid() && window->getRenderTarget()->isAvailable())
         {
-            WindowRect newRect = window->getRect();
-            if (newRect.screenWidth != rect.screenWidth || newRect.screenHeight != rect.screenHeight)
-            {
-                rect = newRect;
-                for (auto& gBuffer : gBuffers)
-                {
-                    global::graphicsManager.removeRenderTarget(gBuffer);
-                    gBuffer = global::graphicsManager.createRenderTarget(RenderTargetType::COLOR_AND_DEPTH,
-                                                                         GraphicsDataFormat::RGBA_8_UNORM,
-                                                                         rect.screenWidth, rect.screenHeight);
-                }
-            }
-
             RenderPassBuilder renderPass =
                 RenderPassBuilder()
                     .init(RenderPassType::GRAPHICS, builder)
                     .addResource(ResourceAccessType::READ, viewProjBuffer, HU_SHADER_STAGE_VERTEX)
                     .addResource(ResourceAccessType::READ, texture, HU_SHADER_STAGE_FRAGMENT)
+                    .addRenderTarget(window->getRenderTarget())
                     .setCommands(commands);
-            for (auto& gBuffer : gBuffers)
-            {
-                renderPass.addRenderTarget(gBuffer);
-            }
-            renderGraph.addPass("GBuffer Pass", renderPass);
-
-            renderPass.init(RenderPassType::COMPUTE, computeBuilder);
-            for (auto& gBuffer : gBuffers)
-            {
-                renderPass.addResource(ResourceAccessType::READ, gBuffer->getColorTexture(), HU_SHADER_STAGE_COMPUTE);
-            }
-            renderPass.addResource(ResourceAccessType::WRITE, window->getRenderTarget()->getColorTexture(),
-                                   HU_SHADER_STAGE_COMPUTE);
-            renderPass.setCommands(computeCommands);
-            renderGraph.addPass("Ligthning Pass", renderPass);
+            renderGraph.addPass("Render Pass", renderPass);
         }
 
         viewProj = math::perspective(math::radians(90.0f),
@@ -306,7 +236,6 @@ int main()
         global::input.update();
     }
 
-    global::graphicsManager.removeBuffer(computeBuffer);
     global::graphicsManager.removeTexture(texture);
     global::graphicsManager.removeBuffer(viewProjBuffer);
 

@@ -10,13 +10,12 @@ file(GLOB_RECURSE SOURCES
 
 add_executable(huedra ${SOURCES})
 
-find_package(Python3 REQUIRED)
-
 find_package(Vulkan REQUIRED)
 
 if(VULKAN_FOUND)
   include_directories(huedra {Vulkan_INCLUDE_DIRS})
   target_link_libraries(huedra PRIVATE Vulkan::Vulkan)
+  target_link_libraries(huedra PRIVATE $ENV{VULKAN_SDK}/Lib/slang.lib)
   target_compile_definitions(huedra PRIVATE -DVULKAN)
 endif(VULKAN_FOUND)
 
@@ -45,13 +44,6 @@ set(source_assets ${PROJECT_SOURCE_DIR}/assets)
 set(dest_assets ${PROJECT_BINARY_DIR}/assets)
 set(shader_dir ${source_assets}/shaders)
 
-# Compile shaders
-add_custom_target(compile_shaders ALL
-  COMMAND ${Python3_EXECUTABLE} compile.py
-  WORKING_DIRECTORY ${shader_dir}
-  COMMENT "Compiling shaders"
-)
-
 # Copy assets
 add_custom_target(copy_assets ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
@@ -59,5 +51,4 @@ add_custom_target(copy_assets ALL
     COMMENT "Copying assets to build folder"
 )
 
-add_dependencies(copy_assets compile_shaders)
 add_dependencies(huedra copy_assets)

@@ -12,7 +12,7 @@ void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device
     m_builder = pipelineBuilder;
     initLayout();
 
-    std::map<ShaderStage, std::string> shaders = pipelineBuilder.getShaderStages();
+    std::map<ShaderStage, ShaderModule> shaders = pipelineBuilder.getShaderStages();
     std::vector<VkPipelineShaderStageCreateInfo> shaderCreateInfos{};
     std::vector<VkShaderModule> shaderModules{};
 
@@ -278,14 +278,12 @@ void VulkanPipeline::initLayout()
     }
 }
 
-VkShaderModule VulkanPipeline::loadShader(const std::string& path)
+VkShaderModule VulkanPipeline::loadShader(const ShaderModule& shader)
 {
-    std::vector<u8> buffer = readBytes(path + ".spv");
-
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    createInfo.codeSize = buffer.size();
-    createInfo.pCode = reinterpret_cast<const u32*>(buffer.data());
+    createInfo.codeSize = static_cast<u32>(shader.getCode().size());
+    createInfo.pCode = reinterpret_cast<const u32*>(shader.getCode().data());
 
     VkShaderModule shaderModule{nullptr};
     if (vkCreateShaderModule(m_device->getLogical(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS)

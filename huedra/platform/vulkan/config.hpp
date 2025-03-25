@@ -5,7 +5,7 @@
 #endif
 
 #include "core/types.hpp"
-#include <vulkan/vulkan.h>
+#include "vulkan/vulkan.h"
 
 namespace huedra::vulkan_config {
 

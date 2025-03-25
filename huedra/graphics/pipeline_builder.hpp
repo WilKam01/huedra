@@ -19,7 +19,7 @@ public:
 
     PipelineBuilder& init(PipelineType type);
 
-    PipelineBuilder& addShader(ShaderStage stage, const std::string& shader);
+    PipelineBuilder& addShader(ShaderStage stage, ShaderModule& shader);
 
     PipelineBuilder& addVertexInputStream(const VertexInputStream& inputStream);
 
@@ -33,7 +33,7 @@ public:
     u64 getHash() const { return m_hash; }
 
     PipelineType getType() const { return m_type; }
-    std::map<ShaderStage, std::string> getShaderStages() const { return m_shaderStages; }
+    std::map<ShaderStage, ShaderModule> getShaderStages() const { return m_shaderStages; }
     std::vector<std::vector<ResourceBinding>> getResources() const { return m_resources; }
 
     std::vector<VertexInputStream> getVertexInputStreams() const { return m_vertexStreams; }
@@ -46,7 +46,7 @@ private:
     u64 m_hash{0};
 
     PipelineType m_type{PipelineType::GRAPHICS};
-    std::map<ShaderStage, std::string> m_shaderStages;
+    std::map<ShaderStage, ShaderModule> m_shaderStages;
     std::vector<std::vector<ResourceBinding>> m_resources;
 
     std::vector<u32> m_pushConstantRanges;

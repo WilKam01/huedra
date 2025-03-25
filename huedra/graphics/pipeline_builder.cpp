@@ -17,7 +17,7 @@ PipelineBuilder& PipelineBuilder::init(PipelineType type)
     return *this;
 }
 
-PipelineBuilder& PipelineBuilder::addShader(ShaderStage stage, const std::string& shader)
+PipelineBuilder& PipelineBuilder::addShader(ShaderStage stage, ShaderModule& shader)
 {
     if (m_type == PipelineType::COMPUTE && stage != ShaderStage::COMPUTE)
     {
@@ -97,7 +97,8 @@ u64 PipelineBuilder::generateHash()
     for (auto& [stage, path] : m_shaderStages)
     {
         combineHash(u64Hash(static_cast<u64>(stage)));
-        combineHash(strHash(path));
+        // TODO: Fix when adding multiple entry points
+        // combineHash(strHash(path));
     }
 
     combineHash(u64Hash(m_resources.size()));

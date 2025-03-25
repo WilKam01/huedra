@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/types.hpp"
+#include "graphics/shader_module.hpp"
 
 namespace huedra {
 

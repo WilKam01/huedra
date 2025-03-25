@@ -30,7 +30,7 @@ public:
 private:
     void initLayout();
 
-    VkShaderModule loadShader(const std::string& path);
+    VkShaderModule loadShader(const ShaderModule& shader);
 
     Device* m_device{nullptr};
     PipelineBuilder m_builder;
