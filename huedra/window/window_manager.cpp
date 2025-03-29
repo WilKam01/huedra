@@ -4,6 +4,8 @@
 
 #ifdef WIN32
 #include "platform/win32/window.hpp"
+#elif defined(COCOA)
+#include "platform/cocoa/window.hpp"
 #endif
 
 namespace huedra {
@@ -15,7 +17,7 @@ void WindowManager::init()
 {
 #ifdef WIN32
     WNDCLASS wc = {};
-    wc.lpfnWndProc = Win32Window::windowProc;
+    wc.lpfnWndProc = WindowWin32::windowProc;
     wc.hInstance = GetModuleHandle(nullptr);
     wc.lpszClassName = "Window Class";
     wc.style = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS;
@@ -38,7 +40,7 @@ bool WindowManager::update()
     if (global::input.getMouseMode() == MouseMode::CONFINED && m_focusedWindow != nullptr)
     {
         RECT rect;
-        HWND hwnd = static_cast<Win32Window*>(m_focusedWindow)->getHandle();
+        HWND hwnd = static_cast<WindowWin32*>(m_focusedWindow)->getHandle();
         GetClientRect(hwnd, &rect);
         ClientToScreen(hwnd, reinterpret_cast<POINT*>(&rect.left));
         ClientToScreen(hwnd, reinterpret_cast<POINT*>(&rect.right));
@@ -174,8 +176,11 @@ Window* WindowManager::createWindow(const std::string& title, const WindowInput&
     Window* ret = nullptr;
     bool success = false;
 #ifdef WIN32
-    auto* window = new Win32Window();
+    auto* window = new WindowWin32();
     success = window->init(title, input, GetModuleHandle(nullptr));
+#elif defined(COCOA)
+    auto* window = new WindowCocoa();
+    success = window->init(title, input);
 #endif
     if (success)
     {

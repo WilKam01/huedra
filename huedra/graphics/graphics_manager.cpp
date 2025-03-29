@@ -3,6 +3,8 @@
 
 #ifdef VULKAN
 #include "platform/vulkan/context.hpp"
+#elif defined(METAL)
+#include "platform/metal/context.hpp"
 #endif
 
 namespace huedra {
@@ -11,15 +13,17 @@ void GraphicsManager::init()
 {
 #ifdef VULKAN
     m_context = new VulkanContext();
+#elif defined(METAL)
+    m_context = new MetalContext();
 #endif
 
     m_context->init();
-    m_slangContext.init();
+    // m_slangContext.init();
 }
 
 void GraphicsManager::cleanup()
 {
-    m_slangContext.cleanup();
+    // m_slangContext.cleanup();
     m_context->cleanup();
     delete m_context;
 }
@@ -97,12 +101,12 @@ ShaderModule GraphicsManager::createShaderModule(const std::string& name, const 
     // Need to create string from source for null termination
     std::string sourceString(reinterpret_cast<const char*>(sourceCode),
                              reinterpret_cast<const char*>(sourceCode) + sourceCodeLength);
-    return m_slangContext.createModule(name, sourceString);
+    return {}; // m_slangContext.createModule(name, sourceString);
 }
 
 ShaderModule GraphicsManager::createShaderModule(const std::string& name, std::string& sourceString)
 {
-    return m_slangContext.createModule(name, sourceString);
+    return {}; // m_slangContext.createModule(name, sourceString);
 }
 
 void GraphicsManager::removeBuffer(Ref<Buffer> buffer)
@@ -144,5 +148,4 @@ void GraphicsManager::createSwapchain(Window* window, bool renderDepth)
 }
 
 void GraphicsManager::removeSwapchain(u64 index) { m_context->removeSwapchain(index); }
-
 }; // namespace huedra

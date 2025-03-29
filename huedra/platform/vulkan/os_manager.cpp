@@ -12,7 +12,7 @@ VkSurfaceKHR createSurface(Instance& instance, Window* window)
     VkSurfaceKHR surface{nullptr};
 
 #ifdef WIN32
-    auto* win = static_cast<Win32Window*>(window);
+    auto* win = static_cast<WindowWin32*>(window);
     VkWin32SurfaceCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
     createInfo.hinstance = GetModuleHandle(nullptr);

@@ -12,7 +12,7 @@ class Input
 {
     friend class WindowManager;
 #ifdef WIN32
-    friend class Win32Window;
+    friend class WindowWin32;
 #endif
 public:
     Input() = default;

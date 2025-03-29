@@ -7,18 +7,18 @@ namespace huedra {
 // Win32 is notorious for converting actual bytes to other types
 // Therefore, it's permissable to use reinterpret_cast and other pointer arithmetic
 // NOLINTBEGIN(performance-no-int-to-ptr, performance-no-int-to-ptr)
-LRESULT CALLBACK Win32Window::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK WindowWin32::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    Win32Window* self = nullptr;
+    WindowWin32* self = nullptr;
     if (uMsg == WM_NCCREATE)
     {
         auto* lpcs = reinterpret_cast<LPCREATESTRUCT>(lParam);
-        self = static_cast<Win32Window*>(lpcs->lpCreateParams);
+        self = static_cast<WindowWin32*>(lpcs->lpCreateParams);
         SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
     }
     else
     {
-        self = reinterpret_cast<Win32Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+        self = reinterpret_cast<WindowWin32*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
     }
 
     if (self != nullptr)
@@ -166,7 +166,7 @@ LRESULT CALLBACK Win32Window::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 }
 // NOLINTEND(performance-no-int-to-ptr, performance-no-int-to-ptr)
 
-bool Win32Window::init(const std::string& title, const WindowInput& input, HINSTANCE instance)
+bool WindowWin32::init(const std::string& title, const WindowInput& input, HINSTANCE instance)
 {
     Window::init(title, {});
 
@@ -206,7 +206,7 @@ bool Win32Window::init(const std::string& title, const WindowInput& input, HINST
     return true;
 }
 
-void Win32Window::cleanup()
+void WindowWin32::cleanup()
 {
     Window::cleanup();
     if (IsWindow(m_handle) != 0)
@@ -216,7 +216,7 @@ void Win32Window::cleanup()
 }
 
 // TODO: Run on another thread since resizing and moving window will halt execution in DispatchMessage
-bool Win32Window::update()
+bool WindowWin32::update()
 {
     global::input.setKeyToggle(KeyToggles::CAPS_LOCK, (GetKeyState(VK_CAPITAL) & 1) != 0);
     global::input.setKeyToggle(KeyToggles::NUM_LOCK, (GetKeyState(VK_NUMLOCK) & 1) != 0);
@@ -232,7 +232,7 @@ bool Win32Window::update()
     return IsWindow(m_handle) != 0;
 }
 
-void Win32Window::setTitle(const std::string& title)
+void WindowWin32::setTitle(const std::string& title)
 {
     if (SetWindowTextA(m_handle, title.c_str()) != 0)
     {
@@ -240,14 +240,14 @@ void Win32Window::setTitle(const std::string& title)
     }
 }
 
-void Win32Window::setResolution(u32 width, u32 height)
+void WindowWin32::setResolution(u32 width, u32 height)
 {
     SetWindowPos(m_handle, nullptr, 0, 0, static_cast<i32>(width), static_cast<i32>(height), SWP_NOMOVE);
 }
 
-void Win32Window::setPos(i32 x, i32 y) { SetWindowPos(m_handle, nullptr, x, y, 0, 0, SWP_NOSIZE); }
+void WindowWin32::setPos(i32 x, i32 y) { SetWindowPos(m_handle, nullptr, x, y, 0, 0, SWP_NOSIZE); }
 
-Keys Win32Window::convertKey(u32 code)
+Keys WindowWin32::convertKey(u32 code)
 {
     char letter = static_cast<char>(code);
     if (letter >= 'A' && letter <= 'Z')

@@ -12,7 +12,7 @@ class WindowManager
 {
     friend class Input;
 #ifdef WIN32
-    friend class Win32Window;
+    friend class WindowWin32;
 #endif
 #ifdef VULKAN
     friend class VulkanContext;
