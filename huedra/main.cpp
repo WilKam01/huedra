@@ -35,6 +35,8 @@ int main()
 
     writeBytes("assets/result.json", serializeJson(json));
 
+    global::resourceManager.loadShaderModule("assets/shaders/shader.slang");
+
     Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1278, 1360, -7, 0));
 
     // Draw data
@@ -98,10 +100,11 @@ int main()
     TextureData& tex = global::resourceManager.loadTextureData("assets/textures/test.png", TexelChannelFormat::RGBA);
     Ref<Texture> texture = global::graphicsManager.createTexture(tex);
 
+    ShaderModule& shaderModule = global::resourceManager.loadShaderModule("assets/shaders/shader.slang");
     PipelineBuilder builder;
     builder.init(PipelineType::GRAPHICS)
-        .addShader(ShaderStage::VERTEX, global::resourceManager.loadShaderModule("assets/shaders/vert.slang"))
-        .addShader(ShaderStage::FRAGMENT, global::resourceManager.loadShaderModule("assets/shaders/frag.slang"))
+        .addShader(ShaderStage::VERTEX, shaderModule, "vertMain")
+        .addShader(ShaderStage::FRAGMENT, shaderModule, "fragMain")
         .addVertexInputStream({.size = sizeof(vec3),
                                .inputRate = VertexInputRate::VERTEX,
                                .attributes{{.format = GraphicsDataFormat::RGB_32_FLOAT, .offset = 0}}})

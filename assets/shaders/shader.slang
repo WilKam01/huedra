@@ -3,7 +3,6 @@ struct CameraBuffer
     float4x4 viewProj;
 };
 
-[[vk::binding(0, 0)]]
 ConstantBuffer<CameraBuffer> cameraBuffer;
 
 struct VSInput 
@@ -22,12 +21,34 @@ struct VSOutput
 };
 
 [shader("vertex")]
-VSOutput main(VSInput input, uniform float4x4 model) 
+VSOutput vertMain(VSInput input, uniform float4x4 model) 
 {
     VSOutput output;
     output.position = mul(cameraBuffer.viewProj, mul(model, float4(input.position, 1.0)));
     output.fragPosition = input.position;
     output.fragUv = input.uv;
     output.fragNormal = mul(cameraBuffer.viewProj, mul(model, float4(input.normal, 0.0))).xyz;
+    return output;
+}
+
+Sampler2D tex;
+
+struct PSInput 
+{
+    float3 fragPosition : TEXCOORD0;
+    float2 fragUv : TEXCOORD1;
+    float3 fragNormal : TEXCOORD2;
+};
+
+struct PSOutput 
+{
+    float4 outColor : SV_Target;
+};
+
+[shader("fragment")]
+PSOutput fragMain(PSInput input) 
+{
+    PSOutput output;
+    output.outColor = float4(tex.Sample(input.fragUv).rgb, 1.0);
     return output;
 }

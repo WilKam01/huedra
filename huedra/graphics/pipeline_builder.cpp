@@ -17,7 +17,8 @@ PipelineBuilder& PipelineBuilder::init(PipelineType type)
     return *this;
 }
 
-PipelineBuilder& PipelineBuilder::addShader(ShaderStage stage, ShaderModule& shader)
+PipelineBuilder& PipelineBuilder::addShader(ShaderStage stage, ShaderModule& shaderModule,
+                                            const std::string& entryPointName)
 {
     if (m_type == PipelineType::COMPUTE && stage != ShaderStage::COMPUTE)
     {
@@ -27,11 +28,12 @@ PipelineBuilder& PipelineBuilder::addShader(ShaderStage stage, ShaderModule& sha
 
     if (m_shaderStages.contains(stage))
     {
-        m_shaderStages[stage] = shader;
+        m_shaderStages[stage] = {.shaderModule = &shaderModule, .entryPointName = entryPointName};
         return *this;
     }
 
-    m_shaderStages.insert(std::make_pair(stage, shader));
+    m_shaderStages.insert(
+        std::pair<ShaderStage, ShaderInput>(stage, {.shaderModule = &shaderModule, .entryPointName = entryPointName}));
     return *this;
 }
 

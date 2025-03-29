@@ -14,6 +14,7 @@ void SlangContext::init()
     slang::TargetDesc targetDesc{};
     std::vector<slang::CompilerOptionEntry> optionEntries{};
 
+// TODO: Test VulkanInvertY and see if inversion code in renderer can be omitted
 #ifdef VULKAN
     targetDesc.format = SLANG_SPIRV;
     targetDesc.profile = m_globalSession->findProfile("spirv_1_5");
@@ -25,6 +26,8 @@ void SlangContext::init()
 
     capability.value = {.intValue0 = m_globalSession->findCapability("spvSparseResidency")};
     optionEntries.push_back(capability);
+
+    optionEntries.push_back({.name = slang::CompilerOptionName::VulkanUseEntryPointName, .value = {.intValue0 = 1}});
 #endif
 
     sessionDesc.targets = &targetDesc;
@@ -55,7 +58,6 @@ ShaderModule SlangContext::createModule(const std::string& name, const std::stri
         return {};
     }
 
-    std::vector<Slang::ComPtr<slang::IEntryPoint>> entryPoints;
     i32 entryPointCount = shaderModule->getDefinedEntryPointCount();
     if (entryPointCount == 0)
     {
@@ -63,15 +65,18 @@ ShaderModule SlangContext::createModule(const std::string& name, const std::stri
         return {};
     }
 
-    entryPoints.resize(static_cast<u64>(entryPointCount));
+    std::vector<slang::IComponentType*> componentTypes(static_cast<u64>(entryPointCount + 1));
+    componentTypes[0] = shaderModule;
     for (i32 i = 0; i < entryPointCount; ++i)
     {
-        shaderModule->getDefinedEntryPoint(i, entryPoints[i].writeRef());
+        Slang::ComPtr<slang::IEntryPoint> entryPoint;
+        shaderModule->getDefinedEntryPoint(i, entryPoint.writeRef());
         log(LogLevel::D_INFO, "createModule(): Entry point name[i] = {}",
-            entryPoints[i]->getFunctionReflection()->getName());
+            entryPoint->getFunctionReflection()->getName());
+
+        componentTypes[i + 1] = entryPoint;
     }
 
-    std::array<slang::IComponentType*, 2> componentTypes = {shaderModule, entryPoints[0]};
     Slang::ComPtr<slang::IComponentType> composedProgram;
     SlangResult result = m_session->createCompositeComponentType(
         componentTypes.data(), componentTypes.size(), composedProgram.writeRef(), diagnositicBlob.writeRef());
@@ -92,10 +97,11 @@ ShaderModule SlangContext::createModule(const std::string& name, const std::stri
     }
 
     Slang::ComPtr<slang::IBlob> code;
-    result = linkedProgram->getEntryPointCode(0, 0, code.writeRef(), diagnositicBlob.writeRef());
+    // result = linkedProgram->getEntryPointCode(0, 0, code.writeRef(), diagnositicBlob.writeRef());
+    result = linkedProgram->getTargetCode(0, code.writeRef(), diagnositicBlob.writeRef());
     if (SLANG_FAILED(result))
     {
-        log(LogLevel::WARNING, "createModule(): get entry point code error: {}",
+        log(LogLevel::WARNING, "createModule(): get target point code error: {}",
             reinterpret_cast<const char*>(diagnositicBlob->getBufferPointer()));
         return {};
     }

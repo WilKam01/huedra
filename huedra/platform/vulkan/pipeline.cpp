@@ -12,24 +12,32 @@ void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device
     m_builder = pipelineBuilder;
     initLayout();
 
-    std::map<ShaderStage, ShaderModule> shaders = pipelineBuilder.getShaderStages();
+    std::map<ShaderStage, ShaderInput> shaders = pipelineBuilder.getShaderStages();
     std::vector<VkPipelineShaderStageCreateInfo> shaderCreateInfos{};
-    std::vector<VkShaderModule> shaderModules{};
 
     VkPipelineShaderStageCreateInfo shaderStageInfo{};
     shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    shaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    shaderStageInfo.pName = "main";
 
-    shaderModules.push_back(loadShader(shaders[ShaderStage::VERTEX]));
-    shaderStageInfo.module = shaderModules.back();
+    std::map<ShaderModule*, VkShaderModule> shaderModules{};
+    for (auto& [stage, input] : shaders)
+    {
+        if (!shaderModules.contains(input.shaderModule))
+        {
+            shaderModules.insert(
+                std::pair<ShaderModule*, VkShaderModule>(input.shaderModule, loadShader(input.shaderModule)));
+        }
+    }
+
+    shaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+    shaderStageInfo.module = shaderModules[shaders[ShaderStage::VERTEX].shaderModule];
+    shaderStageInfo.pName = shaders[ShaderStage::VERTEX].entryPointName.c_str();
     shaderCreateInfos.push_back(shaderStageInfo);
 
     if (shaders.contains(ShaderStage::FRAGMENT))
     {
-        shaderModules.push_back(loadShader(shaders[ShaderStage::FRAGMENT]));
         shaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-        shaderStageInfo.module = shaderModules.back();
+        shaderStageInfo.module = shaderModules[shaders[ShaderStage::VERTEX].shaderModule];
+        shaderStageInfo.pName = shaders[ShaderStage::FRAGMENT].entryPointName.c_str();
         shaderCreateInfos.push_back(shaderStageInfo);
     }
 
@@ -164,9 +172,9 @@ void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device
         log(LogLevel::ERR, "Failed to create graphics pipeline!");
     }
 
-    for (auto& module : shaderModules)
+    for (auto& [shaderModule, vkShaderModule] : shaderModules)
     {
-        vkDestroyShaderModule(m_device->getLogical(), module, nullptr);
+        vkDestroyShaderModule(m_device->getLogical(), vkShaderModule, nullptr);
     }
 }
 
@@ -176,11 +184,12 @@ void VulkanPipeline::initCompute(const PipelineBuilder& pipelineBuilder, Device&
     m_builder = pipelineBuilder;
     initLayout();
 
-    VkShaderModule shaderModule{loadShader(pipelineBuilder.getShaderStages()[ShaderStage::COMPUTE])};
+    std::map<ShaderStage, ShaderInput> shaders = pipelineBuilder.getShaderStages();
+    VkShaderModule shaderModule{loadShader(shaders[ShaderStage::COMPUTE].shaderModule)};
     VkPipelineShaderStageCreateInfo shaderStageInfo{};
     shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     shaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-    shaderStageInfo.pName = "main";
+    shaderStageInfo.pName = shaders[ShaderStage::COMPUTE].entryPointName.c_str();
     shaderStageInfo.module = shaderModule;
 
     VkComputePipelineCreateInfo pipelineInfo{};
@@ -278,12 +287,12 @@ void VulkanPipeline::initLayout()
     }
 }
 
-VkShaderModule VulkanPipeline::loadShader(const ShaderModule& shader)
+VkShaderModule VulkanPipeline::loadShader(ShaderModule* shader)
 {
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    createInfo.codeSize = static_cast<u32>(shader.getCode().size());
-    createInfo.pCode = reinterpret_cast<const u32*>(shader.getCode().data());
+    createInfo.codeSize = static_cast<u32>(shader->getCode().size());
+    createInfo.pCode = reinterpret_cast<const u32*>(shader->getCode().data());
 
     VkShaderModule shaderModule{nullptr};
     if (vkCreateShaderModule(m_device->getLogical(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS)

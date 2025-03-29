@@ -5,6 +5,12 @@
 
 namespace huedra {
 
+struct ShaderInput
+{
+    ShaderModule* shaderModule;
+    std::string entryPointName;
+};
+
 enum class PipelineType
 {
     GRAPHICS,
