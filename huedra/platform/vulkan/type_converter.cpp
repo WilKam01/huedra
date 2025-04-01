@@ -79,17 +79,20 @@ VkDescriptorType convertResourceType(ResourceType resource)
 {
     switch (resource)
     {
-    case ResourceType::UNIFORM_BUFFER:
+    case ResourceType::CONSTANT_BUFFER:
         return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 
-    case ResourceType::STORAGE_BUFFER:
+    case ResourceType::STRUCTURED_BUFFER:
         return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 
-    case ResourceType::UNFIFORM_TEXTURE:
-        return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    case ResourceType::TEXTURE:
+        return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 
-    case ResourceType::STORAGE_TEXTURE:
+    case ResourceType::RW_TEXTURE:
         return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+
+    case ResourceType::SAMPLER:
+        return VK_DESCRIPTOR_TYPE_SAMPLER;
 
     default:
         return VK_DESCRIPTOR_TYPE_MAX_ENUM;
@@ -254,12 +257,12 @@ VkBufferUsageFlagBits convertBufferUsage(BufferUsageFlags usage)
         result |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
     }
 
-    if ((usage & HU_BUFFER_USAGE_UNIFORM_BUFFER) != 0u)
+    if ((usage & HU_BUFFER_USAGE_CONSTANT_BUFFER) != 0u)
     {
         result |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     }
 
-    if ((usage & HU_BUFFER_USAGE_STORAGE_BUFFER) != 0u)
+    if ((usage & HU_BUFFER_USAGE_STRUCTURED_BUFFER) != 0u)
     {
         result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     }

@@ -31,7 +31,8 @@ VSOutput vertMain(VSInput input, uniform float4x4 model)
     return output;
 }
 
-Sampler2D tex;
+Texture2D tex;
+SamplerState sampler;
 
 struct PSInput 
 {
@@ -49,6 +50,6 @@ struct PSOutput
 PSOutput fragMain(PSInput input) 
 {
     PSOutput output;
-    output.outColor = float4(tex.Sample(input.fragUv).rgb, 1.0);
+    output.outColor = float4(tex.Sample(sampler, input.fragUv).rgb, 1.0);
     return output;
 }

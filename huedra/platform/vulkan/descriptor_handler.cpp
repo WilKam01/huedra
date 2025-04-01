@@ -107,17 +107,17 @@ void DescriptorHandler::writeBuffer(VulkanBuffer& buffer, u32 set, u32 binding)
     m_updatedSinceLastUpdate = true;
 }
 
-void DescriptorHandler::writeTexture(VulkanTexture& texture, VkSampler sampler, u32 set, u32 binding)
+void DescriptorHandler::writeTexture(VulkanTexture& texture, u32 set, u32 binding)
 {
     if (set >= m_sets.size())
     {
-        log(LogLevel::WARNING, "Could not write buffer, set {} out of bounds ({} defined)", set, m_sets.size());
+        log(LogLevel::WARNING, "Could not write texture, set {} out of bounds ({} defined)", set, m_sets.size());
         return;
     }
 
     if (binding >= m_sets[set].bindingTypes.size())
     {
-        log(LogLevel::WARNING, "Could not write buffer, binding {} out of bounds ({} defined)", binding,
+        log(LogLevel::WARNING, "Could not write texture, binding {} out of bounds ({} defined)", binding,
             m_sets[set].bindingTypes.size());
         return;
     }
@@ -125,6 +125,41 @@ void DescriptorHandler::writeTexture(VulkanTexture& texture, VkSampler sampler, 
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = texture.getLayout();
     imageInfo.imageView = texture.getView();
+
+    if (m_sets[set].curIndex == m_sets[set].instances.size())
+    {
+        m_sets[set].instances.push_back(createDescriptorSet(set));
+    }
+
+    VkWriteDescriptorSet descriptorWrite{};
+    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrite.dstSet = m_sets[set].instances[m_sets[set].curIndex];
+    descriptorWrite.dstBinding = binding;
+    descriptorWrite.dstArrayElement = 0;
+    descriptorWrite.descriptorType = m_sets[set].bindingTypes[binding];
+    descriptorWrite.descriptorCount = 1;
+    descriptorWrite.pImageInfo = &imageInfo;
+
+    vkUpdateDescriptorSets(m_device->getLogical(), 1, &descriptorWrite, 0, nullptr);
+    m_updatedSinceLastUpdate = true;
+}
+
+void DescriptorHandler::writeSampler(VkSampler sampler, u32 set, u32 binding)
+{
+    if (set >= m_sets.size())
+    {
+        log(LogLevel::WARNING, "Could not write sampler, set {} out of bounds ({} defined)", set, m_sets.size());
+        return;
+    }
+
+    if (binding >= m_sets[set].bindingTypes.size())
+    {
+        log(LogLevel::WARNING, "Could not write sampler, binding {} out of bounds ({} defined)", binding,
+            m_sets[set].bindingTypes.size());
+        return;
+    }
+
+    VkDescriptorImageInfo imageInfo{};
     imageInfo.sampler = sampler;
 
     if (m_sets[set].curIndex == m_sets[set].instances.size())

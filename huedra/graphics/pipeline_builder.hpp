@@ -23,7 +23,7 @@ public:
 
     PipelineBuilder& addVertexInputStream(const VertexInputStream& inputStream);
 
-    PipelineBuilder& addPushConstantRange(u32 stage, u32 size);
+    PipelineBuilder& addParameterRange(u32 stage, u32 size);
     PipelineBuilder& addResourceSet();
     PipelineBuilder& addResourceBinding(u32 stage, ResourceType resource);
 
@@ -38,8 +38,8 @@ public:
 
     std::vector<VertexInputStream> getVertexInputStreams() const { return m_vertexStreams; }
 
-    std::vector<u32> getPushConstantRanges() const { return m_pushConstantRanges; }
-    std::vector<ShaderStageFlags> getPushConstantShaderStages() const { return m_pushConstantShaderStages; }
+    std::vector<u32> getParameterRanges() const { return m_parameterRanges; }
+    std::vector<ShaderStageFlags> getParameterShaderStages() const { return m_parameterShaderStages; }
 
 private:
     bool m_initialized{false};
@@ -49,8 +49,8 @@ private:
     std::map<ShaderStage, ShaderInput> m_shaderStages;
     std::vector<std::vector<ResourceBinding>> m_resources;
 
-    std::vector<u32> m_pushConstantRanges;
-    std::vector<ShaderStageFlags> m_pushConstantShaderStages;
+    std::vector<u32> m_parameterRanges;
+    std::vector<ShaderStageFlags> m_parameterShaderStages;
 
     // Graphics specific
     std::vector<VertexInputStream> m_vertexStreams;

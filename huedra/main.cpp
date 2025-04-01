@@ -35,8 +35,6 @@ int main()
 
     writeBytes("assets/result.json", serializeJson(json));
 
-    global::resourceManager.loadShaderModule("assets/shaders/shader.slang");
-
     Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1278, 1360, -7, 0));
 
     // Draw data
@@ -95,7 +93,7 @@ int main()
                        math::lookAt(vec3(0.0f, 0.0f, -5.0f), vec3(0.0f), vec3(0.0f, 1.0f, 0.0f));
 
     Ref<Buffer> viewProjBuffer = global::graphicsManager.createBuffer(
-        BufferType::DYNAMIC, HU_BUFFER_USAGE_UNIFORM_BUFFER, sizeof(viewProj), &viewProj);
+        BufferType::DYNAMIC, HU_BUFFER_USAGE_CONSTANT_BUFFER, sizeof(viewProj), &viewProj);
 
     TextureData& tex = global::resourceManager.loadTextureData("assets/textures/test.png", TexelChannelFormat::RGBA);
     Ref<Texture> texture = global::graphicsManager.createTexture(tex);
@@ -114,22 +112,24 @@ int main()
         .addVertexInputStream({.size = sizeof(vec3),
                                .inputRate = VertexInputRate::VERTEX,
                                .attributes{{.format = GraphicsDataFormat::RGB_32_FLOAT, .offset = 0}}})
-        .addPushConstantRange(HU_SHADER_STAGE_VERTEX, sizeof(matrix4))
+        .addParameterRange(HU_SHADER_STAGE_VERTEX, sizeof(matrix4))
         .addResourceSet()
-        .addResourceBinding(HU_SHADER_STAGE_VERTEX, ResourceType::UNIFORM_BUFFER)
-        .addResourceBinding(HU_SHADER_STAGE_FRAGMENT, ResourceType::UNFIFORM_TEXTURE);
+        .addResourceBinding(HU_SHADER_STAGE_VERTEX, ResourceType::CONSTANT_BUFFER)
+        .addResourceBinding(HU_SHADER_STAGE_FRAGMENT, ResourceType::TEXTURE)
+        .addResourceBinding(HU_SHADER_STAGE_FRAGMENT, ResourceType::SAMPLER);
 
     RenderCommands commands = [&meshes, positionsBuffer, uvsBuffer, normalsBuffer, indexBuffer, viewProjBuffer, texture,
                                numEnities](RenderContext& renderContext) {
         renderContext.bindVertexBuffers({positionsBuffer, uvsBuffer, normalsBuffer});
         renderContext.bindIndexBuffer(indexBuffer);
         renderContext.bindBuffer(viewProjBuffer, 0, 0);
-        renderContext.bindTexture(texture, 0, 1, SAMPLER_LINEAR);
+        renderContext.bindTexture(texture, 0, 1);
+        renderContext.bindSampler(SAMPLER_LINEAR, 0, 2);
 
         global::sceneManager.query<Transform>([&](Transform& transform) {
             transform.rotation += vec3(math::radians(5), math::radians(10), 0.0f) * global::timer.dt();
             matrix4 mat = transform.applyMatrix();
-            renderContext.pushConstants(HU_SHADER_STAGE_VERTEX, sizeof(matrix4), &mat);
+            renderContext.setParameters(HU_SHADER_STAGE_VERTEX, sizeof(matrix4), &mat);
             renderContext.drawIndexed(static_cast<u32>(meshes[0].indices.size()), 1, 0, 0);
         });
     };
@@ -168,8 +168,8 @@ int main()
         }
         else
         {
-            rot += vec3(static_cast<float>(global::input.isKeyDown(Keys::K)) -
-                            static_cast<float>(global::input.isKeyDown(Keys::I)),
+            rot += vec3(static_cast<float>(global::input.isKeyDown(Keys::I)) -
+                            static_cast<float>(global::input.isKeyDown(Keys::K)),
                         static_cast<float>(global::input.isKeyDown(Keys::J)) -
                             static_cast<float>(global::input.isKeyDown(Keys::L)),
                         static_cast<float>(global::input.isKeyDown(Keys::O)) -
@@ -185,12 +185,15 @@ int main()
         vec3 forward = vec3(rMat(0, 2), rMat(1, 2), rMat(2, 2));
 
         float eyeSpeed = 5.0f + (10.0f * static_cast<float>(global::input.isKeyDown(Keys::SHIFT)));
-        eye += (static_cast<float>(global::input.isKeyDown(Keys::D)) -
-                static_cast<float>(global::input.isKeyDown(Keys::A)) * right +
-                static_cast<float>(global::input.isKeyDown(Keys::Q)) -
-                static_cast<float>(global::input.isKeyDown(Keys::E)) * up +
-                static_cast<float>(global::input.isKeyDown(Keys::S)) -
-                static_cast<float>(global::input.isKeyDown(Keys::W)) * forward) *
+        eye += ((static_cast<float>(global::input.isKeyDown(Keys::D)) -
+                 static_cast<float>(global::input.isKeyDown(Keys::A))) *
+                    right +
+                (static_cast<float>(global::input.isKeyDown(Keys::Q)) -
+                 static_cast<float>(global::input.isKeyDown(Keys::E))) *
+                    up +
+                (static_cast<float>(global::input.isKeyDown(Keys::S)) -
+                 static_cast<float>(global::input.isKeyDown(Keys::W))) *
+                    forward) *
                eyeSpeed * global::timer.dt();
 
         RenderGraphBuilder renderGraph;

@@ -12,8 +12,8 @@ PipelineBuilder& PipelineBuilder::init(PipelineType type)
     m_shaderStages.clear();
     m_resources.clear();
     m_vertexStreams.clear();
-    m_pushConstantRanges.clear();
-    m_pushConstantShaderStages.clear();
+    m_parameterRanges.clear();
+    m_parameterShaderStages.clear();
     return *this;
 }
 
@@ -48,18 +48,19 @@ PipelineBuilder& PipelineBuilder::addVertexInputStream(const VertexInputStream& 
     return *this;
 }
 
-PipelineBuilder& PipelineBuilder::addPushConstantRange(u32 stage, u32 size)
+PipelineBuilder& PipelineBuilder::addParameterRange(u32 stage, u32 size)
 {
-    for (auto& shaderStage : m_pushConstantShaderStages)
+    for (auto& shaderStage : m_parameterShaderStages)
     {
         if ((stage & shaderStage) != 0u)
         {
-            log(LogLevel::ERR, "Could not add push constant range, shader stage was previously defined");
+            log(LogLevel::WARNING, "Could not add push constant range, shader stage was previously defined");
+            return *this;
         }
     }
 
-    m_pushConstantShaderStages.push_back(static_cast<ShaderStageFlags>(stage));
-    m_pushConstantRanges.push_back(size);
+    m_parameterShaderStages.push_back(static_cast<ShaderStageFlags>(stage));
+    m_parameterRanges.push_back(size);
     return *this;
 }
 
@@ -114,11 +115,11 @@ u64 PipelineBuilder::generateHash()
         }
     }
 
-    combineHash(u64Hash(m_pushConstantRanges.size()));
-    for (u64 i = 0; i < m_pushConstantRanges.size(); ++i)
+    combineHash(u64Hash(m_parameterRanges.size()));
+    for (u64 i = 0; i < m_parameterRanges.size(); ++i)
     {
-        combineHash(u32Hash(m_pushConstantRanges[i]));
-        combineHash(u64Hash(static_cast<u64>(m_pushConstantShaderStages[i])));
+        combineHash(u32Hash(m_parameterRanges[i]));
+        combineHash(u64Hash(static_cast<u64>(m_parameterShaderStages[i])));
     }
 
     combineHash(u64Hash(m_vertexStreams.size()));

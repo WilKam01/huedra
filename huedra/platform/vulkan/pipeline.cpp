@@ -248,8 +248,8 @@ void VulkanPipeline::initLayout()
         }
     }
 
-    std::vector<u32> pushConstantRanges = builder.getPushConstantRanges();
-    std::vector<ShaderStageFlags> pushConstantsStages = builder.getPushConstantShaderStages();
+    std::vector<u32> pushConstantRanges = builder.getParameterRanges();
+    std::vector<ShaderStageFlags> pushConstantsStages = builder.getParameterShaderStages();
     std::vector<VkPushConstantRange> pushConstants(pushConstantRanges.size());
 
     u32 pushConstantOffset = 0;

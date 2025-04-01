@@ -28,6 +28,7 @@ void SlangContext::init()
     optionEntries.push_back(capability);
 
     optionEntries.push_back({.name = slang::CompilerOptionName::VulkanUseEntryPointName, .value = {.intValue0 = 1}});
+    optionEntries.push_back({.name = slang::CompilerOptionName::VulkanInvertY, .value = {.intValue0 = 1}});
 #endif
 
     sessionDesc.targets = &targetDesc;

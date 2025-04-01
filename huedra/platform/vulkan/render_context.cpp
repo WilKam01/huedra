@@ -69,18 +69,22 @@ void VulkanRenderContext::bindBuffer(Ref<Buffer> buffer, u32 set, u32 binding)
     m_descriptorHandler->writeBuffer(*static_cast<VulkanBuffer*>(buffer.get()), set, binding);
 }
 
-void VulkanRenderContext::bindTexture(Ref<Texture> texture, u32 set, u32 binding, const SamplerSettings& sampler)
+void VulkanRenderContext::bindTexture(Ref<Texture> texture, u32 set, u32 binding)
 {
     if (!texture.valid())
     {
         log(LogLevel::WARNING, "Could not bind texture, reference invalid");
     }
 
-    m_descriptorHandler->writeTexture(*static_cast<VulkanTexture*>(texture.get()), m_context->getSampler(sampler), set,
-                                      binding);
+    m_descriptorHandler->writeTexture(*static_cast<VulkanTexture*>(texture.get()), set, binding);
 }
 
-void VulkanRenderContext::pushConstants(ShaderStageFlags shaderStage, u32 size, void* data)
+void VulkanRenderContext::bindSampler(const SamplerSettings& sampler, u32 set, u32 binding)
+{
+    m_descriptorHandler->writeSampler(m_context->getSampler(sampler), set, binding);
+}
+
+void VulkanRenderContext::setParameters(ShaderStageFlags shaderStage, u32 size, void* data)
 {
     vkCmdPushConstants(m_commandBuffer, m_renderPass->getPipeline().getLayout(),
                        converter::convertShaderStage(m_renderPass->getPipelineType(), shaderStage), 0, size, data);
