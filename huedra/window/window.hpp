@@ -12,14 +12,13 @@ struct WindowInput
     u32 height{0};
     std::optional<i32> xPos;
     std::optional<i32> yPos;
-    bool m_renderDepth{true};
+    bool renderDepth{true};
 
     WindowInput() = default;
-    WindowInput(u32 width, u32 height, bool renderDepth = true)
-        : width(width), height(height), m_renderDepth(renderDepth)
+    WindowInput(u32 width, u32 height, bool renderDepth = true) : width(width), height(height), renderDepth(renderDepth)
     {}
     WindowInput(u32 width, u32 height, i32 xPos, i32 yPos, bool renderDepth = true)
-        : width(width), height(height), xPos(xPos), yPos(yPos), m_renderDepth(renderDepth)
+        : width(width), height(height), xPos(xPos), yPos(yPos), renderDepth(renderDepth)
     {}
 };
 
@@ -31,8 +30,8 @@ struct WindowRect
     u32 screenHeight{0};
     i32 xPos{0};
     i32 yPos{0};
-    i32 xScreenPos{0};
-    i32 yScreenPos{0};
+    i32 screenXPos{0};
+    i32 screenYPos{0};
 };
 
 class Window
@@ -62,12 +61,13 @@ public:
     void setParent(Ref<Window> parent);
     virtual void setTitle(const std::string& title) = 0;
     virtual void setResolution(u32 width, u32 height) = 0;
-    virtual void setPos(i32 x, i32 y) = 0;
+    virtual void setPosition(i32 x, i32 y) = 0;
 
 protected:
     // Internal use (values updated externally by platform and/or implementation)
     void updateTitle(const std::string& title);
-    void updateRect(WindowRect rect);
+    void updatePosition(i32 xPos, i32 yPos, i32 screenXPos, i32 screenYPos);
+    void updateResolution(u32 width, u32 height, u32 screenWidth, u32 screenHeight);
 
 private:
     void setRenderTarget(Ref<RenderTarget> renderTarget);

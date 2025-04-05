@@ -23,8 +23,16 @@ LRESULT CALLBACK WindowWin32::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 
     if (self != nullptr)
     {
-        WindowRect rect = self->getRect();
+        i32 xPos{0};
+        i32 yPos{0};
+        i32 screenXPos{0};
+        i32 screenYPos{0};
+        u32 width{0};
+        u32 height{0};
+        u32 screenWidth{0};
+        u32 screenHeight{0};
         MouseButton button = MouseButton::NONE;
+
         RECT winRect{};
         POINT point{};
 
@@ -34,35 +42,38 @@ LRESULT CALLBACK WindowWin32::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
             PostQuitMessage(0);
             return 0;
         case WM_SIZE:
-            rect.screenWidth = LOWORD(lParam);
-            rect.screenHeight = HIWORD(lParam);
+            screenWidth = LOWORD(lParam);
+            screenHeight = HIWORD(lParam);
 
             if (GetWindowRect(self->m_handle, &winRect) != 0)
             {
-                rect.width = winRect.right - winRect.left;
-                rect.height = winRect.bottom - winRect.top;
+                width = winRect.right - winRect.left;
+                height = winRect.bottom - winRect.top;
             }
+            self->updateResolution(width, height, screenWidth, screenHeight);
             break;
         case WM_MOVE:
-            rect.xScreenPos = static_cast<i32>(static_cast<i16>(LOWORD(lParam)));
-            rect.yScreenPos = static_cast<i32>(static_cast<i16>(HIWORD(lParam)));
+            screenXPos = static_cast<i32>(static_cast<i16>(LOWORD(lParam)));
+            screenYPos = static_cast<i32>(static_cast<i16>(HIWORD(lParam)));
 
             if (GetWindowRect(self->m_handle, &winRect) != 0)
             {
-                rect.xPos = winRect.left;
-                rect.yPos = winRect.top;
+                xPos = winRect.left;
+                yPos = winRect.top;
             }
+            self->updatePosition(xPos, yPos, screenXPos, screenYPos);
             break;
         case WM_MOVING:
             winRect = *reinterpret_cast<RECT*>(lParam);
-            rect.xScreenPos = winRect.left;
-            rect.yScreenPos = winRect.top;
+            screenXPos = winRect.left;
+            screenYPos = winRect.top;
 
             if (GetWindowRect(self->m_handle, &winRect) != 0)
             {
-                rect.xPos = winRect.left;
-                rect.yPos = winRect.top;
+                xPos = winRect.left;
+                yPos = winRect.top;
             }
+            self->updatePosition(xPos, yPos, screenXPos, screenYPos);
             break;
         case WM_INPUT: {
             RAWINPUT raw;
@@ -159,8 +170,6 @@ LRESULT CALLBACK WindowWin32::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
         default:
             break;
         }
-        self->updateRect(rect);
-        rect = self->getRect();
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
@@ -168,15 +177,13 @@ LRESULT CALLBACK WindowWin32::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 
 bool WindowWin32::init(const std::string& title, const WindowInput& input, HINSTANCE instance)
 {
-    Window::init(title, {});
+    RECT winRect;
+    winRect.left = 0;
+    winRect.top = 0;
+    winRect.right = static_cast<i32>(input.width);
+    winRect.bottom = static_cast<i32>(input.height);
 
-    RECT rect;
-    rect.left = 0;
-    rect.top = 0;
-    rect.right = static_cast<i32>(input.width);
-    rect.bottom = static_cast<i32>(input.height);
-
-    AdjustWindowRectEx(&rect, WS_OVERLAPPEDWINDOW, 0, 0);
+    AdjustWindowRectEx(&winRect, WS_OVERLAPPEDWINDOW, 0, 0);
 
     // clang-format off
     m_handle = CreateWindowEx(
@@ -186,8 +193,8 @@ bool WindowWin32::init(const std::string& title, const WindowInput& input, HINST
         WS_OVERLAPPEDWINDOW,
         input.xPos.value_or(CW_USEDEFAULT),
         input.yPos.value_or(CW_USEDEFAULT),
-        rect.right - rect.left,
-        rect.bottom - rect.top,
+        winRect.right - winRect.left,
+        winRect.bottom - winRect.top,
         nullptr,
         nullptr,
         instance,
@@ -202,6 +209,24 @@ bool WindowWin32::init(const std::string& title, const WindowInput& input, HINST
     }
 
     ShowWindow(m_handle, 1);
+
+    // Init base window class with position and resolution
+    WindowRect rect{};
+    if (GetWindowRect(m_handle, &winRect) != 0)
+    {
+        rect.xPos = winRect.left;
+        rect.yPos = winRect.top;
+        rect.width = winRect.right - winRect.left;
+        rect.height = winRect.bottom - winRect.top;
+    }
+    if (GetClientRect(m_handle, &winRect) != 0)
+    {
+        rect.screenXPos = winRect.left;
+        rect.screenYPos = winRect.top;
+        rect.screenWidth = winRect.right - winRect.left;
+        rect.screenHeight = winRect.bottom - winRect.top;
+    }
+    Window::init(title, rect);
 
     return true;
 }
@@ -245,7 +270,7 @@ void WindowWin32::setResolution(u32 width, u32 height)
     SetWindowPos(m_handle, nullptr, 0, 0, static_cast<i32>(width), static_cast<i32>(height), SWP_NOMOVE);
 }
 
-void WindowWin32::setPos(i32 x, i32 y) { SetWindowPos(m_handle, nullptr, x, y, 0, 0, SWP_NOSIZE); }
+void WindowWin32::setPosition(i32 x, i32 y) { SetWindowPos(m_handle, nullptr, x, y, 0, 0, SWP_NOSIZE); }
 
 Keys WindowWin32::convertKey(u32 code)
 {

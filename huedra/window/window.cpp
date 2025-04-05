@@ -47,7 +47,21 @@ void Window::setParent(Ref<Window> parent)
 
 void Window::updateTitle(const std::string& title) { m_title = title; }
 
-void Window::updateRect(WindowRect rect) { m_rect = rect; }
+void Window::updatePosition(i32 xPos, i32 yPos, i32 screenXPos, i32 screenYPos)
+{
+    m_rect.xPos = xPos;
+    m_rect.yPos = yPos;
+    m_rect.screenXPos = screenXPos;
+    m_rect.screenYPos = screenYPos;
+}
+
+void Window::updateResolution(u32 width, u32 height, u32 screenWidth, u32 screenHeight)
+{
+    m_rect.width = width;
+    m_rect.height = height;
+    m_rect.screenWidth = screenWidth;
+    m_rect.screenHeight = screenHeight;
+}
 
 void Window::setRenderTarget(Ref<RenderTarget> renderTarget) { m_renderTarget = std::move(renderTarget); }
 

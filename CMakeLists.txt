@@ -54,7 +54,9 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 
   file(GLOB_RECURSE ADDITIONAL_SOURCES 
     ${PROJECT_SOURCE_DIR}/huedra/platform/cocoa/*.cpp
+    ${PROJECT_SOURCE_DIR}/huedra/platform/cocoa/*.mm
     ${PROJECT_SOURCE_DIR}/huedra/platform/metal/*.cpp
+    ${PROJECT_SOURCE_DIR}/huedra/platform/metal/*.mm
   )
   target_sources(huedra PRIVATE ${ADDITIONAL_SOURCES})
 endif()

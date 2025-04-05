@@ -21,9 +21,17 @@ public:
 
     void setTitle(const std::string& title) override;
     void setResolution(u32 width, u32 height) override;
-    void setPos(i32 x, i32 y) override;
+    void setPosition(i32 x, i32 y) override;
+
+    void updatePositionInternal(i32 xPos, i32 yPos, i32 screenXPos, i32 screenYPos);
+    void updateResolutionInternal(u32 width, u32 height, u32 screenWidth, u32 screenHeight);
+    void setShouldClose() { m_shouldClose = true; }
+    double getScreenDPI() const;
 
 private:
+    struct Impl;
+    Impl* m_impl;
+    bool m_shouldClose{false};
 };
 
 } // namespace huedra

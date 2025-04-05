@@ -6,6 +6,7 @@
 #include "platform/win32/window.hpp"
 #elif defined(COCOA)
 #include "platform/cocoa/window.hpp"
+#include <Cocoa/Cocoa.h>
 #endif
 
 namespace huedra {
@@ -31,6 +32,18 @@ void WindowManager::init()
     rid.dwFlags = RIDEV_DEVNOTIFY; // Receive input globally
     rid.hwndTarget = nullptr;
     RegisterRawInputDevices(&rid, 1, sizeof(rid));
+#elif defined(MACOS)
+    [NSApplication sharedApplication];
+    [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+
+    NSMenu* menubar = [[NSMenu alloc] init];
+    NSMenuItem* appMenuItem = [[NSMenuItem alloc] init];
+    [menubar addItem:appMenuItem];
+    [NSApp setMainMenu:menubar];
+
+    NSMenu* appMenu = [[NSMenu alloc] init];
+    [appMenuItem setSubmenu:appMenu];
+    [NSApp activateIgnoringOtherApps:YES];
 #endif
 }
 
@@ -95,7 +108,7 @@ Ref<Window> WindowManager::addWindow(const std::string& title, const WindowInput
     if (window != nullptr)
     {
         m_windows.push_back(window);
-        global::graphicsManager.createSwapchain(window, input.m_renderDepth);
+        global::graphicsManager.createSwapchain(window, input.renderDepth);
         if (parent.valid())
         {
             window->setParent(parent);

@@ -12,6 +12,8 @@
 #include "resources/mesh/loader.hpp"
 #include "resources/texture/loader.hpp"
 #include "scene/components/transform.hpp"
+#include "window/window.hpp"
+#include <string>
 
 using namespace huedra;
 
@@ -22,7 +24,7 @@ int main()
     global::graphicsManager.init();
     global::resourceManager.init();
 
-    Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1278, 1360, -7, 0));
+    Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720, 100, 100));
 
     while (global::windowManager.update())
     {
@@ -41,8 +43,13 @@ int main()
                 sum += fps;
             }
 
-            log(LogLevel::D_INFO, "Elapsed: {:.5f}, Delta: {:.5f}, FPS: {}", global::timer.secondsElapsed(),
-                global::timer.dt(), sum / 500);
+            if (window.valid())
+            {
+                window->setTitle("Main (FPS:" + std::to_string(sum / 500) + ")");
+            }
+
+            // log(LogLevel::D_INFO, "Elapsed: {:.5f}, Delta: {:.5f}, FPS: {}", global::timer.secondsElapsed(),
+            // global::timer.dt(), sum / 500);
             i = 0;
         }
         global::input.update();

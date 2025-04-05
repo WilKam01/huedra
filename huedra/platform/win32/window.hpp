@@ -24,7 +24,7 @@ public:
 
     void setTitle(const std::string& title) override;
     void setResolution(u32 width, u32 height) override;
-    void setPos(i32 x, i32 y) override;
+    void setPosition(i32 x, i32 y) override;
 
     HWND getHandle() { return m_handle; }
 

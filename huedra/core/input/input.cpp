@@ -115,7 +115,7 @@ ivec2 Input::getRelativeMousePos(Ref<Window> window) const
         log(LogLevel::WARNING, "getRelativeMousePos(): invalid window");
         return m_mousePos;
     }
-    return m_mousePos - ivec2(window->getRect().xScreenPos, window->getRect().yScreenPos);
+    return m_mousePos - ivec2(window->getRect().screenXPos, window->getRect().screenXPos);
 }
 
 ivec2 Input::getMouseDelta() const
