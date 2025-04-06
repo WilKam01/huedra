@@ -99,6 +99,10 @@ void WindowManager::cleanup()
         window->cleanup();
         delete window;
     }
+
+#ifdef MACOS
+    [NSApp terminate:nil];
+#endif
 }
 
 Ref<Window> WindowManager::addWindow(const std::string& title, const WindowInput& input, Ref<Window> parent)
@@ -109,10 +113,7 @@ Ref<Window> WindowManager::addWindow(const std::string& title, const WindowInput
     {
         m_windows.push_back(window);
         global::graphicsManager.createSwapchain(window, input.renderDepth);
-        if (parent.valid())
-        {
-            window->setParent(parent);
-        }
+        window->setParent(parent);
     }
     else
     {

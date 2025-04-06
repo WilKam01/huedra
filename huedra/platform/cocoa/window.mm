@@ -1,16 +1,15 @@
-#import "window.hpp"
-#import "core/log.hpp"
+#include "window.hpp"
+#include "core/log.hpp"
 #include "core/types.hpp"
 #include "window/window.hpp"
+
+#include <AppKit/NSEvent.h>
+#include <Cocoa/Cocoa.h>
 #include <CoreFoundation/CFCGTypes.h>
 #include <Foundation/Foundation.h>
 
-#include <AppKit/NSEvent.h>
-#import <Cocoa/Cocoa.h>
-
-static huedra::WindowCocoa* cppWindow{nullptr};
-
 @interface MyWindowDelegate : NSObject <NSWindowDelegate>
+@property(nonatomic, assign) huedra::WindowCocoa* cppWindow;
 @end
 
 @implementation MyWindowDelegate
@@ -27,7 +26,7 @@ static huedra::WindowCocoa* cppWindow{nullptr};
     i32 yPos(static_cast<i32>(mainFrame.size.height - frame.origin.y - frame.size.height));
     i32 screenXPos(static_cast<i32>(contentFrame.origin.x));
     i32 screenYPos(static_cast<i32>(mainFrame.size.height - contentFrame.origin.y - contentFrame.size.height));
-    cppWindow->updatePositionInternal(xPos, yPos, screenXPos, screenYPos);
+    self.cppWindow->updatePositionInternal(xPos, yPos, screenXPos, screenYPos);
 }
 - (void)windowDidResize:(NSNotification*)notification
 {
@@ -40,12 +39,12 @@ static huedra::WindowCocoa* cppWindow{nullptr};
     u32 height{static_cast<u32>(frame.size.height)};
     u32 screenWidth{static_cast<u32>(contentFrame.size.width)};
     u32 screenHeight{static_cast<u32>(contentFrame.size.height)};
-    cppWindow->updateResolutionInternal(width, height, screenWidth, screenHeight);
+    self.cppWindow->updateResolutionInternal(width, height, screenWidth, screenHeight);
 }
 
 - (void)windowWillClose:(NSNotification*)notification
 {
-    cppWindow->setShouldClose();
+    self.cppWindow->setShouldClose();
 }
 
 @end
@@ -83,7 +82,7 @@ bool WindowCocoa::init(const std::string& title, const WindowInput& input)
     }
 
     MyWindowDelegate* delegate = [[MyWindowDelegate alloc] init];
-    cppWindow = this;
+    delegate.cppWindow = this;
     [m_impl->window setDelegate:delegate];
 
     // Init base window class with position and resolution
@@ -107,6 +106,7 @@ bool WindowCocoa::init(const std::string& title, const WindowInput& input)
 
 void WindowCocoa::cleanup()
 {
+    Window::cleanup();
     [m_impl->window close];
     delete m_impl;
 }
