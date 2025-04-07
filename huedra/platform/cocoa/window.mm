@@ -1,4 +1,6 @@
 #include "window.hpp"
+#include "core/global.hpp"
+#include "core/input/keys.hpp"
 #include "core/log.hpp"
 #include "core/types.hpp"
 #include "window/window.hpp"
@@ -116,13 +118,37 @@ bool WindowCocoa::update()
     NSEvent* event{nullptr};
     while ((event = [NSApp nextEventMatchingMask:NSEventMaskAny untilDate:nil inMode:NSDefaultRunLoopMode dequeue:YES]))
     {
-        switch ([event type])
+        switch (event.type)
         {
+        case NSEventTypeKeyDown:
+            global::input.setKey(convertKey(event.keyCode, [event.characters characterAtIndex:0]), true);
+            break;
+        case NSEventTypeKeyUp:
+            global::input.setKey(convertKey(event.keyCode, [event.characters characterAtIndex:0]), false);
+            break;
+        case NSEventTypeFlagsChanged: {
+            u32 flags = event.modifierFlags;
+            global::input.setKey(Keys::SHIFT, static_cast<bool>(flags & NSEventModifierFlagShift));
+            global::input.setKey(Keys::CTRL, static_cast<bool>(flags & NSEventModifierFlagControl));
+            global::input.setKey(Keys::OPTION, static_cast<bool>(flags & NSEventModifierFlagOption));
+            global::input.setKey(Keys::CMD, static_cast<bool>(flags & NSEventModifierFlagCommand));
+            global::input.setKey(Keys::CAPS_LOCK, static_cast<bool>(flags & NSEventModifierFlagCapsLock));
+        }
+        break;
         default:
             break;
         }
-        [NSApp sendEvent:event];
+        if (event.type != NSEventTypeKeyDown && event.type != NSEventTypeKeyUp)
+        {
+            [NSApp sendEvent:event];
+        }
     }
+
+    CGEventFlags flags = CGEventSourceFlagsState(kCGEventSourceStateHIDSystemState);
+    global::input.setKeyToggle(KeyToggles::CAPS_LOCK, static_cast<bool>(flags & kCGEventFlagMaskAlphaShift));
+    global::input.setKeyToggle(KeyToggles::NUM_LOCK, true);
+    global::input.setKeyToggle(KeyToggles::SCR_LOCK, true);
+
     return !m_shouldClose;
 }
 
@@ -165,5 +191,133 @@ void WindowCocoa::updateResolutionInternal(u32 width, u32 height, u32 screenWidt
 }
 
 double WindowCocoa::getScreenDPI() const { return [m_impl->window backingScaleFactor]; }
+
+Keys WindowCocoa::convertKey(u16 code, char character)
+{
+    character = static_cast<char>(toupper(character));
+    if (character >= 'A' && character <= 'Z')
+    {
+        return static_cast<Keys>(static_cast<u32>(Keys::A) + static_cast<u32>(character - 'A'));
+    }
+
+    switch (code)
+    {
+    case 0x1D:
+        return Keys::NUM_0;
+    case 0x12:
+        return Keys::NUM_1;
+    case 0x13:
+        return Keys::NUM_2;
+    case 0x14:
+        return Keys::NUM_3;
+    case 0x15:
+        return Keys::NUM_4;
+    case 0x17:
+        return Keys::NUM_5;
+    case 0x16:
+        return Keys::NUM_6;
+    case 0x1a:
+        return Keys::NUM_7;
+    case 0x1c:
+        return Keys::NUM_8;
+    case 0x19:
+        return Keys::NUM_9;
+    case 0x7b:
+        return Keys::ARR_LEFT;
+    case 0x7c:
+        return Keys::ARR_RIGHT;
+    case 0x7e:
+        return Keys::ARR_UP;
+    case 0x7d:
+        return Keys::ARR_DOWN;
+    case 0x35:
+        return Keys::ESCAPE;
+    case 0x30:
+        return Keys::TAB;
+    case 0x33:
+        return Keys::BACKSPACE;
+    case 0x24:
+        return Keys::ENTER;
+    case 0x31:
+        return Keys::SPACE;
+    case 0x7a:
+        return Keys::F1;
+    case 0x78:
+        return Keys::F2;
+    case 0x63:
+        return Keys::F3;
+    case 0x76:
+        return Keys::F4;
+    case 0x60:
+        return Keys::F5;
+    case 0x61:
+        return Keys::F6;
+    case 0x62:
+        return Keys::F7;
+    case 0x64:
+        return Keys::F8;
+    case 0x65:
+        return Keys::F9;
+    case 0x6d:
+        return Keys::F10;
+    case 0x67:
+        return Keys::F11;
+    case 0x6F:
+        return Keys::F12;
+    case 0x2b:
+        return Keys::COMMA;
+    case 0x2f:
+        return Keys::DOT;
+    case 0x1b:
+        return Keys::MINUS;
+    case 0x18:
+        return Keys::PLUS;
+    case 0x72:
+        return Keys::INSERT;
+    case 0x75:
+        return Keys::DEL;
+    case 0x73:
+        return Keys::HOME;
+    case 0x77:
+        return Keys::END;
+    case 0x74:
+        return Keys::PAGE_UP;
+    case 0x79:
+        return Keys::PAGE_DOWN;
+    case 0x4b:
+        return Keys::NUMPAD_DIVIDE;
+    case 0x43:
+        return Keys::NUMPAD_MULT;
+    case 0x4e:
+        return Keys::NUMPAD_MINUS;
+    case 0x45:
+        return Keys::NUMPAD_PLUS;
+    case 0x41:
+        return Keys::NUMPAD_DEL;
+    case 0x52:
+        return Keys::NUMPAD_0;
+    case 0x53:
+        return Keys::NUMPAD_1;
+    case 0x54:
+        return Keys::NUMPAD_2;
+    case 0x55:
+        return Keys::NUMPAD_3;
+    case 0x56:
+        return Keys::NUMPAD_4;
+    case 0x57:
+        return Keys::NUMPAD_5;
+    case 0x58:
+        return Keys::NUMPAD_6;
+    case 0x59:
+        return Keys::NUMPAD_7;
+    case 0x5b:
+        return Keys::NUMPAD_8;
+    case 0x5c:
+        return Keys::NUMPAD_9;
+    default:
+        return Keys::NONE;
+    }
+    return Keys::NONE;
+}
 
 } // namespace huedra

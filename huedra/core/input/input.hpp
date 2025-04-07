@@ -13,6 +13,8 @@ class Input
     friend class WindowManager;
 #ifdef WIN32
     friend class WindowWin32;
+#elif defined(MACOS)
+    friend class WindowCocoa;
 #endif
 public:
     Input() = default;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/input/keys.hpp"
 #include "window/window.hpp"
 
 namespace huedra {
@@ -29,6 +30,8 @@ public:
     double getScreenDPI() const;
 
 private:
+    static Keys convertKey(u16 code, char character);
+
     struct Impl;
     Impl* m_impl;
     bool m_shouldClose{false};
