@@ -9,6 +9,7 @@ void Timer::init()
     m_startTime = std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count();
     m_currentTime = m_startTime;
     m_deltaTime = 0;
+    m_fixedIntervalTime = m_startTime;
 }
 
 void Timer::update()
@@ -18,6 +19,16 @@ void Timer::update()
 
     m_deltaTime = now - m_currentTime;
     m_currentTime = now;
+}
+
+bool Timer::passedInterval(u64 fixedInterval, bool reset)
+{
+    bool passed = m_currentTime >= m_fixedIntervalTime + static_cast<i64>(fixedInterval);
+    if (passed && reset)
+    {
+        m_fixedIntervalTime = m_currentTime;
+    }
+    return passed;
 }
 
 } // namespace huedra

@@ -9,23 +9,18 @@ struct Vec4
 {
 public:
     Vec4() = default;
-    explicit Vec4(T val)
-    {
-        x = val;
-        y = val;
-        z = val;
-        w = val;
-    }
-    Vec4(T x, T y, T z, T w)
-    {
-        this->x = x;
-        this->y = y;
-        this->z = z;
-        this->w = w;
-    }
+    explicit Vec4(T val) : x(val), y(val), z(val), w(val) {}
+    Vec4(T x, T y, T z, T w) : x(x), y(y), z(z), w(w) {}
 
-    template <u64 L>
-    explicit Vec4(Vec<T, L> vec) : data(vec)
+    template <typename T2, u64 L>
+        requires(std::is_convertible_v<T, T2>)
+    explicit Vec4(const Vec<T2, L>& vec) : data(vec)
+    {}
+
+    template <typename T2>
+        requires(std::is_convertible_v<T, T2>)
+    explicit Vec4(const Vec4<T2>& vec)
+        : x(static_cast<T>(vec.x)), y(static_cast<T>(vec.y)), z(static_cast<T>(vec.z)), w(static_cast<T>(vec.w))
     {}
 
     union

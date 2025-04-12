@@ -12,13 +12,14 @@ class Vec
 public:
     Vec() = default;
 
-    template <u64 L2>
-    explicit Vec(Vec<T, L2> vec)
+    template <typename T2, u64 L2>
+        requires(std::is_convertible_v<T, T2>)
+    explicit Vec(const Vec<T2, L2>& vec)
     {
-        u64 largest = L > L2 ? L2 : L;
-        for (u64 i = 0; i < largest; ++i)
+        u64 smallest = std::min(L, L2);
+        for (u64 i = 0; i < smallest; ++i)
         {
-            m_elements[i] = vec[i];
+            m_elements[i] = static_cast<T>(vec[i]);
         }
     }
 
@@ -45,7 +46,7 @@ public:
     T& operator[](u64 index) { return m_elements[index]; }
 
 private:
-    std::array<T, L> m_elements{static_cast<T>(0)};
+    std::array<T, L> m_elements{{static_cast<T>(0)}};
 };
 
 } // namespace huedra

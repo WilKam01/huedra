@@ -13,6 +13,8 @@ class WindowManager
     friend class Input;
 #ifdef WIN32
     friend class WindowWin32;
+#elif defined(MACOS)
+    friend class WindowCocoa;
 #endif
 #ifdef VULKAN
     friend class VulkanContext;
@@ -35,7 +37,7 @@ public:
     Ref<Window> addWindow(const std::string& title, const WindowInput& input, Ref<Window> parent = Ref<Window>());
 
 private:
-    void setMousePos(ivec2 pos);
+    void setMousePosition(ivec2 pos);
     void setCursor(CursorType cursor);
     void setMouseHidden(bool hidden);
 

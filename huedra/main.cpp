@@ -1,6 +1,7 @@
 #include "core/file/utils.hpp"
 #include "core/global.hpp"
 #include "core/input/keys.hpp"
+#include "core/input/mouse.hpp"
 #include "core/log.hpp"
 #include "core/serialization/json.hpp"
 #include "core/string/utils.hpp"
@@ -14,7 +15,6 @@
 #include "resources/texture/loader.hpp"
 #include "scene/components/transform.hpp"
 #include "window/window.hpp"
-#include <string>
 
 using namespace huedra;
 
@@ -25,7 +25,8 @@ int main()
     global::graphicsManager.init();
     global::resourceManager.init();
 
-    Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720, 100, 100));
+    Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720));
+    Ref<Window> window1 = global::windowManager.addWindow("Main2", WindowInput(250, 250), window);
 
     while (global::windowManager.update())
     {
@@ -37,13 +38,34 @@ int main()
             log(LogLevel::D_INFO, "CAPS ACTIVE");
         }
 
-        if (global::input.isKeyDown(Keys::A))
+        if (global::input.isMouseButtonPressed(MouseButton::EXTRA2))
         {
-            log(LogLevel::D_INFO, "A is down");
+            log(LogLevel::D_INFO, "Extra 2 click is pressed");
         }
-        if (global::input.isKeyDown(Keys::S))
+        if (global::input.isMouseButtonDoubleClicked(MouseButton::EXTRA2))
         {
-            log(LogLevel::D_INFO, "S is down");
+            log(LogLevel::D_INFO, "Extra 2 is double pressed");
+        }
+
+        if (global::input.getMouseDelta() != ivec2(0.0f))
+        {
+            log(LogLevel::D_INFO, "Mouse Position: ({}, {})", global::input.getMousePosition().x,
+                global::input.getMousePosition().y);
+        }
+
+        if (global::input.isKeyPressed(Keys::ESCAPE))
+        {
+            global::input.toggleMouseHidden();
+        }
+
+        static CursorType cursor{CursorType::DEFAULT};
+        static MouseMode mode{MouseMode::DISABLED};
+        if (global::input.isKeyPressed(Keys::ENTER))
+        {
+            mode = static_cast<MouseMode>(((static_cast<u32>(mode) + 1) % 3) + 1);
+            global::input.setMouseMode(mode);
+            cursor = static_cast<CursorType>((static_cast<u32>(cursor) + 1) % 15);
+            global::input.setCursor(cursor);
         }
 
         static u32 i = 0;

@@ -3,6 +3,8 @@
 #include "core/input/keys.hpp"
 #include "window/window.hpp"
 
+#include <Cocoa/Cocoa.h>
+
 namespace huedra {
 
 class WindowCocoa : public Window
@@ -24,16 +26,16 @@ public:
     void setResolution(u32 width, u32 height) override;
     void setPosition(i32 x, i32 y) override;
 
-    void updatePositionInternal(i32 xPos, i32 yPos, i32 screenXPos, i32 screenYPos);
+    void updatePositionInternal(i32 positionX, i32 positionY, i32 screenPositionX, i32 screenPositionY);
     void updateResolutionInternal(u32 width, u32 height, u32 screenWidth, u32 screenHeight);
+    void setFocusInternal(bool isFocus);
     void setShouldClose() { m_shouldClose = true; }
     double getScreenDPI() const;
 
 private:
     static Keys convertKey(u16 code, char character);
 
-    struct Impl;
-    Impl* m_impl;
+    NSWindow* m_window;
     bool m_shouldClose{false};
 };
 

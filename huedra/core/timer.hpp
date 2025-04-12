@@ -21,28 +21,35 @@ public:
     void init();
     void update();
 
+    // Fixed interval in nanoseconds
+    bool passedInterval(u64 fixedInterval, bool reset = true);
+
     // In nanoseconds
+    i64 currentTime() const { return m_currentTime; }
     i64 timeElapsed() const { return m_currentTime - m_startTime; }
     i64 dtNano() const { return m_deltaTime; }
 
     // In milliseconds
-    float msElapsed() const
+    float currentTimeMs() const { return static_cast<float>(m_currentTime) / static_cast<float>(MILLISECONDS_TO_NANO); }
+    float elapsedMs() const
     {
         return static_cast<float>(m_currentTime - m_startTime) / static_cast<float>(MILLISECONDS_TO_NANO);
     }
-    float msDt() const { return static_cast<float>(m_deltaTime) / static_cast<float>(MILLISECONDS_TO_NANO); }
+    float dtMs() const { return static_cast<float>(m_deltaTime) / static_cast<float>(MILLISECONDS_TO_NANO); }
 
     // In seconds
-    float secondsElapsed() const
+    float currentTimeSeconds() const { return static_cast<float>(m_currentTime) / static_cast<float>(SECONDS_TO_NANO); }
+    float elapsedSeconds() const
     {
         return static_cast<float>(m_currentTime - m_startTime) / static_cast<float>(SECONDS_TO_NANO);
     }
     float dt() const { return static_cast<float>(m_deltaTime) / static_cast<float>(SECONDS_TO_NANO); }
 
 private:
-    i64 m_startTime;
-    i64 m_currentTime;
-    i64 m_deltaTime;
+    i64 m_startTime{};
+    i64 m_currentTime{};
+    i64 m_deltaTime{};
+    i64 m_fixedIntervalTime{};
 };
 
 } // namespace huedra

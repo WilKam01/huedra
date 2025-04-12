@@ -23,10 +23,10 @@ LRESULT CALLBACK WindowWin32::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 
     if (self != nullptr)
     {
-        i32 xPos{0};
-        i32 yPos{0};
-        i32 screenXPos{0};
-        i32 screenYPos{0};
+        i32 positionX{0};
+        i32 positionY{0};
+        i32 screenPositionX{0};
+        i32 screenPositionY{0};
         u32 width{0};
         u32 height{0};
         u32 screenWidth{0};
@@ -53,27 +53,27 @@ LRESULT CALLBACK WindowWin32::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
             self->updateResolution(width, height, screenWidth, screenHeight);
             break;
         case WM_MOVE:
-            screenXPos = static_cast<i32>(static_cast<i16>(LOWORD(lParam)));
-            screenYPos = static_cast<i32>(static_cast<i16>(HIWORD(lParam)));
+            screenPositionX = static_cast<i32>(static_cast<i16>(LOWORD(lParam)));
+            screenPositionY = static_cast<i32>(static_cast<i16>(HIWORD(lParam)));
 
             if (GetWindowRect(self->m_handle, &winRect) != 0)
             {
-                xPos = winRect.left;
-                yPos = winRect.top;
+                positionX = winRect.left;
+                positionY = winRect.top;
             }
-            self->updatePosition(xPos, yPos, screenXPos, screenYPos);
+            self->updatePosition(positionX, positionY, screenPositionX, screenPositionY);
             break;
         case WM_MOVING:
             winRect = *reinterpret_cast<RECT*>(lParam);
-            screenXPos = winRect.left;
-            screenYPos = winRect.top;
+            screenPositionX = winRect.left;
+            screenPositionY = winRect.top;
 
             if (GetWindowRect(self->m_handle, &winRect) != 0)
             {
-                xPos = winRect.left;
-                yPos = winRect.top;
+                positionX = winRect.left;
+                positionY = winRect.top;
             }
-            self->updatePosition(xPos, yPos, screenXPos, screenYPos);
+            self->updatePosition(positionX, positionY, screenPositionX, screenPositionY);
             break;
         case WM_INPUT: {
             RAWINPUT raw;
@@ -88,13 +88,15 @@ LRESULT CALLBACK WindowWin32::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
         }
         case WM_MOUSEMOVE:
             GetCursorPos(&point);
-            global::input.setMousePosition(ivec2(point.x, point.y));
+            global::input.setMousePos(ivec2(point.x, point.y));
             break;
         case WM_MOUSEWHEEL:
-            global::input.setMouseScrollVertical(GET_WHEEL_DELTA_WPARAM(wParam));
+            global::input.setMouseScrollVertical(static_cast<float>(GET_WHEEL_DELTA_WPARAM(wParam)) /
+                                                 120.0f); // Normalize to 1.0f
             break;
         case WM_MOUSEHWHEEL:
-            global::input.setMouseScrollHorizontal(GET_WHEEL_DELTA_WPARAM(wParam));
+            global::input.setMouseScrollHorizontal(static_cast<float>(GET_WHEEL_DELTA_WPARAM(wParam)) /
+                                                   120.0f); // Normalize to 1.0f
             break;
         case WM_ACTIVATE:
             if (wParam == WA_ACTIVE || wParam == WA_CLICKACTIVE)
@@ -191,8 +193,8 @@ bool WindowWin32::init(const std::string& title, const WindowInput& input, HINST
         "Window Class",
         title.c_str(),
         WS_OVERLAPPEDWINDOW,
-        input.xPos.value_or(CW_USEDEFAULT),
-        input.yPos.value_or(CW_USEDEFAULT),
+        input.positionX.value_or(CW_USEDEFAULT),
+        input.positionY.value_or(CW_USEDEFAULT),
         winRect.right - winRect.left,
         winRect.bottom - winRect.top,
         nullptr,
@@ -214,15 +216,15 @@ bool WindowWin32::init(const std::string& title, const WindowInput& input, HINST
     WindowRect rect{};
     if (GetWindowRect(m_handle, &winRect) != 0)
     {
-        rect.xPos = winRect.left;
-        rect.yPos = winRect.top;
+        rect.positionX = winRect.left;
+        rect.positionY = winRect.top;
         rect.width = winRect.right - winRect.left;
         rect.height = winRect.bottom - winRect.top;
     }
     if (GetClientRect(m_handle, &winRect) != 0)
     {
-        rect.screenXPos = winRect.left;
-        rect.screenYPos = winRect.top;
+        rect.screenPositionX = winRect.left;
+        rect.screenPositionY = winRect.top;
         rect.screenWidth = winRect.right - winRect.left;
         rect.screenHeight = winRect.bottom - winRect.top;
     }
@@ -254,6 +256,7 @@ bool WindowWin32::update()
         DispatchMessage(&msg);
     }
 
+    updateMinimized(IsIconic(m_handle));
     return IsWindow(m_handle) != 0;
 }
 

@@ -9,21 +9,17 @@ struct Vec3
 {
 public:
     Vec3() = default;
-    explicit Vec3(T val)
-    {
-        x = val;
-        y = val;
-        z = val;
-    }
-    Vec3(T x, T y, T z)
-    {
-        this->x = x;
-        this->y = y;
-        this->z = z;
-    }
+    explicit Vec3(T val) : x(val), y(val), z(val) {}
+    Vec3(T x, T y, T z) : x(x), y(y), z(z) {}
 
-    template <u64 L>
-    explicit Vec3(Vec<T, L> vec) : data(vec)
+    template <typename T2, u64 L>
+        requires(std::is_convertible_v<T, T2>)
+    explicit Vec3(const Vec<T2, L>& vec) : data(vec)
+    {}
+
+    template <typename T2>
+        requires(std::is_convertible_v<T, T2>)
+    explicit Vec3(const Vec3<T2>& vec) : x(static_cast<T>(vec.x)), y(static_cast<T>(vec.y)), z(static_cast<T>(vec.z))
     {}
 
     union
