@@ -88,7 +88,12 @@ JsonValue& JsonValue::operator=(const JsonObject& value)
 
 i32& JsonValue::asInt()
 {
-    if (m_type != Type::INT)
+    if (m_type == Type::NIL)
+    {
+        m_type = Type::INT;
+        m_value.iNum = 0;
+    }
+    else if (m_type != Type::INT)
     {
         log(LogLevel::ERR, "json value can't be accessed as i32");
     }
@@ -97,7 +102,12 @@ i32& JsonValue::asInt()
 
 u32& JsonValue::asUint()
 {
-    if (m_type != Type::UINT)
+    if (m_type == Type::NIL)
+    {
+        m_type = Type::UINT;
+        m_value.uNum = 0u;
+    }
+    else if (m_type != Type::UINT)
     {
         log(LogLevel::ERR, "json value can't be accessed as u32");
     }
@@ -106,7 +116,12 @@ u32& JsonValue::asUint()
 
 double& JsonValue::asFloat()
 {
-    if (m_type != Type::FLOAT)
+    if (m_type == Type::NIL)
+    {
+        m_type = Type::FLOAT;
+        m_value.dNum = 0.0f;
+    }
+    else if (m_type != Type::FLOAT)
     {
         log(LogLevel::ERR, "json value can't be accessed as double");
     }
@@ -115,7 +130,12 @@ double& JsonValue::asFloat()
 
 bool& JsonValue::asBool()
 {
-    if (m_type != Type::BOOL)
+    if (m_type == Type::NIL)
+    {
+        m_type = Type::BOOL;
+        m_value.boolean = false;
+    }
+    else if (m_type != Type::BOOL)
     {
         log(LogLevel::ERR, "json value can't be accessed as bool");
     }
@@ -124,7 +144,12 @@ bool& JsonValue::asBool()
 
 std::string& JsonValue::asString()
 {
-    if (m_type != Type::STRING)
+    if (m_type == Type::NIL)
+    {
+        m_type = Type::STRING;
+        m_value.str = m_parent->addString("");
+    }
+    else if (m_type != Type::STRING)
     {
         log(LogLevel::ERR, "json value can't be accessed as string");
     }
@@ -133,7 +158,12 @@ std::string& JsonValue::asString()
 
 JsonArray& JsonValue::asArray()
 {
-    if (m_type != Type::ARRAY)
+    if (m_type == Type::NIL)
+    {
+        m_type = Type::ARRAY;
+        m_value.array = m_parent->addArray({});
+    }
+    else if (m_type != Type::ARRAY)
     {
         log(LogLevel::ERR, "json value can't be accessed as array");
     }
@@ -142,7 +172,12 @@ JsonArray& JsonValue::asArray()
 
 JsonObject& JsonValue::asObject()
 {
-    if (m_type != Type::OBJECT)
+    if (m_type == Type::NIL)
+    {
+        m_type = Type::OBJECT;
+        m_value.object = m_parent->addObject({});
+    }
+    else if (m_type != Type::OBJECT)
     {
         log(LogLevel::ERR, "json value can't be accessed as object");
     }
@@ -152,7 +187,12 @@ JsonObject& JsonValue::asObject()
 JsonValue& JsonValue::operator[](u64 index)
 {
     static JsonValue invalid(nullptr);
-    if (m_type != Type::ARRAY)
+    if (m_type == Type::NIL)
+    {
+        m_type = Type::ARRAY;
+        m_value.array = m_parent->addArray({});
+    }
+    else if (m_type != Type::ARRAY)
     {
         log(LogLevel::ERR, "Can't return at index: {} of json member, not an array", index);
         return invalid;
@@ -172,7 +212,12 @@ JsonValue& JsonValue::operator[](u64 index)
 JsonValue& JsonValue::operator[](const std::string& identifier)
 {
     static JsonValue invalid(nullptr);
-    if (m_type != Type::OBJECT)
+    if (m_type == Type::NIL)
+    {
+        m_type = Type::OBJECT;
+        m_value.object = m_parent->addObject({});
+    }
+    else if (m_type != Type::OBJECT)
     {
         log(LogLevel::ERR, "Can't return with identifier: {} of json member, not an object", identifier.c_str());
         return invalid;
