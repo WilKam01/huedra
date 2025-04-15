@@ -77,9 +77,9 @@ ShaderModule& ResourceManager::loadShaderModule(const std::string& path)
         std::vector<u8> bytes = readBytes(path);
         ShaderModule shaderModule =
             global::graphicsManager.createShaderModule(info.fileName, bytes.data(), bytes.size());
-        if (shaderModule.getCode().empty())
+        if (shaderModule.getSlangModule() == nullptr)
         {
-            log(LogLevel::ERR, "loadShaderModule(): No code could be loaded");
+            log(LogLevel::ERR, "loadShaderModule(): Could not create shader module");
         }
         m_shaders.insert(std::pair<u64, ShaderModule>(hash, shaderModule));
     }

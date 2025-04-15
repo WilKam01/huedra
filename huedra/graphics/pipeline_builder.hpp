@@ -3,6 +3,7 @@
 #include "core/types.hpp"
 #include "graphics/pipeline_data.hpp"
 #include "graphics/render_context.hpp"
+#include "graphics/shader_module.hpp"
 
 namespace huedra {
 

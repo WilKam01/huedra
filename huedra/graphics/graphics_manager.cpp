@@ -105,6 +105,11 @@ ShaderModule GraphicsManager::createShaderModule(const std::string& name, std::s
     return m_slangContext.createModule(name, sourceString);
 }
 
+CompiledShaderModule GraphicsManager::compileAndLinkShaderModules(const std::vector<ShaderModule>& shaderModules)
+{
+    return m_slangContext.compileAndLinkModules(shaderModules);
+}
+
 void GraphicsManager::removeBuffer(Ref<Buffer> buffer)
 {
     if (!buffer.valid())

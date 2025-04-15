@@ -1,15 +1,8 @@
 #pragma once
 
 #include "core/types.hpp"
-#include "graphics/shader_module.hpp"
 
 namespace huedra {
-
-struct ShaderInput
-{
-    ShaderModule* shaderModule;
-    std::string entryPointName;
-};
 
 enum class PipelineType
 {
@@ -19,6 +12,7 @@ enum class PipelineType
 
 enum class ShaderStage
 {
+    NONE,
     VERTEX,
     FRAGMENT,
     COMPUTE

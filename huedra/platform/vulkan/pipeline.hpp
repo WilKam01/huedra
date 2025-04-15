@@ -34,6 +34,7 @@ private:
 
     Device* m_device{nullptr};
     PipelineBuilder m_builder;
+    CompiledShaderModule m_shaderModule;
 
     std::vector<VkDescriptorSetLayout> m_descriptorLayout;
     VkPipelineLayout m_pipelineLayout{nullptr};
