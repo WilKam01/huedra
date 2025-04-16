@@ -2,59 +2,54 @@
 
 #include "core/global.hpp"
 
+#include <ranges>
+
 namespace huedra {
 
-void ShaderModule::init(Slang::ComPtr<slang::IModule> shaderModule)
+void ShaderModule::init(Slang::ComPtr<slang::IModule> shaderModule,
+                        const std::vector<Slang::ComPtr<slang::IEntryPoint>>& entryPoints,
+                        const std::vector<SlangStage>& stages)
 {
     m_module = shaderModule;
     m_name = shaderModule->getName();
+    m_slangEntryPoints = entryPoints;
+    m_entryPoints.resize(m_slangEntryPoints.size());
 
-    i32 entryPointCount = shaderModule->getDefinedEntryPointCount();
-    if (entryPointCount == 0)
+    for (u64 i = 0; i < m_entryPoints.size(); ++i)
     {
-        log(LogLevel::WARNING, "ShaderModule::init(): Could not find any entry points");
-        return;
+        m_entryPoints[i].name = m_slangEntryPoints[i]->getFunctionReflection()->getName();
+        m_entryPoints[i].stage = convertShaderStage(stages[i]);
+    }
+}
+
+ShaderStage ShaderModule::getShaderStage(const std::string& entryPoint) const
+{
+    ShaderStage stage = ShaderStage::NONE;
+
+    auto it =
+        std::ranges::find_if(m_entryPoints, [entryPoint](const EntryPoint& entry) { return entry.name == entryPoint; });
+    if (it != m_entryPoints.end())
+    {
+        stage = it->stage;
     }
 
-    // TODO: Currently reflection not working (maybe compile just to get name and stage?)
-    m_entryPoints.resize(static_cast<u32>(entryPointCount));
-    m_slangEntryPoints.resize(static_cast<u32>(entryPointCount));
-    for (i32 i = 0; i < entryPointCount; ++i)
+    return stage;
+}
+
+ShaderStage ShaderModule::convertShaderStage(SlangStage shaderStage)
+{
+    switch (shaderStage)
     {
-        Slang::ComPtr<slang::IEntryPoint> entryPoint;
-        shaderModule->getDefinedEntryPoint(i, entryPoint.writeRef());
-        m_slangEntryPoints[static_cast<u32>(i)] = entryPoint;
-
-        EntryPoint entry{};
-        auto funcReflection = entryPoint->getFunctionReflection();
-        entry.name = funcReflection->getName();
-        entry.stage = ShaderStage::NONE;
-        for (i32 j = 0; j < funcReflection->getUserAttributeCount(); ++j)
-        {
-            auto attribute = funcReflection->getUserAttributeByIndex(static_cast<u32>(j));
-            std::string attributeName{attribute->getName()};
-            if (attributeName == "shader")
-            {
-                u64 strSize{0};
-                const char* str = attribute->getArgumentValueString(0, &strSize);
-                std::string stage{str, strSize};
-
-                if (stage == "vertex")
-                {
-                    entry.stage = ShaderStage::VERTEX;
-                }
-                else if (stage == "fragment")
-                {
-                    entry.stage = ShaderStage::FRAGMENT;
-                }
-                else if (stage == "compute")
-                {
-                    entry.stage = ShaderStage::COMPUTE;
-                }
-                break;
-            }
-        }
+    case SLANG_STAGE_VERTEX:
+        return ShaderStage::VERTEX;
+    case SLANG_STAGE_FRAGMENT:
+        return ShaderStage::FRAGMENT;
+    case SLANG_STAGE_COMPUTE:
+        return ShaderStage::COMPUTE;
+    default:
+        return ShaderStage::NONE;
     }
+    return ShaderStage::NONE;
 }
 
 void CompiledShaderModule::init(Slang::ComPtr<slang::IComponentType> program, const u8* code, u64 codeLen)

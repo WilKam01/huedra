@@ -22,7 +22,8 @@ public:
     ShaderModule(ShaderModule&& rhs) = default;
     ShaderModule& operator=(ShaderModule&& rhs) = default;
 
-    void init(Slang::ComPtr<slang::IModule> shaderModule);
+    void init(Slang::ComPtr<slang::IModule> shaderModule,
+              const std::vector<Slang::ComPtr<slang::IEntryPoint>>& entryPoints, const std::vector<SlangStage>& stages);
 
     std::string getName() const { return m_name; }
     std::vector<EntryPoint> getEntryPoints() const { return m_entryPoints; }
@@ -30,7 +31,11 @@ public:
     Slang::ComPtr<slang::IModule> getSlangModule() const { return m_module; }
     std::vector<Slang::ComPtr<slang::IEntryPoint>> getSlangEntryPoints() const { return m_slangEntryPoints; }
 
+    ShaderStage getShaderStage(const std::string& entryPoint) const;
+
 private:
+    static ShaderStage convertShaderStage(SlangStage shaderStage);
+
     Slang::ComPtr<slang::IModule> m_module;
     std::string m_name;
     std::vector<EntryPoint> m_entryPoints;

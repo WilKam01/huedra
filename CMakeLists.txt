@@ -15,7 +15,7 @@ find_package(Vulkan REQUIRED)
 if(VULKAN_FOUND)
   include_directories(huedra {Vulkan_INCLUDE_DIRS})
   target_link_libraries(huedra PRIVATE Vulkan::Vulkan)
-  target_link_libraries(huedra PRIVATE $ENV{VULKAN_SDK}/Lib/slang.lib)
+  target_link_libraries(huedra PRIVATE $ENV{VULKAN_SDK}/lib/slang.lib)
   target_compile_definitions(huedra PRIVATE -DVULKAN)
 endif(VULKAN_FOUND)
 

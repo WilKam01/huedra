@@ -101,10 +101,8 @@ int main()
     ShaderModule& shaderModule = global::resourceManager.loadShaderModule("assets/shaders/shader.slang");
     PipelineBuilder builder;
     builder.init(PipelineType::GRAPHICS)
-        .addShader(ShaderStage::VERTEX, global::resourceManager.loadShaderModule("assets/shaders/vert.slang"),
-                   "vertMain")
-        .addShader(ShaderStage::FRAGMENT, global::resourceManager.loadShaderModule("assets/shaders/frag.slang"),
-                   "fragMain")
+        .addShader(global::resourceManager.loadShaderModule("assets/shaders/vert.slang"), "vertMain")
+        .addShader(global::resourceManager.loadShaderModule("assets/shaders/frag.slang"), "fragMain")
         .addVertexInputStream({.size = sizeof(vec3),
                                .inputRate = VertexInputRate::VERTEX,
                                .attributes{{.format = GraphicsDataFormat::RGB_32_FLOAT, .offset = 0}}})

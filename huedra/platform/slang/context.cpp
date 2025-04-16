@@ -47,6 +47,7 @@ ShaderModule SlangContext::createModule(const std::string& name, const std::stri
     Slang::ComPtr<slang::IModule> shaderModule;
     ShaderModule shader;
 
+    // TODO: Use complete path? Could collisions occur if not?
     shaderModule = m_session->loadModuleFromSourceString(name.c_str(), (name + ".slang").c_str(), source.c_str(),
                                                          diagnositicBlob.writeRef());
     if (diagnositicBlob != nullptr)
@@ -54,11 +55,44 @@ ShaderModule SlangContext::createModule(const std::string& name, const std::stri
         log(LogLevel::WARNING, "createModule(): load module from string error:\n{}",
             reinterpret_cast<const char*>(diagnositicBlob->getBufferPointer()));
     }
-    if (shaderModule != nullptr)
+    if (shaderModule == nullptr)
     {
-        shader.init(shaderModule);
+        return {};
     }
 
+    i32 entryPointCount = shaderModule->getDefinedEntryPointCount();
+    if (entryPointCount == 0)
+    {
+        log(LogLevel::WARNING, "createModule(): Could not find any entry points");
+        return {};
+    }
+
+    std::vector<Slang::ComPtr<slang::IEntryPoint>> entryPoints(static_cast<u64>(entryPointCount));
+    std::vector<slang::IComponentType*> componentTypes(static_cast<u64>(entryPointCount) + 1);
+    componentTypes[0] = shaderModule;
+    for (i32 i = 0; i < entryPointCount; ++i)
+    {
+        shaderModule->getDefinedEntryPoint(i, entryPoints[i].writeRef());
+        componentTypes[i + 1] = entryPoints[i];
+    }
+
+    Slang::ComPtr<slang::IComponentType> composedProgram;
+    SlangResult result = m_session->createCompositeComponentType(
+        componentTypes.data(), componentTypes.size(), composedProgram.writeRef(), diagnositicBlob.writeRef());
+    if (SLANG_FAILED(result))
+    {
+        log(LogLevel::WARNING, "createModule(): create composite component type error: {}",
+            reinterpret_cast<const char*>(diagnositicBlob->getBufferPointer()));
+        return {};
+    }
+
+    std::vector<SlangStage> stages(static_cast<u64>(entryPointCount));
+    for (i32 i = 0; i < entryPointCount; ++i)
+    {
+        stages[i] = composedProgram->getLayout()->getEntryPointByIndex(i)->getStage();
+    }
+
+    shader.init(shaderModule, entryPoints, stages);
     return shader;
 }
 

@@ -20,7 +20,7 @@ public:
 
     PipelineBuilder& init(PipelineType type);
 
-    PipelineBuilder& addShader(ShaderStage stage, ShaderModule& shaderModule, const std::string& entryPointName);
+    PipelineBuilder& addShader(ShaderModule& shaderModule, const std::string& entryPointName);
 
     PipelineBuilder& addVertexInputStream(const VertexInputStream& inputStream);
 

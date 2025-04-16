@@ -15,8 +15,13 @@ enum class ShaderStage
     NONE,
     VERTEX,
     FRAGMENT,
-    COMPUTE
+    COMPUTE,
+    COUNT
 };
+
+// TODO: Create this automatically? Macro?
+constexpr std::array<const char*, static_cast<u64>(ShaderStage::COUNT)> ShaderStageNames{"None", "Vertex", "Fragment",
+                                                                                         "Compute"};
 
 enum ShaderStageFlags
 {
