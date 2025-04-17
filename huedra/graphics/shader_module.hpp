@@ -26,6 +26,7 @@ public:
               const std::vector<Slang::ComPtr<slang::IEntryPoint>>& entryPoints, const std::vector<SlangStage>& stages);
 
     std::string getName() const { return m_name; }
+    std::string getFullName() const { return m_fullName; }
     std::vector<EntryPoint> getEntryPoints() const { return m_entryPoints; }
 
     Slang::ComPtr<slang::IModule> getSlangModule() const { return m_module; }
@@ -38,6 +39,7 @@ private:
 
     Slang::ComPtr<slang::IModule> m_module;
     std::string m_name;
+    std::string m_fullName;
     std::vector<EntryPoint> m_entryPoints;
     std::vector<Slang::ComPtr<slang::IEntryPoint>> m_slangEntryPoints;
 };

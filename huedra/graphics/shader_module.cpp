@@ -1,6 +1,7 @@
 #include "shader_module.hpp"
 
 #include "core/global.hpp"
+#include "core/string/utils.hpp"
 
 #include <ranges>
 
@@ -11,9 +12,12 @@ void ShaderModule::init(Slang::ComPtr<slang::IModule> shaderModule,
                         const std::vector<SlangStage>& stages)
 {
     m_module = shaderModule;
-    m_name = shaderModule->getName();
+    m_fullName = shaderModule->getName();
+    m_name = splitLastByChars(m_fullName, "/\\")[1];
     m_slangEntryPoints = entryPoints;
     m_entryPoints.resize(m_slangEntryPoints.size());
+
+    log(LogLevel::D_INFO, "Full name {}", m_fullName.c_str());
 
     for (u64 i = 0; i < m_entryPoints.size(); ++i)
     {

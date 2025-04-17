@@ -49,18 +49,16 @@ inline bool writeBytes(const std::string& path, const std::vector<u8>& bytes)
 inline FilePathInfo transformFilePath(const std::string& path)
 {
     FilePathInfo filePathInfo{};
-    filePathInfo.directories = splitByChars(path, "/\\");
+    std::array<std::string, 2> split = splitLastByChars(path, "/\\");
+    filePathInfo.dirPath = split[0];
 
-    std::array<std::string, 2> nameAndExtension = splitFirstByChar(filePathInfo.directories.back(), '.');
+    std::array<std::string, 2> nameAndExtension = splitFirstByChar(split[1], '.');
     filePathInfo.fileName = nameAndExtension[0];
     filePathInfo.extension = nameAndExtension[1];
     if (filePathInfo.extension.empty())
     {
         log(LogLevel::WARNING, "transformFilePath(): No extension found for %s", path.c_str());
     }
-
-    // Keep only directories
-    filePathInfo.directories.pop_back();
 
     return filePathInfo;
 }

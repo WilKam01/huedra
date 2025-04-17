@@ -47,7 +47,6 @@ ShaderModule SlangContext::createModule(const std::string& name, const std::stri
     Slang::ComPtr<slang::IModule> shaderModule;
     ShaderModule shader;
 
-    // TODO: Use complete path? Could collisions occur if not?
     shaderModule = m_session->loadModuleFromSourceString(name.c_str(), (name + ".slang").c_str(), source.c_str(),
                                                          diagnositicBlob.writeRef());
     if (diagnositicBlob != nullptr)

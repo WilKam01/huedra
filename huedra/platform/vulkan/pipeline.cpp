@@ -111,7 +111,7 @@ void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device
 
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT; // TODO: Msaa
+    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
     multisampling.sampleShadingEnable = VK_TRUE;
     multisampling.minSampleShading = .2f;
     multisampling.pSampleMask = nullptr;
