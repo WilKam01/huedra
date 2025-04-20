@@ -28,6 +28,7 @@ int main()
     global::resourceManager.init();
 
     Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720));
+    Ref<Window> window1 = global::windowManager.addWindow("Main", WindowInput(480, 480), window);
 
     while (global::windowManager.update())
     {

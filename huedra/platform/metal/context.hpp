@@ -1,9 +1,8 @@
 #pragma once
 
 #include "graphics/context.hpp"
-
-#import <Metal/Metal.h>
-#import <QuartzCore/CAMetalLayer.h>
+#include "platform/metal/config.hpp"
+#include "platform/metal/swapchain.hpp"
 
 #include <vector>
 
@@ -42,7 +41,7 @@ public:
 private:
     id<MTLDevice> m_device;
     id<MTLCommandQueue> m_commandQueue;
-    std::vector<CAMetalLayer*> m_windowLayers;
+    std::deque<MetalSwapchain> m_swapchains;
 
     id<MTLRenderPipelineState> m_pipelineState;
 };

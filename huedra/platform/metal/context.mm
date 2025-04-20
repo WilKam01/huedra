@@ -2,8 +2,7 @@
 #include "core/global.hpp"
 #include "core/log.hpp"
 #include "platform/cocoa/window.hpp"
-#include <Metal/Metal.h>
-#include <QuartzCore/QuartzCore.h>
+#include "platform/metal/swapchain.hpp"
 
 namespace huedra {
 
@@ -41,9 +40,9 @@ void MetalContext::init()
 
 void MetalContext::cleanup()
 {
-    for (auto& layer : m_windowLayers)
+    for (auto& swapchain : m_swapchains)
     {
-        [layer release];
+        swapchain.cleanup();
     }
     [m_commandQueue release];
     [m_device release];
@@ -51,23 +50,14 @@ void MetalContext::cleanup()
 
 void MetalContext::createSwapchain(Window* window, bool renderDepth)
 {
-    auto* cocoaWindow = static_cast<WindowCocoa*>(window);
-    CAMetalLayer* layer = [CAMetalLayer layer];
-    layer.device = m_device;
-    layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
-    layer.framebufferOnly = NO;
-    layer.contentsScale = cocoaWindow->getScreenDPI();
-    layer.frame = cocoaWindow->get().contentView.bounds;
-    layer.maximumDrawableCount = GraphicsManager::MAX_FRAMES_IN_FLIGHT;
-    [cocoaWindow->get().contentView setLayer:layer];
-    [cocoaWindow->get().contentView setWantsLayer:YES];
-    m_windowLayers.push_back(layer);
+    MetalSwapchain& swapchain = m_swapchains.emplace_back();
+    swapchain.init(m_device, static_cast<WindowCocoa*>(window), renderDepth);
 }
 
 void MetalContext::removeSwapchain(u64 index)
 {
-    [m_windowLayers[index] release];
-    m_windowLayers.erase(m_windowLayers.begin() + static_cast<i64>(index));
+    m_swapchains[index].cleanup();
+    m_swapchains.erase(m_swapchains.begin() + static_cast<i64>(index));
 }
 
 Buffer* MetalContext::createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) { return nullptr; }
@@ -92,7 +82,7 @@ void MetalContext::setRenderGraph(RenderGraphBuilder& builder) {}
 
 void MetalContext::render()
 {
-    id<CAMetalDrawable> drawable = [m_windowLayers[0] nextDrawable];
+    id<CAMetalDrawable> drawable = [m_swapchains[0].getLayer() nextDrawable];
     if (drawable == nullptr)
     {
         return;
@@ -104,7 +94,7 @@ void MetalContext::render()
     renderPassDesc.colorAttachments[0].texture = drawable.texture;
     renderPassDesc.colorAttachments[0].loadAction = MTLLoadActionClear;
     renderPassDesc.colorAttachments[0].storeAction = MTLStoreActionStore;
-    renderPassDesc.colorAttachments[0].clearColor = MTLClearColorMake(0.2, 0.2, 0.2, 1.0);
+    renderPassDesc.colorAttachments[0].clearColor = MTLClearColorMake(0.1, 0.1, 0.1, 1.0);
 
     id<MTLRenderCommandEncoder> encoder = [cmd renderCommandEncoderWithDescriptor:renderPassDesc];
     [encoder setRenderPipelineState:m_pipelineState];
