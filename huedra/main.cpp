@@ -5,6 +5,8 @@
 #include "core/log.hpp"
 #include "core/serialization/json.hpp"
 #include "core/string/utils.hpp"
+#include "graphics/pipeline_builder.hpp"
+#include "graphics/render_graph_builder.hpp"
 #include "graphics/render_pass_builder.hpp"
 #include "math/conversions.hpp"
 #include "math/matrix_projection.hpp"
@@ -26,7 +28,6 @@ int main()
     global::resourceManager.init();
 
     Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720));
-    Ref<Window> window1 = global::windowManager.addWindow("Main2", WindowInput(250, 250), window);
 
     while (global::windowManager.update())
     {
@@ -47,12 +48,6 @@ int main()
             log(LogLevel::D_INFO, "Extra 2 is double pressed");
         }
 
-        if (global::input.getMouseDelta() != ivec2(0.0f))
-        {
-            log(LogLevel::D_INFO, "Mouse Position: ({}, {})", global::input.getMousePosition().x,
-                global::input.getMousePosition().y);
-        }
-
         if (global::input.isKeyPressed(Keys::ESCAPE))
         {
             global::input.toggleMouseHidden();
@@ -67,6 +62,9 @@ int main()
             cursor = static_cast<CursorType>((static_cast<u32>(cursor) + 1) % 15);
             global::input.setCursor(cursor);
         }
+
+        RenderGraphBuilder graph;
+        global::graphicsManager.render(graph);
 
         static u32 i = 0;
         static std::array<u32, 500> avgFps;

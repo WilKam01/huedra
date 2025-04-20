@@ -40,6 +40,7 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   find_library(COCOA_LIBRARY Cocoa REQUIRED)
   find_library(METAL_LIBRARY Metal REQUIRED)
   find_library(METAL_KIT_LIBRARY MetalKit REQUIRED)
+  find_library(QUARTZ_CORE QuartzCore REQUIRED)
   target_compile_definitions(huedra PRIVATE -DCOCOA)
   target_compile_definitions(huedra PRIVATE -DMETAL)
 
@@ -47,6 +48,7 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
       ${COCOA_LIBRARY}
       ${METAL_LIBRARY}
       ${METAL_KIT_LIBRARY}
+      ${QUARTZ_CORE}
   )
 
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)

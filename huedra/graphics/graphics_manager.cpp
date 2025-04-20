@@ -32,10 +32,11 @@ void GraphicsManager::update() { m_context->prepareSwapchains(); }
 
 void GraphicsManager::render(RenderGraphBuilder& builder)
 {
-    if (!builder.empty())
+    // TODO: uncomment when metal supports the render graphs
+    // if (!builder.empty())
     {
-        builder.generateHash();
-        m_context->setRenderGraph(builder);
+        // builder.generateHash();
+        // m_context->setRenderGraph(builder);
 
         m_context->render();
         m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;

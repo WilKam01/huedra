@@ -2,6 +2,11 @@
 
 #include "graphics/context.hpp"
 
+#import <Metal/Metal.h>
+#import <QuartzCore/CAMetalLayer.h>
+
+#include <vector>
+
 namespace huedra {
 
 class MetalContext : public GraphicalContext
@@ -16,26 +21,30 @@ public:
     MetalContext(MetalContext&& rhs) = delete;
     MetalContext& operator=(MetalContext&& rhs) = delete;
 
-    virtual void init() override;
-    virtual void cleanup() override;
+    void init() override;
+    void cleanup() override;
 
-    virtual void createSwapchain(Window* window, bool renderDepth) override;
-    virtual void removeSwapchain(u64 index) override;
+    void createSwapchain(Window* window, bool renderDepth) override;
+    void removeSwapchain(u64 index) override;
 
-    virtual Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) override;
-    virtual Texture* createTexture(const TextureData& textureData) override;
-    virtual RenderTarget* createRenderTarget(RenderTargetType type, GraphicsDataFormat format, u32 width,
-                                             u32 height) override;
+    Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) override;
+    Texture* createTexture(const TextureData& textureData) override;
+    RenderTarget* createRenderTarget(RenderTargetType type, GraphicsDataFormat format, u32 width, u32 height) override;
 
-    virtual void removeBuffer(Buffer* buffer) override;
-    virtual void removeTexture(Texture* texture) override;
-    virtual void removeRenderTarget(RenderTarget* renderTarget) override;
+    void removeBuffer(Buffer* buffer) override;
+    void removeTexture(Texture* texture) override;
+    void removeRenderTarget(RenderTarget* renderTarget) override;
 
-    virtual void prepareSwapchains() override;
-    virtual void setRenderGraph(RenderGraphBuilder& builder) override;
-    virtual void render() override;
+    void prepareSwapchains() override;
+    void setRenderGraph(RenderGraphBuilder& builder) override;
+    void render() override;
 
 private:
+    id<MTLDevice> m_device;
+    id<MTLCommandQueue> m_commandQueue;
+    std::vector<CAMetalLayer*> m_windowLayers;
+
+    id<MTLRenderPipelineState> m_pipelineState;
 };
 
 } // namespace huedra
