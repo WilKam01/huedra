@@ -28,7 +28,7 @@ int main()
     global::resourceManager.init();
 
     Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720));
-    Ref<Window> window1 = global::windowManager.addWindow("Main", WindowInput(480, 480), window);
+    Ref<Window> window1 = global::windowManager.addWindow("Main", WindowInput(480, 480, 1400, 500), window);
 
     while (global::windowManager.update())
     {
@@ -84,8 +84,8 @@ int main()
                 window->setTitle("Main (FPS:" + std::to_string(sum / 500) + ")");
             }
 
-            // log(LogLevel::D_INFO, "Elapsed: {:.5f}, Delta: {:.5f}, FPS: {}", global::timer.secondsElapsed(),
-            // global::timer.dt(), sum / 500);
+            log(LogLevel::D_INFO, "Elapsed: {:.5f}, Delta: {:.5f}, FPS: {}", global::timer.elapsedSeconds(),
+                global::timer.dt(), sum / 500);
             i = 0;
         }
         global::input.update();

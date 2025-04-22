@@ -1,10 +1,14 @@
 #pragma once
 
 #include "graphics/context.hpp"
+#include "platform/metal/buffer.hpp"
 #include "platform/metal/config.hpp"
+#include "platform/metal/pipeline.hpp"
+#include "platform/metal/render_target.hpp"
 #include "platform/metal/swapchain.hpp"
+#include "platform/metal/texture.hpp"
 
-#include <vector>
+#include <deque>
 
 namespace huedra {
 
@@ -42,8 +46,11 @@ private:
     id<MTLDevice> m_device;
     id<MTLCommandQueue> m_commandQueue;
     std::deque<MetalSwapchain> m_swapchains;
+    std::deque<MetalBuffer> m_buffers;
+    std::deque<MetalTexture> m_textures;
+    std::deque<MetalRenderTarget> m_renderTargets;
 
-    id<MTLRenderPipelineState> m_pipelineState;
+    MetalPipeline m_pipeline;
 };
 
 } // namespace huedra

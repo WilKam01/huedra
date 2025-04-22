@@ -13,7 +13,6 @@ void VulkanRenderContext::init(VkCommandBuffer commandBuffer, VulkanContext* con
     m_context = context;
     m_renderPass = renderPass;
     m_descriptorHandler = &descriptorHandler;
-    m_boundVertexBuffer = false;
     m_boundIndexBuffer = false;
     m_descriptorHandler->resetSetInstance();
 }
@@ -38,7 +37,6 @@ void VulkanRenderContext::bindVertexBuffers(std::vector<Ref<Buffer>> buffers)
     }
 
     vkCmdBindVertexBuffers(m_commandBuffer, 0, static_cast<u32>(vkBuffers.size()), vkBuffers.data(), offsets.data());
-    m_boundVertexBuffer = true;
 }
 
 void VulkanRenderContext::bindIndexBuffer(Ref<Buffer> buffer)
@@ -94,12 +92,6 @@ void VulkanRenderContext::draw(u32 vertexCount, u32 instanceCount, u32 vertexOff
         return;
     }
 
-    if (!m_boundVertexBuffer)
-    {
-        log(LogLevel::WARNING, "Could not execute draw command, no vertex buffer has been bound");
-        return;
-    }
-
     m_descriptorHandler->bindSets(m_commandBuffer);
     vkCmdDraw(m_commandBuffer, vertexCount, instanceCount, vertexOffset, instanceOffset);
     m_descriptorHandler->updateSetInstance();
@@ -110,12 +102,6 @@ void VulkanRenderContext::drawIndexed(u32 indexCount, u32 instanceCount, u32 ind
     if (m_renderPass->getPipelineType() != PipelineType::GRAPHICS)
     {
         log(LogLevel::WARNING, "Could not execute draw call, not using a graphics pipeline");
-        return;
-    }
-
-    if (!m_boundVertexBuffer)
-    {
-        log(LogLevel::WARNING, "Could not execute drawIndexed command, no vertex buffer has been bound");
         return;
     }
 

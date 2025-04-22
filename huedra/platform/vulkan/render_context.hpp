@@ -40,7 +40,6 @@ private:
     VulkanRenderPass* m_renderPass{nullptr};
     DescriptorHandler* m_descriptorHandler{nullptr};
 
-    bool m_boundVertexBuffer{false};
     bool m_boundIndexBuffer{false};
 };
 

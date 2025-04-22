@@ -15,7 +15,7 @@ class Texture
 {
 public:
     Texture();
-    ~Texture();
+    virtual ~Texture();
 
     Texture(const Texture& rhs) = default;
     Texture& operator=(const Texture& rhs) = default;

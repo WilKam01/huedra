@@ -1,0 +1,29 @@
+#pragma once
+
+#include "graphics/pipeline_builder.hpp"
+#include "platform/metal/config.hpp"
+
+namespace huedra {
+
+class MetalPipeline
+{
+public:
+    MetalPipeline() = default;
+    virtual ~MetalPipeline() = default;
+
+    MetalPipeline(const MetalPipeline& rhs) = delete;
+    MetalPipeline& operator=(const MetalPipeline& rhs) = delete;
+    MetalPipeline(MetalPipeline&& rhs) = delete;
+    MetalPipeline& operator=(MetalPipeline&& rhs) = delete;
+
+    void initGraphics(const PipelineBuilder& pipelineBuilder, id<MTLDevice> device);
+    void cleanup();
+
+    id<MTLRenderPipelineState> get() const { return m_pipeline; }
+
+private:
+    id<MTLDevice> m_device;
+    id<MTLRenderPipelineState> m_pipeline;
+};
+
+} // namespace huedra
