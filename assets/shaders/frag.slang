@@ -1,6 +1,3 @@
-[[vk::binding(1, 0)]]
-Sampler2D tex;
-
 struct PSInput 
 {
     float3 fragPosition : TEXCOORD0;
@@ -14,9 +11,9 @@ struct PSOutput
 };
 
 [shader("fragment")]
-PSOutput main(PSInput input) 
+PSOutput fragMain(PSInput input, Texture2D tex, SamplerState sampler) 
 {
     PSOutput output;
-    output.outColor = float4(tex.Sample(input.fragUv).rgb, 1.0);
+    output.outColor = float4(tex.Sample(sampler, input.fragUv).rgb, 1.0);
     return output;
 }

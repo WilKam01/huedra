@@ -6,7 +6,7 @@ namespace huedra {
 
 struct FilePathInfo
 {
-    std::vector<std::string> directories;
+    std::string dirPath;
     std::string fileName;
     std::string extension;
 };

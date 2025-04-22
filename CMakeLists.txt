@@ -26,7 +26,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
   find_package(Vulkan REQUIRED)
   include_directories(huedra {Vulkan_INCLUDE_DIRS})
   target_link_libraries(huedra PRIVATE Vulkan::Vulkan)
-  target_link_libraries(huedra PRIVATE $ENV{VULKAN_SDK}/Lib/slang.lib)
+  target_link_libraries(huedra PRIVATE $ENV{VULKAN_SDK}/lib/slang.lib)
   target_compile_definitions(huedra PRIVATE -DVULKAN)
 
   file(GLOB_RECURSE ADDITIONAL_SOURCES 

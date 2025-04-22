@@ -30,10 +30,11 @@ public:
 private:
     void initLayout();
 
-    VkShaderModule loadShader(const ShaderModule& shader);
+    VkShaderModule loadShader(ShaderModule* shader);
 
     Device* m_device{nullptr};
     PipelineBuilder m_builder;
+    CompiledShaderModule m_shaderModule;
 
     std::vector<VkDescriptorSetLayout> m_descriptorLayout;
     VkPipelineLayout m_pipelineLayout{nullptr};

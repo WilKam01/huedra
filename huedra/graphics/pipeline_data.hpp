@@ -1,7 +1,6 @@
 #pragma once
 
 #include "core/types.hpp"
-#include "graphics/shader_module.hpp"
 
 namespace huedra {
 
@@ -13,10 +12,16 @@ enum class PipelineType
 
 enum class ShaderStage
 {
+    NONE,
     VERTEX,
     FRAGMENT,
-    COMPUTE
+    COMPUTE,
+    COUNT
 };
+
+// TODO: Create this automatically? Macro?
+constexpr std::array<const char*, static_cast<u64>(ShaderStage::COUNT)> ShaderStageNames{"None", "Vertex", "Fragment",
+                                                                                         "Compute"};
 
 enum ShaderStageFlags
 {
@@ -33,10 +38,11 @@ enum ShaderStageFlags
 
 enum class ResourceType
 {
-    UNIFORM_BUFFER,   // Read only
-    STORAGE_BUFFER,   // Read/Write
-    UNFIFORM_TEXTURE, // Read only
-    STORAGE_TEXTURE,  // Read/Write
+    CONSTANT_BUFFER,   // Read only
+    STRUCTURED_BUFFER, // Read/Write
+    TEXTURE,           // Read only
+    RW_TEXTURE,        // Read/Write
+    SAMPLER,
 };
 
 enum class BufferType
@@ -50,8 +56,8 @@ enum BufferUsageFlags
     HU_BUFFER_USAGE_UNDEFINED = 0,
     HU_BUFFER_USAGE_VERTEX_BUFFER,
     HU_BUFFER_USAGE_INDEX_BUFFER,
-    HU_BUFFER_USAGE_UNIFORM_BUFFER,
-    HU_BUFFER_USAGE_STORAGE_BUFFER,
+    HU_BUFFER_USAGE_CONSTANT_BUFFER,
+    HU_BUFFER_USAGE_STRUCTURED_BUFFER,
 };
 
 struct ResourceBinding

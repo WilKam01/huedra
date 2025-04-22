@@ -12,6 +12,7 @@ using JsonArray = std::vector<JsonValue>;
 
 class JsonValue
 {
+private:
     union Value
     {
         i32 iNum;

@@ -25,6 +25,9 @@ void SlangContext::init()
 
     capability.value = {.intValue0 = m_globalSession->findCapability("spvSparseResidency")};
     optionEntries.push_back(capability);
+
+    optionEntries.push_back({.name = slang::CompilerOptionName::VulkanUseEntryPointName, .value = {.intValue0 = 1}});
+    optionEntries.push_back({.name = slang::CompilerOptionName::VulkanInvertY, .value = {.intValue0 = 1}});
 #endif
 
     sessionDesc.targets = &targetDesc;
@@ -42,6 +45,7 @@ ShaderModule SlangContext::createModule(const std::string& name, const std::stri
 {
     Slang::ComPtr<slang::IBlob> diagnositicBlob;
     Slang::ComPtr<slang::IModule> shaderModule;
+    ShaderModule shader;
 
     shaderModule = m_session->loadModuleFromSourceString(name.c_str(), (name + ".slang").c_str(), source.c_str(),
                                                          diagnositicBlob.writeRef());
@@ -55,7 +59,6 @@ ShaderModule SlangContext::createModule(const std::string& name, const std::stri
         return {};
     }
 
-    std::vector<Slang::ComPtr<slang::IEntryPoint>> entryPoints;
     i32 entryPointCount = shaderModule->getDefinedEntryPointCount();
     if (entryPointCount == 0)
     {
@@ -63,15 +66,15 @@ ShaderModule SlangContext::createModule(const std::string& name, const std::stri
         return {};
     }
 
-    entryPoints.resize(static_cast<u64>(entryPointCount));
+    std::vector<Slang::ComPtr<slang::IEntryPoint>> entryPoints(static_cast<u64>(entryPointCount));
+    std::vector<slang::IComponentType*> componentTypes(static_cast<u64>(entryPointCount) + 1);
+    componentTypes[0] = shaderModule;
     for (i32 i = 0; i < entryPointCount; ++i)
     {
         shaderModule->getDefinedEntryPoint(i, entryPoints[i].writeRef());
-        log(LogLevel::D_INFO, "createModule(): Entry point name[i] = {}",
-            entryPoints[i]->getFunctionReflection()->getName());
+        componentTypes[i + 1] = entryPoints[i];
     }
 
-    std::array<slang::IComponentType*, 2> componentTypes = {shaderModule, entryPoints[0]};
     Slang::ComPtr<slang::IComponentType> composedProgram;
     SlangResult result = m_session->createCompositeComponentType(
         componentTypes.data(), componentTypes.size(), composedProgram.writeRef(), diagnositicBlob.writeRef());
@@ -82,27 +85,62 @@ ShaderModule SlangContext::createModule(const std::string& name, const std::stri
         return {};
     }
 
+    std::vector<SlangStage> stages(static_cast<u64>(entryPointCount));
+    for (i32 i = 0; i < entryPointCount; ++i)
+    {
+        stages[i] = composedProgram->getLayout()->getEntryPointByIndex(i)->getStage();
+    }
+
+    shader.init(shaderModule, entryPoints, stages);
+    return shader;
+}
+
+CompiledShaderModule SlangContext::compileAndLinkModules(const std::vector<ShaderModule>& modules)
+{
+    Slang::ComPtr<slang::IBlob> diagnositicBlob;
+    std::vector<slang::IComponentType*> componentTypes;
+    for (auto& shaderModule : modules)
+    {
+        componentTypes.push_back(shaderModule.getSlangModule());
+        std::vector<Slang::ComPtr<slang::IEntryPoint>> entryPoints = shaderModule.getSlangEntryPoints();
+        for (auto& entryPoint : entryPoints)
+        {
+            componentTypes.push_back(entryPoint);
+        }
+    }
+
+    Slang::ComPtr<slang::IComponentType> composedProgram;
+    SlangResult result = m_session->createCompositeComponentType(
+        componentTypes.data(), componentTypes.size(), composedProgram.writeRef(), diagnositicBlob.writeRef());
+    if (SLANG_FAILED(result))
+    {
+        log(LogLevel::WARNING, "compileAndLinkModules(): create composite component type error: {}",
+            reinterpret_cast<const char*>(diagnositicBlob->getBufferPointer()));
+        return {};
+    }
+
     Slang::ComPtr<slang::IComponentType> linkedProgram;
     result = composedProgram->link(linkedProgram.writeRef(), diagnositicBlob.writeRef());
     if (SLANG_FAILED(result))
     {
-        log(LogLevel::WARNING, "createModule(): link error: {}",
+        log(LogLevel::WARNING, "compileAndLinkModules(): link error: {}",
             reinterpret_cast<const char*>(diagnositicBlob->getBufferPointer()));
         return {};
     }
 
-    Slang::ComPtr<slang::IBlob> code;
-    result = linkedProgram->getEntryPointCode(0, 0, code.writeRef(), diagnositicBlob.writeRef());
+    Slang::ComPtr<slang::IBlob> codeBlob;
+    result = linkedProgram->getTargetCode(0, codeBlob.writeRef(), diagnositicBlob.writeRef());
     if (SLANG_FAILED(result))
     {
-        log(LogLevel::WARNING, "createModule(): get entry point code error: {}",
+        log(LogLevel::WARNING, "compileAndLinkModules(): get target point code error: {}",
             reinterpret_cast<const char*>(diagnositicBlob->getBufferPointer()));
         return {};
     }
 
-    ShaderModule shader;
-    shader.init(reinterpret_cast<const u8*>(code->getBufferPointer()), code->getBufferSize());
-    return shader;
+    CompiledShaderModule compiledModule;
+    compiledModule.init(linkedProgram, reinterpret_cast<const u8*>(codeBlob->getBufferPointer()),
+                        codeBlob->getBufferSize());
+    return compiledModule;
 }
 
 } // namespace huedra

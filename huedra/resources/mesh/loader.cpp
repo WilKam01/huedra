@@ -39,8 +39,11 @@ std::vector<MeshData> loadObj(const std::string& path)
                 normals.emplace_back(std::stof(elements[1]), std::stof(elements[2]), std::stof(elements[3]));
                 break;
             case 't': // Uv
-                uvs.emplace_back(std::stof(elements[1]),
-                                 1.0f - std::stof(elements[2])); // TODO: Add option, 1.0f - y is only Vulkan
+#ifdef VULKAN
+                uvs.emplace_back(std::stof(elements[1]), 1.0f - std::stof(elements[2]));
+#else
+                uvs.emplace_back(std::stof(elements[1]), std::stof(elements[2]));
+#endif
                 break;
 
             default: // Position

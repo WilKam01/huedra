@@ -12,26 +12,37 @@ PipelineBuilder& PipelineBuilder::init(PipelineType type)
     m_shaderStages.clear();
     m_resources.clear();
     m_vertexStreams.clear();
-    m_pushConstantRanges.clear();
-    m_pushConstantShaderStages.clear();
+    m_parameterRanges.clear();
+    m_parameterShaderStages.clear();
     return *this;
 }
 
-PipelineBuilder& PipelineBuilder::addShader(ShaderStage stage, ShaderModule& shader)
+PipelineBuilder& PipelineBuilder::addShader(ShaderModule& shaderModule, const std::string& entryPointName)
 {
+    ShaderStage stage = shaderModule.getShaderStage(entryPointName);
+    if (stage == ShaderStage::NONE)
+    {
+        log(LogLevel::WARNING, "PipelineBuilder::addShader(): Could not find entryPoint \"{}\" in module: {}",
+            entryPointName.c_str(), shaderModule.getName().c_str());
+        return *this;
+    }
+
     if (m_type == PipelineType::COMPUTE && stage != ShaderStage::COMPUTE)
     {
-        log(LogLevel::WARNING, "Could not add non compute shader to compute pipoeline");
+        log(LogLevel::WARNING, "PipelineBuilder.addShader(): Could not add non compute shader to compute pipoeline");
         return *this;
     }
 
     if (m_shaderStages.contains(stage))
     {
-        m_shaderStages[stage] = shader;
+        m_shaderStages[stage] = {.shaderModule = &shaderModule, .entryPointName = entryPointName};
+        log(LogLevel::WARNING, "¨PipelineBuilder::addShader(): {} shader overwritten",
+            ShaderStageNames[static_cast<u64>(stage)]);
         return *this;
     }
 
-    m_shaderStages.insert(std::make_pair(stage, shader));
+    m_shaderStages.insert(
+        std::pair<ShaderStage, ShaderInput>(stage, {.shaderModule = &shaderModule, .entryPointName = entryPointName}));
     return *this;
 }
 
@@ -39,25 +50,27 @@ PipelineBuilder& PipelineBuilder::addVertexInputStream(const VertexInputStream& 
 {
     if (m_type != PipelineType::GRAPHICS)
     {
-        log(LogLevel::WARNING, "addVertexInputStream() used on non Graphics pipeline");
+        log(LogLevel::WARNING, "PipelineBuilder::addVertexInputStream() used on non Graphics pipeline");
         return *this;
     }
     m_vertexStreams.push_back(inputStream);
     return *this;
 }
 
-PipelineBuilder& PipelineBuilder::addPushConstantRange(u32 stage, u32 size)
+PipelineBuilder& PipelineBuilder::addParameterRange(u32 stage, u32 size)
 {
-    for (auto& shaderStage : m_pushConstantShaderStages)
+    for (auto& shaderStage : m_parameterShaderStages)
     {
         if ((stage & shaderStage) != 0u)
         {
-            log(LogLevel::ERR, "Could not add push constant range, shader stage was previously defined");
+            log(LogLevel::WARNING, "PipelineBuilder::addParameterRange(): Could not add push constant range, shader "
+                                   "stage was previously defined");
+            return *this;
         }
     }
 
-    m_pushConstantShaderStages.push_back(static_cast<ShaderStageFlags>(stage));
-    m_pushConstantRanges.push_back(size);
+    m_parameterShaderStages.push_back(static_cast<ShaderStageFlags>(stage));
+    m_parameterRanges.push_back(size);
     return *this;
 }
 
@@ -74,8 +87,8 @@ PipelineBuilder& PipelineBuilder::addResourceBinding(u32 stage, ResourceType res
 {
     if (m_resources.empty())
     {
-        log(LogLevel::ERR, "Could not add resource binding, no resource sets have been added (fix by calling "
-                           "addResourceSet beforehand)");
+        log(LogLevel::ERR, "PipelineBuilder::addResourceBinding(): Could not add resource binding, no resource sets "
+                           "have been added (fix by calling addResourceSet beforehand)");
         return *this;
     }
 
@@ -94,11 +107,11 @@ u64 PipelineBuilder::generateHash()
 
     combineHash(u64Hash(static_cast<u64>(m_type)));
     combineHash(u64Hash(m_shaderStages.size()));
-    for (auto& [stage, path] : m_shaderStages)
+    for (auto& [stage, input] : m_shaderStages)
     {
         combineHash(u64Hash(static_cast<u64>(stage)));
-        // TODO: Fix when adding multiple entry points
-        // combineHash(strHash(path));
+        combineHash(strHash(input.shaderModule->getName()));
+        combineHash(strHash(input.entryPointName));
     }
 
     combineHash(u64Hash(m_resources.size()));
@@ -112,11 +125,11 @@ u64 PipelineBuilder::generateHash()
         }
     }
 
-    combineHash(u64Hash(m_pushConstantRanges.size()));
-    for (u64 i = 0; i < m_pushConstantRanges.size(); ++i)
+    combineHash(u64Hash(m_parameterRanges.size()));
+    for (u64 i = 0; i < m_parameterRanges.size(); ++i)
     {
-        combineHash(u32Hash(m_pushConstantRanges[i]));
-        combineHash(u64Hash(static_cast<u64>(m_pushConstantShaderStages[i])));
+        combineHash(u32Hash(m_parameterRanges[i]));
+        combineHash(u64Hash(static_cast<u64>(m_parameterShaderStages[i])));
     }
 
     combineHash(u64Hash(m_vertexStreams.size()));
