@@ -1,8 +1,8 @@
 #pragma once
 
-#include "slang/slang-com-helper.h"
-#include "slang/slang-com-ptr.h"
-#include "slang/slang.h"
+#include "slang-com-helper.h"
+#include "slang-com-ptr.h"
+#include "slang.h"
 
 namespace huedra::slang_config {
 

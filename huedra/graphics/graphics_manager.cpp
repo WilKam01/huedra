@@ -18,7 +18,7 @@ void GraphicsManager::init()
 #endif
 
     m_context->init();
-    // m_slangContext.init();
+    m_slangContext.init();
 }
 
 void GraphicsManager::cleanup()
@@ -102,12 +102,12 @@ ShaderModule GraphicsManager::createShaderModule(const std::string& name, const 
     // Need to create string from source for null termination
     std::string sourceString(reinterpret_cast<const char*>(sourceCode),
                              reinterpret_cast<const char*>(sourceCode) + sourceCodeLength);
-    return {}; // m_slangContext.createModule(name, sourceString);
+    return m_slangContext.createModule(name, sourceString);
 }
 
 ShaderModule GraphicsManager::createShaderModule(const std::string& name, std::string& sourceString)
 {
-    return {}; // m_slangContext.createModule(name, sourceString);
+    return m_slangContext.createModule(name, sourceString);
 }
 
 CompiledShaderModule GraphicsManager::compileAndLinkShaderModules(const std::vector<ShaderModule>& shaderModules)

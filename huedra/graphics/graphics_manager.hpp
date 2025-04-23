@@ -4,7 +4,7 @@
 #include "graphics/buffer.hpp"
 #include "graphics/context.hpp"
 #include "graphics/render_graph_builder.hpp"
-// #include "platform/slang/context.hpp"
+#include "platform/slang/context.hpp"
 #include "resources/texture/data.hpp"
 #include "window/window.hpp"
 
@@ -48,7 +48,7 @@ private:
     void removeSwapchain(u64 index);
 
     GraphicalContext* m_context{nullptr};
-    // SlangContext m_slangContext;
+    SlangContext m_slangContext;
     u32 m_currentFrame{0};
 };
 

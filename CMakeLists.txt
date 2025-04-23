@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.27.5)
 
+include(${CMAKE_SOURCE_DIR}/cmake/dependencies.cmake)
+
 project(huedra)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -12,21 +14,14 @@ list(FILTER SOURCES EXCLUDE REGEX "${PROJECT_SOURCE_DIR}/huedra/platform/.*")
 
 add_executable(huedra ${SOURCES})
 
-# Configure Platform
-if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+# Configure platforms and specific libraries
+if(WIN32)
   message(STATUS "Building for Windows")
   target_compile_definitions(huedra PRIVATE -DWIN32 -DNOMINMAX)
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  message(STATUS "Building for Mac")
-  target_compile_definitions(huedra PRIVATE -DMACOS)
-endif()
 
-# Configure platform specific libraries
-if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
   find_package(Vulkan REQUIRED)
   include_directories(huedra {Vulkan_INCLUDE_DIRS})
   target_link_libraries(huedra PRIVATE Vulkan::Vulkan)
-  target_link_libraries(huedra PRIVATE $ENV{VULKAN_SDK}/lib/slang.lib)
   target_compile_definitions(huedra PRIVATE -DVULKAN)
 
   file(GLOB_RECURSE ADDITIONAL_SOURCES 
@@ -36,7 +31,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
   )
   target_sources(huedra PRIVATE ${ADDITIONAL_SOURCES})
 
-elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+elseif(APPLE)
+  message(STATUS "Building for MacOS")
+  target_compile_definitions(huedra PRIVATE -DMACOS)
+
   find_library(COCOA_LIBRARY Cocoa REQUIRED)
   find_library(METAL_LIBRARY Metal REQUIRED)
   find_library(METAL_KIT_LIBRARY MetalKit REQUIRED)
@@ -44,7 +42,7 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   target_compile_definitions(huedra PRIVATE -DCOCOA)
   target_compile_definitions(huedra PRIVATE -DMETAL)
 
-  target_link_libraries(${PROJECT_NAME} 
+  target_link_libraries(huedra PRIVATE
       ${COCOA_LIBRARY}
       ${METAL_LIBRARY}
       ${METAL_KIT_LIBRARY}
@@ -59,9 +57,13 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     ${PROJECT_SOURCE_DIR}/huedra/platform/cocoa/*.mm
     ${PROJECT_SOURCE_DIR}/huedra/platform/metal/*.cpp
     ${PROJECT_SOURCE_DIR}/huedra/platform/metal/*.mm
+    ${PROJECT_SOURCE_DIR}/huedra/platform/slang/*.cpp 
   )
   target_sources(huedra PRIVATE ${ADDITIONAL_SOURCES})
 endif()
+
+# Link dependencies
+target_link_libraries(huedra PRIVATE slang)
 
 target_include_directories(huedra PRIVATE
   ${PROJECT_SOURCE_DIR}/huedra
@@ -80,7 +82,6 @@ endif()
 
 set(source_assets ${PROJECT_SOURCE_DIR}/assets)
 set(dest_assets ${PROJECT_BINARY_DIR}/assets)
-set(shader_dir ${source_assets}/shaders)
 
 # Copy assets
 add_custom_target(copy_assets ALL
