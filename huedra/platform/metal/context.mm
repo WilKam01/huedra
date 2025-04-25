@@ -22,7 +22,6 @@ void MetalContext::init()
         log(LogLevel::ERR, "Could not create Metal device");
     }
     m_commandQueue = [m_device newCommandQueue];
-    m_pipeline.initGraphics(PipelineBuilder(), m_device);
 }
 
 void MetalContext::cleanup()
@@ -120,9 +119,27 @@ void MetalContext::removeRenderTarget(RenderTarget* renderTarget)
     }
 }
 
-void MetalContext::prepareSwapchains() {}
+void MetalContext::prepareSwapchains()
+{
+    for (auto& swapchain : m_swapchains)
+    {
+        swapchain.aquireNextDrawable();
+    }
+}
 
-void MetalContext::setRenderGraph(RenderGraphBuilder& builder) {}
+void MetalContext::setRenderGraph(RenderGraphBuilder& builder)
+{
+    if (m_curGraph.getHash() == builder.getHash())
+    {
+        return;
+    }
+
+    m_curGraph = builder;
+
+    log(LogLevel::INFO, "New render graph with hash: 0x{:x}", m_curGraph.getHash());
+
+    m_pipeline.initGraphics(builder.getRenderPasses().begin()->second.getPipeline(), m_device);
+}
 
 void MetalContext::render()
 {

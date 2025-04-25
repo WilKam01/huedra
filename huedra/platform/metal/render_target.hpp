@@ -22,6 +22,8 @@ public:
     Ref<Texture> getColorTexture() override;
     Ref<Texture> getDepthTexture() override;
 
+    void setAvailability(bool available);
+
 private:
     id<MTLDevice> m_device;
 };

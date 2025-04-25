@@ -6,8 +6,11 @@
 #include "core/serialization/json.hpp"
 #include "core/string/utils.hpp"
 #include "graphics/pipeline_builder.hpp"
+#include "graphics/pipeline_data.hpp"
+#include "graphics/render_context.hpp"
 #include "graphics/render_graph_builder.hpp"
 #include "graphics/render_pass_builder.hpp"
+#include "graphics/shader_module.hpp"
 #include "math/conversions.hpp"
 #include "math/matrix_projection.hpp"
 #include "math/matrix_transform.hpp"
@@ -29,6 +32,11 @@ int main()
 
     Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720));
     Ref<Window> window1 = global::windowManager.addWindow("Main", WindowInput(480, 480, 1400, 500), window);
+
+    ShaderModule& module = global::resourceManager.loadShaderModule("assets/shaders/triangle.slang");
+
+    PipelineBuilder pipelineBuilder;
+    pipelineBuilder.init(PipelineType::GRAPHICS).addShader(module, "vert_main").addShader(module, "frag_main");
 
     while (global::windowManager.update())
     {
@@ -65,6 +73,11 @@ int main()
         }
 
         RenderGraphBuilder graph;
+        graph.addPass("Pass", RenderPassBuilder()
+                                  .init(RenderPassType::GRAPHICS, pipelineBuilder)
+                                  .addRenderTarget(window->getRenderTarget())
+                                  .setCommands([](RenderContext& context) {}));
+
         global::graphicsManager.render(graph);
 
         static u32 i = 0;

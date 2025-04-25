@@ -39,6 +39,8 @@ class Window
 {
 #ifdef VULKAN
     friend class VulkanSwapchain;
+#elif defined(METAL)
+    friend class MetalSwapchain;
 #endif
 public:
     Window();

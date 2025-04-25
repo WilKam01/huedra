@@ -1,6 +1,7 @@
 #pragma once
 
 #include "graphics/pipeline_builder.hpp"
+#include "graphics/shader_module.hpp"
 #include "platform/metal/config.hpp"
 
 namespace huedra {
@@ -24,6 +25,7 @@ public:
 private:
     id<MTLDevice> m_device;
     id<MTLRenderPipelineState> m_pipeline;
+    CompiledShaderModule m_shaderModule;
 };
 
 } // namespace huedra

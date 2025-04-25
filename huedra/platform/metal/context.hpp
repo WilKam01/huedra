@@ -1,6 +1,7 @@
 #pragma once
 
 #include "graphics/context.hpp"
+#include "graphics/render_graph_builder.hpp"
 #include "platform/metal/buffer.hpp"
 #include "platform/metal/config.hpp"
 #include "platform/metal/pipeline.hpp"
@@ -49,6 +50,8 @@ private:
     std::deque<MetalBuffer> m_buffers;
     std::deque<MetalTexture> m_textures;
     std::deque<MetalRenderTarget> m_renderTargets;
+
+    RenderGraphBuilder m_curGraph;
 
     MetalPipeline m_pipeline;
 };

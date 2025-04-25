@@ -1,5 +1,4 @@
 #include "context.hpp"
-#include "core/file/utils.hpp"
 #include "core/log.hpp"
 
 namespace huedra {
@@ -28,6 +27,9 @@ void SlangContext::init()
 
     optionEntries.push_back({.name = slang::CompilerOptionName::VulkanUseEntryPointName, .value = {.intValue0 = 1}});
     optionEntries.push_back({.name = slang::CompilerOptionName::VulkanInvertY, .value = {.intValue0 = 1}});
+#elif defined(METAL)
+    targetDesc.format = SLANG_METAL;
+    targetDesc.profile = m_globalSession->findProfile("metal_2_1");
 #endif
 
     sessionDesc.targets = &targetDesc;

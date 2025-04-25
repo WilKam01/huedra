@@ -18,8 +18,23 @@ void MetalSwapchain::init(id<MTLDevice> device, WindowCocoa* window, bool render
     m_layer.maximumDrawableCount = GraphicsManager::MAX_FRAMES_IN_FLIGHT;
     [m_window->get().contentView setLayer:m_layer];
     [m_window->get().contentView setWantsLayer:YES];
+
+    m_renderTarget.init(m_device, RenderTargetType::COLOR, GraphicsDataFormat::RGBA_8_UNORM,
+                        m_window->getScreenSize().x, m_window->getScreenSize().y);
+    m_window->setRenderTarget(Ref<RenderTarget>(&m_renderTarget));
 }
 
 void MetalSwapchain::cleanup() { [m_layer release]; }
+
+void MetalSwapchain::aquireNextDrawable()
+{
+    if (m_window->isMinimized())
+    {
+        m_renderTarget.setAvailability(false);
+        return;
+    }
+
+    m_renderTarget.setAvailability(true);
+}
 
 } // namespace huedra

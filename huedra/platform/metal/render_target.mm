@@ -29,4 +29,6 @@ Ref<Texture> MetalRenderTarget::getDepthTexture()
     return Ref<Texture>(nullptr);
 }
 
+void MetalRenderTarget::setAvailability(bool available) { RenderTarget::setAvailability(available); }
+
 } // namespace huedra
