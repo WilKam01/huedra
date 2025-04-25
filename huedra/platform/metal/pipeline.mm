@@ -8,6 +8,7 @@ namespace huedra {
 void MetalPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, id<MTLDevice> device)
 {
     m_device = device;
+    m_builder = pipelineBuilder;
 
     std::map<ShaderStage, ShaderInput> shaders = pipelineBuilder.getShaderStages();
     std::vector<ShaderModule> shaderModules{};

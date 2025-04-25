@@ -6,6 +6,7 @@
 #include "graphics/render_target.hpp"
 #include "platform/cocoa/window.hpp"
 #include "platform/metal/buffer.hpp"
+#include "platform/metal/render_context.hpp"
 #include "platform/metal/render_target.hpp"
 #include "platform/metal/swapchain.hpp"
 #include "platform/metal/texture.hpp"
@@ -155,11 +156,17 @@ void MetalContext::render()
     renderPassDesc.colorAttachments[0].texture = drawable.texture;
     renderPassDesc.colorAttachments[0].loadAction = MTLLoadActionClear;
     renderPassDesc.colorAttachments[0].storeAction = MTLStoreActionStore;
-    renderPassDesc.colorAttachments[0].clearColor = MTLClearColorMake(0.1, 0.1, 0.1, 1.0);
+
+    vec3 clearColor = m_curGraph.getRenderPasses().begin()->second.getRenderTargets().begin()->clearColor;
+    renderPassDesc.colorAttachments[0].clearColor = MTLClearColorMake(clearColor.r, clearColor.g, clearColor.b, 1.0);
 
     id<MTLRenderCommandEncoder> encoder = [cmd renderCommandEncoderWithDescriptor:renderPassDesc];
     [encoder setRenderPipelineState:m_pipeline.get()];
-    [encoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:3];
+
+    MetalRenderContext renderContext;
+    renderContext.init(encoder, m_pipeline);
+    m_curGraph.getRenderPasses().begin()->second.getCommands()(renderContext);
+
     [encoder endEncoding];
 
     [cmd presentDrawable:drawable];

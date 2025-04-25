@@ -21,11 +21,13 @@ public:
     void cleanup();
 
     id<MTLRenderPipelineState> get() const { return m_pipeline; }
+    const PipelineBuilder& getBuilder() const { return m_builder; }
 
 private:
     id<MTLDevice> m_device;
     id<MTLRenderPipelineState> m_pipeline;
     CompiledShaderModule m_shaderModule;
+    PipelineBuilder m_builder;
 };
 
 } // namespace huedra

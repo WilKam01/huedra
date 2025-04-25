@@ -73,10 +73,13 @@ int main()
         }
 
         RenderGraphBuilder graph;
-        graph.addPass("Pass", RenderPassBuilder()
-                                  .init(RenderPassType::GRAPHICS, pipelineBuilder)
-                                  .addRenderTarget(window->getRenderTarget())
-                                  .setCommands([](RenderContext& context) {}));
+        if (window.valid() && window->getRenderTarget()->isAvailable())
+        {
+            graph.addPass("Pass", RenderPassBuilder()
+                                      .init(RenderPassType::GRAPHICS, pipelineBuilder)
+                                      .addRenderTarget(window->getRenderTarget(), vec3(0.1f))
+                                      .setCommands([](RenderContext& context) { context.draw(3, 1, 0, 0); }));
+        }
 
         global::graphicsManager.render(graph);
 
