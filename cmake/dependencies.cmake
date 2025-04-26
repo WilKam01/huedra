@@ -1,5 +1,9 @@
 include(FetchContent)
 
+if(WIN32)
+    file(GLOB DLLS)
+endif()
+
 # Shader-Slang
 set(SLANG_VERSION "2025.7")
 
@@ -24,6 +28,7 @@ if(WIN32)
         IMPORTED_LOCATION ${slang_zip_SOURCE_DIR}/bin/slang.dll
         IMPORTED_IMPLIB ${slang_zip_SOURCE_DIR}/lib/slang.lib
         INTERFACE_INCLUDE_DIRECTORIES ${slang_zip_SOURCE_DIR}/include)
+    list(APPEND DLLS ${slang_zip_SOURCE_DIR}/bin/slang.dll)
 elseif(APPLE)
     set_target_properties(slang PROPERTIES 
         IMPORTED_LOCATION ${slang_zip_SOURCE_DIR}/lib/libslang.dylib

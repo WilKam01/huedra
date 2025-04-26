@@ -2,13 +2,13 @@
 #include "core/global.hpp"
 #include "core/input/mouse.hpp"
 #include "core/log.hpp"
-#include <AppKit/AppKit.h>
 
 #ifdef WIN32
 #include "platform/win32/window.hpp"
 #elif defined(COCOA)
 #include "core/timer.hpp"
 #include "platform/cocoa/window.hpp"
+#include <AppKit/AppKit.h>
 #endif
 
 namespace huedra {

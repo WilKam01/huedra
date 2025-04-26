@@ -90,4 +90,15 @@ add_custom_target(copy_assets ALL
     COMMENT "Copying assets to build folder"
 )
 
+if(WIN32)
+  # Copy dependency DLLs
+  add_custom_target(copy_dlls ALL
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          ${DLLS}
+          ${PROJECT_BINARY_DIR}
+      COMMENT "Copying DLL files to build folder"
+  )
+  add_dependencies(huedra copy_dlls)
+endif()
+
 add_dependencies(huedra copy_assets)

@@ -165,7 +165,7 @@ LRESULT CALLBACK WindowWin32::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
         case WM_PAINT: {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
-            FillRect(hdc, &ps.rcPaint, reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1));
+            FillRect(hdc, &ps.rcPaint, CreateSolidBrush(RGB(0, 0, 0)));
             EndPaint(hwnd, &ps);
             break;
         }
