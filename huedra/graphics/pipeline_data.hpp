@@ -16,12 +16,11 @@ enum class ShaderStage
     VERTEX,
     FRAGMENT,
     COMPUTE,
-    COUNT
+    ALL,
 };
 
 // TODO: Create this automatically? Macro?
-constexpr std::array<const char*, static_cast<u64>(ShaderStage::COUNT)> ShaderStageNames{"None", "Vertex", "Fragment",
-                                                                                         "Compute"};
+constexpr std::array<std::string_view, 5> ShaderStageNames{"None", "Vertex", "Fragment", "Compute", "All"};
 
 enum ShaderStageFlags
 {
@@ -38,12 +37,17 @@ enum ShaderStageFlags
 
 enum class ResourceType
 {
+    NONE,              // Invalid or not supported
     CONSTANT_BUFFER,   // Read only
     STRUCTURED_BUFFER, // Read/Write
     TEXTURE,           // Read only
     RW_TEXTURE,        // Read/Write
     SAMPLER,
 };
+
+// TODO: Create this automatically? Macro?
+constexpr std::array<std::string_view, 6> ResourceTypeNames{"None",    "Constant Buffer",    "Structured Buffer",
+                                                            "Texture", "Read/Write Texture", "Sampler"};
 
 enum class BufferType
 {

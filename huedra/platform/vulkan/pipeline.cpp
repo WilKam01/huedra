@@ -243,7 +243,7 @@ void VulkanPipeline::initLayout()
             bindings[i][j].binding = j;
             bindings[i][j].descriptorType = converter::convertResourceType(resources[i][j].resource);
             bindings[i][j].stageFlags = converter::convertShaderStage(builder.getType(), resources[i][j].shaderStage);
-            bindings[i][j].descriptorCount = 1;
+            bindings[i][j].descriptorCount = 1; // TODO: Support binding arrays
         }
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};

@@ -1,4 +1,5 @@
 #pragma once
+#include "core/serialization/json.hpp"
 #include "core/types.hpp"
 #include "graphics/pipeline_data.hpp"
 #include "platform/slang/config.hpp"
@@ -35,8 +36,6 @@ public:
     ShaderStage getShaderStage(const std::string& entryPoint) const;
 
 private:
-    static ShaderStage convertShaderStage(SlangStage shaderStage);
-
     Slang::ComPtr<slang::IModule> m_module;
     std::string m_name;
     std::string m_fullName;
@@ -58,9 +57,33 @@ public:
     CompiledShaderModule& operator=(CompiledShaderModule&& rhs) = default;
 
     const std::vector<u8>& getCode() const { return m_code; }
+    JsonObject getJson() const;
 
 private:
+    void addParameterBlockRanges(ShaderStage stage, slang::TypeLayoutReflection* typeLayout,
+                                 const std::string& namePrefix, const std::vector<std::string_view>& descriptorNames,
+                                 const std::vector<std::string_view>& subObjectNames, u32 setIndex);
+    void findParameterNames(slang::VariableLayoutReflection* varLayout, std::vector<std::string_view>& descriptorNames,
+                            std::vector<std::string_view>& subObjectNames, bool isEntryPointParameters = false);
+
     std::vector<u8> m_code;
+
+    struct ResourceInfo
+    {
+        std::string name;
+        ShaderStage stage;
+        ResourceType type;
+    };
+    std::vector<std::vector<ResourceInfo>> m_resources;
+
+    struct PushParameterInfo
+    {
+        std::string name;
+        ShaderStage stage;
+        u32 offset;
+        u32 size;
+    };
+    std::vector<PushParameterInfo> m_pushParameters;
 };
 
 struct ShaderInput
