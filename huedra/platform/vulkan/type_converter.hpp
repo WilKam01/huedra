@@ -9,10 +9,10 @@ namespace huedra::converter {
 VkPipelineBindPoint convertPipelineType(PipelineType type);
 
 // HU -> VK
-VkShaderStageFlagBits convertShaderStage(PipelineType type, ShaderStageFlags shaderStage);
+VkShaderStageFlagBits convertShaderStage(PipelineType type, ShaderStage shaderStage);
 
 // HU -> VK
-VkPipelineStageFlagBits convertPipelineStage(PipelineType type, ShaderStageFlags shaderStage);
+VkPipelineStageFlagBits convertPipelineStage(PipelineType type, ShaderStage shaderStage);
 
 // HU -> VK
 VkDescriptorType convertResourceType(ResourceType resource);

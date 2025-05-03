@@ -52,6 +52,7 @@ public:
     JsonValue& operator=(bool value);
     JsonValue& operator=(const std::string& value);
     JsonValue& operator=(const char* value);
+    JsonValue& operator=(const std::string_view& value);
     JsonValue& operator=(const JsonArray& values);
     JsonValue& operator=(const JsonObject& value);
 

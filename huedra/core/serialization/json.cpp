@@ -72,6 +72,13 @@ JsonValue& JsonValue::operator=(const char* value)
     return *this;
 }
 
+JsonValue& JsonValue::operator=(const std::string_view& value)
+{
+    m_type = Type::STRING;
+    m_value.str = m_parent->addString(std::string(value));
+    return *this;
+}
+
 JsonValue& JsonValue::operator=(const JsonArray& values)
 {
     m_type = Type::ARRAY;

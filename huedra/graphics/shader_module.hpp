@@ -1,4 +1,5 @@
 #pragma once
+#include "core/serialization/json.hpp"
 #include "core/types.hpp"
 #include "graphics/pipeline_data.hpp"
 #include "platform/slang/config.hpp"
@@ -35,8 +36,6 @@ public:
     ShaderStage getShaderStage(const std::string& entryPoint) const;
 
 private:
-    static ShaderStage convertShaderStage(SlangStage shaderStage);
-
     Slang::ComPtr<slang::IModule> m_module;
     std::string m_name;
     std::string m_fullName;
@@ -57,10 +56,25 @@ public:
     CompiledShaderModule(CompiledShaderModule&& rhs) = default;
     CompiledShaderModule& operator=(CompiledShaderModule&& rhs) = default;
 
+    std::optional<ResourcePosition> getResource(std::string_view name) const;
+    std::optional<ParameterBinding> getParameter(std::string_view name) const;
+
     const std::vector<u8>& getCode() const { return m_code; }
+    const std::vector<std::vector<ResourceBinding>>& getResources() const { return m_resources; }
+    const std::vector<ParameterBinding>& getParameters() const { return m_parameters; }
+
+    JsonObject getJson() const;
 
 private:
+    void addParameterBlockRanges(ShaderStage stage, slang::TypeLayoutReflection* typeLayout,
+                                 const std::string& namePrefix, const std::vector<std::string_view>& descriptorNames,
+                                 const std::vector<std::string_view>& subObjectNames, u32 setIndex);
+    void findParameterNames(slang::VariableLayoutReflection* varLayout, std::vector<std::string_view>& descriptorNames,
+                            std::vector<std::string_view>& subObjectNames, bool isEntryPointParameters = false);
+
     std::vector<u8> m_code;
+    std::vector<std::vector<ResourceBinding>> m_resources;
+    std::vector<ParameterBinding> m_parameters;
 };
 
 struct ShaderInput

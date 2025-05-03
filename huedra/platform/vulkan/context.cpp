@@ -744,7 +744,7 @@ VkSampler VulkanContext::getSampler(const SamplerSettings& settings)
 
 void VulkanContext::createDescriptorHandlers(const RenderPassBuilder& builder, PassInfo& passInfo)
 {
-    std::vector<std::vector<ResourceBinding>> sets = builder.getPipeline().getResources();
+    std::vector<std::vector<ResourceBinding>> sets = passInfo.pass->getPipeline().getShaderModule().getResources();
     std::vector<std::vector<VkDescriptorType>> bindingTypes(sets.size());
     std::multiset<VkDescriptorType> poolSizeSet{};
     for (u64 i = 0; i < sets.size(); ++i)
@@ -752,7 +752,7 @@ void VulkanContext::createDescriptorHandlers(const RenderPassBuilder& builder, P
         bindingTypes[i].resize(sets[i].size());
         for (u64 j = 0; j < sets[i].size(); ++j)
         {
-            bindingTypes[i][j] = converter::convertResourceType(sets[i][j].resource);
+            bindingTypes[i][j] = converter::convertResourceType(sets[i][j].type);
             poolSizeSet.insert(bindingTypes[i][j]);
         }
     }
@@ -763,7 +763,7 @@ void VulkanContext::createDescriptorHandlers(const RenderPassBuilder& builder, P
         VkDescriptorPoolSize poolSize;
         poolSize.type = type;
         // TODO: Add ability to decide multiple sets per frame. An estimation or actual?
-        poolSize.descriptorCount = static_cast<u32>(poolSizeSet.count(type) * GraphicsManager::MAX_FRAMES_IN_FLIGHT);
+        poolSize.descriptorCount = static_cast<u32>(poolSizeSet.count(type)) * GraphicsManager::MAX_FRAMES_IN_FLIGHT;
         poolSizes.push_back(poolSize);
     }
 
@@ -772,7 +772,7 @@ void VulkanContext::createDescriptorHandlers(const RenderPassBuilder& builder, P
     poolInfo.pPoolSizes = poolSizes.data();
     poolInfo.poolSizeCount = static_cast<u32>(poolSizes.size());
     // TODO: Add ability to decide multiple sets per frame. An estimation or actual?
-    poolInfo.maxSets = GraphicsManager::MAX_FRAMES_IN_FLIGHT;
+    poolInfo.maxSets = static_cast<u32>(sets.size()) * GraphicsManager::MAX_FRAMES_IN_FLIGHT;
 
     if (vkCreateDescriptorPool(m_device.getLogical(), &poolInfo, nullptr, &passInfo.descriptorPool) != VK_SUCCESS)
     {

@@ -16,34 +16,25 @@ enum class ShaderStage
     VERTEX,
     FRAGMENT,
     COMPUTE,
-    COUNT
+    ALL,
 };
 
 // TODO: Create this automatically? Macro?
-constexpr std::array<const char*, static_cast<u64>(ShaderStage::COUNT)> ShaderStageNames{"None", "Vertex", "Fragment",
-                                                                                         "Compute"};
-
-enum ShaderStageFlags
-{
-    HU_SHADER_STAGE_NONE = 0x0000,
-
-    HU_SHADER_STAGE_VERTEX = 0x0001,
-    HU_SHADER_STAGE_FRAGMENT = 0x0002,
-    HU_SHADER_STAGE_GRAPHICS_ALL = 0x0003,
-
-    HU_SHADER_STAGE_COMPUTE = 0x0004,
-
-    HU_SHADER_STAGE_ALL = 0xFFFF
-};
+constexpr std::array<std::string_view, 5> ShaderStageNames{"None", "Vertex", "Fragment", "Compute", "All"};
 
 enum class ResourceType
 {
+    NONE,              // Invalid or not supported
     CONSTANT_BUFFER,   // Read only
     STRUCTURED_BUFFER, // Read/Write
     TEXTURE,           // Read only
     RW_TEXTURE,        // Read/Write
     SAMPLER,
 };
+
+// TODO: Create this automatically? Macro?
+constexpr std::array<std::string_view, 6> ResourceTypeNames{"None",    "Constant Buffer",    "Structured Buffer",
+                                                            "Texture", "Read/Write Texture", "Sampler"};
 
 enum class BufferType
 {
@@ -62,8 +53,24 @@ enum BufferUsageFlags
 
 struct ResourceBinding
 {
-    ShaderStageFlags shaderStage;
-    ResourceType resource;
+    std::string name;
+    ShaderStage shaderStage;
+    ResourceType type;
+};
+
+struct ResourcePosition
+{
+    ResourceBinding info;
+    u32 set;
+    u32 binding;
+};
+
+struct ParameterBinding
+{
+    std::string name;
+    ShaderStage shaderStage;
+    u32 offset;
+    u32 size;
 };
 
 enum class VertexInputRate

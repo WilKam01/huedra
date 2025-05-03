@@ -21,6 +21,7 @@ public:
     void cleanup();
 
     PipelineBuilder& getBuilder() { return m_builder; }
+    CompiledShaderModule& getShaderModule() { return m_shaderModule; }
 
     VkPipeline get() { return m_pipeline; };
     VkPipelineLayout getLayout() { return m_pipelineLayout; };

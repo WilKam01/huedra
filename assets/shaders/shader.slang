@@ -18,8 +18,10 @@ struct VSOutput
     float4 position : SV_Position;
 };
 
+ConstantBuffer<CameraBuffer> cameraBuffer;
+
 [shader("vertex")]
-VSOutput vertMain(VSInput input, uniform float4x4 model, ConstantBuffer<CameraBuffer> cameraBuffer) 
+VSOutput vertMain(VSInput input, uniform float4x4 model) 
 {
     VSOutput output;
     output.position = mul(cameraBuffer.viewProj, mul(model, float4(input.position, 1.0)));
@@ -41,10 +43,16 @@ struct PSOutput
     float4 outColor : SV_Target;
 };
 
+struct Resources
+{
+    Texture2D texture;
+    SamplerState sampler;
+};
+
 [shader("fragment")]
-PSOutput fragMain(PSInput input, Texture2D tex, SamplerState sampler) 
+PSOutput fragMain(PSInput input, ParameterBlock<Resources> resources) 
 {
     PSOutput output;
-    output.outColor = float4(tex.Sample(sampler, input.fragUv).rgb, 1.0);
+    output.outColor = float4(resources.texture.Sample(resources.sampler, input.fragUv).rgb, 1.0);
     return output;
 }

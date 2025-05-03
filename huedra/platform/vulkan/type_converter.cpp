@@ -13,66 +13,56 @@ VkPipelineBindPoint convertPipelineType(PipelineType type)
     };
 }
 
-VkShaderStageFlagBits convertShaderStage(PipelineType type, ShaderStageFlags shaderStage)
+VkShaderStageFlagBits convertShaderStage(PipelineType type, ShaderStage shaderStage)
 {
-    u32 result = 0;
-
-    switch (type)
+    switch (shaderStage)
     {
-    case PipelineType::GRAPHICS:
-        if ((shaderStage & HU_SHADER_STAGE_GRAPHICS_ALL) == HU_SHADER_STAGE_GRAPHICS_ALL)
+    case ShaderStage::VERTEX:
+        return VK_SHADER_STAGE_VERTEX_BIT;
+
+    case ShaderStage::FRAGMENT:
+        return VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    case ShaderStage::COMPUTE:
+        return VK_SHADER_STAGE_COMPUTE_BIT;
+
+    default:
+        if (type == PipelineType::GRAPHICS)
         {
             return VK_SHADER_STAGE_ALL_GRAPHICS;
         }
-
-        if ((shaderStage & HU_SHADER_STAGE_VERTEX) != 0u)
-        {
-            result |= VK_SHADER_STAGE_VERTEX_BIT;
-        }
-        if ((shaderStage & HU_SHADER_STAGE_FRAGMENT) != 0u)
-        {
-            result |= VK_SHADER_STAGE_FRAGMENT_BIT;
-        }
-        break;
-    case PipelineType::COMPUTE:
-        if ((shaderStage & HU_SHADER_STAGE_COMPUTE) != 0u)
+        else if (type == PipelineType::COMPUTE)
         {
             return VK_SHADER_STAGE_COMPUTE_BIT;
         }
-    };
-
-    return static_cast<VkShaderStageFlagBits>(result);
+    }
+    return VK_SHADER_STAGE_ALL;
 }
 
-VkPipelineStageFlagBits convertPipelineStage(PipelineType type, ShaderStageFlags shaderStage)
+VkPipelineStageFlagBits convertPipelineStage(PipelineType type, ShaderStage shaderStage)
 {
-    u32 result = 0;
-
-    switch (type)
+    switch (shaderStage)
     {
-    case PipelineType::GRAPHICS:
-        if ((shaderStage & HU_SHADER_STAGE_GRAPHICS_ALL) == HU_SHADER_STAGE_GRAPHICS_ALL)
+    case ShaderStage::VERTEX:
+        return VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+
+    case ShaderStage::FRAGMENT:
+        return VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
+    case ShaderStage::COMPUTE:
+        return VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+    default:
+        if (type == PipelineType::GRAPHICS)
         {
             return VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
         }
-
-        if ((shaderStage & HU_SHADER_STAGE_VERTEX) != 0u)
-        {
-            result |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
-        }
-        if ((shaderStage & HU_SHADER_STAGE_FRAGMENT) != 0u)
-        {
-            result |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        }
-        break;
-    case PipelineType::COMPUTE:
-        if ((shaderStage & HU_SHADER_STAGE_COMPUTE) != 0u)
+        else if (type == PipelineType::COMPUTE)
         {
             return VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
         }
-    };
-
-    return static_cast<VkPipelineStageFlagBits>(result);
+    }
+    return VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 }
 
 VkDescriptorType convertResourceType(ResourceType resource)

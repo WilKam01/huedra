@@ -44,7 +44,7 @@ RenderPassBuilder& RenderPassBuilder::init(RenderPassType type, const PipelineBu
 }
 
 RenderPassBuilder& RenderPassBuilder::addResource(ResourceAccessType access, Ref<Buffer> buffer,
-                                                  ShaderStageFlags shaderStage)
+                                                  ShaderStage shaderStage)
 {
     if (!buffer.valid())
     {
@@ -72,7 +72,7 @@ RenderPassBuilder& RenderPassBuilder::addResource(ResourceAccessType access, Ref
 }
 
 RenderPassBuilder& RenderPassBuilder::addResource(ResourceAccessType access, Ref<Texture> texture,
-                                                  ShaderStageFlags shaderStage)
+                                                  ShaderStage shaderStage)
 {
     if (!texture.valid())
     {

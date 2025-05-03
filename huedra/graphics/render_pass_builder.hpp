@@ -34,7 +34,7 @@ struct RenderTargetInfo
 struct RenderPassReference
 {
     ResourceAccessType access{ResourceAccessType::READ};
-    ShaderStageFlags shaderStage{HU_SHADER_STAGE_NONE};
+    ShaderStage shaderStage{ShaderStage::NONE};
     Buffer* buffer{nullptr};
     Texture* texture{nullptr};
     enum class Type
@@ -59,8 +59,8 @@ public:
     RenderPassBuilder& setCommands(const RenderCommands& commands);
     RenderPassBuilder& setClearRenderTargets(bool clearRenderTargets);
 
-    RenderPassBuilder& addResource(ResourceAccessType access, Ref<Buffer> buffer, ShaderStageFlags shaderStage);
-    RenderPassBuilder& addResource(ResourceAccessType access, Ref<Texture> texture, ShaderStageFlags shaderStage);
+    RenderPassBuilder& addResource(ResourceAccessType access, Ref<Buffer> buffer, ShaderStage shaderStage);
+    RenderPassBuilder& addResource(ResourceAccessType access, Ref<Texture> texture, ShaderStage shaderStage);
     RenderPassBuilder& addRenderTarget(Ref<RenderTarget> renderTarget, vec3 clearColor = vec3(0.0f));
 
     u64 generateHash();

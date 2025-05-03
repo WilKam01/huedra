@@ -10,10 +10,7 @@ PipelineBuilder& PipelineBuilder::init(PipelineType type)
     m_initialized = true;
     m_type = type;
     m_shaderStages.clear();
-    m_resources.clear();
     m_vertexStreams.clear();
-    m_parameterRanges.clear();
-    m_parameterShaderStages.clear();
     return *this;
 }
 
@@ -57,45 +54,6 @@ PipelineBuilder& PipelineBuilder::addVertexInputStream(const VertexInputStream& 
     return *this;
 }
 
-PipelineBuilder& PipelineBuilder::addParameterRange(u32 stage, u32 size)
-{
-    for (auto& shaderStage : m_parameterShaderStages)
-    {
-        if ((stage & shaderStage) != 0u)
-        {
-            log(LogLevel::WARNING, "PipelineBuilder::addParameterRange(): Could not add push constant range, shader "
-                                   "stage was previously defined");
-            return *this;
-        }
-    }
-
-    m_parameterShaderStages.push_back(static_cast<ShaderStageFlags>(stage));
-    m_parameterRanges.push_back(size);
-    return *this;
-}
-
-PipelineBuilder& PipelineBuilder::addResourceSet()
-{
-    if (m_resources.empty() || !m_resources.back().empty())
-    {
-        m_resources.emplace_back();
-    }
-    return *this;
-}
-
-PipelineBuilder& PipelineBuilder::addResourceBinding(u32 stage, ResourceType resource)
-{
-    if (m_resources.empty())
-    {
-        log(LogLevel::ERR, "PipelineBuilder::addResourceBinding(): Could not add resource binding, no resource sets "
-                           "have been added (fix by calling addResourceSet beforehand)");
-        return *this;
-    }
-
-    m_resources.back().push_back({.shaderStage = static_cast<ShaderStageFlags>(stage), .resource = resource});
-    return *this;
-}
-
 u64 PipelineBuilder::generateHash()
 {
     u64 fnvPrime = 0x00000100000001b3;
@@ -112,24 +70,6 @@ u64 PipelineBuilder::generateHash()
         combineHash(u64Hash(static_cast<u64>(stage)));
         combineHash(strHash(input.shaderModule->getName()));
         combineHash(strHash(input.entryPointName));
-    }
-
-    combineHash(u64Hash(m_resources.size()));
-    for (auto& set : m_resources)
-    {
-        combineHash(u64Hash(set.size()));
-        for (auto& binding : set)
-        {
-            combineHash(u64Hash(static_cast<u64>(binding.shaderStage)));
-            combineHash(u64Hash(static_cast<u64>(binding.resource)));
-        }
-    }
-
-    combineHash(u64Hash(m_parameterRanges.size()));
-    for (u64 i = 0; i < m_parameterRanges.size(); ++i)
-    {
-        combineHash(u32Hash(m_parameterRanges[i]));
-        combineHash(u64Hash(static_cast<u64>(m_parameterShaderStages[i])));
     }
 
     combineHash(u64Hash(m_vertexStreams.size()));

@@ -212,10 +212,8 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
                     chunkType.c_str());
                 return {};
             }
-#ifdef DEBUG
-            log(LogLevel::INFO, "loadPng(): Ancilliary Chunk type: {} not supported, will be ignored",
+            log(LogLevel::D_INFO, "loadPng(): Ancilliary Chunk type: {} not supported, will be ignored",
                 chunkType.c_str());
-#endif
         }
 
         i += chunkLen + 4;

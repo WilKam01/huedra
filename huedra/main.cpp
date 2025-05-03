@@ -103,6 +103,11 @@ int main()
             log(LogLevel::D_INFO, "Elapsed: {:.5f}, Delta: {:.5f}, FPS: {}", global::timer.elapsedSeconds(),
                 global::timer.dt(), sum / 500);
             i = 0;
+
+            if (window.valid())
+            {
+                window->setTitle(std::format("Main FPS: {}", sum / 500));
+            }
         }
         global::input.update();
     }
