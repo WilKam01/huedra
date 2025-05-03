@@ -26,7 +26,7 @@ void MetalRenderContext::bindVertexBuffers(std::vector<Ref<Buffer>> buffers)
 {
     if (m_pipeline->getBuilder().getType() != PipelineType::GRAPHICS)
     {
-        log(LogLevel::WARNING, "Could not vertex buffers, not using a graphics pipeline");
+        log(LogLevel::WARNING, "Could not bind vertex buffers, not using a graphics pipeline");
         return;
     }
 
@@ -70,7 +70,7 @@ void MetalRenderContext::bindIndexBuffer(Ref<Buffer> buffer)
     // m_boundIndexBuffer = buffer->get();
 }
 
-void MetalRenderContext::bindBuffer(Ref<Buffer> buffer, u32 set, u32 binding)
+void MetalRenderContext::bindBuffer(Ref<Buffer> buffer, std::string_view name)
 {
     if (!buffer.valid())
     {
@@ -79,7 +79,7 @@ void MetalRenderContext::bindBuffer(Ref<Buffer> buffer, u32 set, u32 binding)
     }
 }
 
-void MetalRenderContext::bindTexture(Ref<Texture> texture, u32 set, u32 binding)
+void MetalRenderContext::bindTexture(Ref<Texture> texture, std::string_view name)
 {
     if (!texture.valid())
     {
@@ -88,9 +88,9 @@ void MetalRenderContext::bindTexture(Ref<Texture> texture, u32 set, u32 binding)
     }
 }
 
-void MetalRenderContext::bindSampler(const SamplerSettings& sampler, u32 set, u32 binding) {}
+void MetalRenderContext::bindSampler(const SamplerSettings& sampler, std::string_view name) {}
 
-void MetalRenderContext::setParameters(ShaderStageFlags shaderStage, u32 size, void* data) {}
+void MetalRenderContext::setParameter(void* data, u32 size, std::string_view name) {}
 
 void MetalRenderContext::draw(u32 vertexCount, u32 instanceCount, u32 vertexOffset, u32 instanceOffset)
 {

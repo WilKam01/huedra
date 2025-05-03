@@ -1,4 +1,5 @@
 #include "pipeline.hpp"
+#include "core/file/utils.hpp"
 #include "core/global.hpp"
 #include "core/log.hpp"
 #include "graphics/pipeline_data.hpp"
@@ -37,7 +38,6 @@ void MetalPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, id<MTLD
         return;
     }
 
-    id<MTLFunction> frag = [library newFunctionWithName:@"frag_main"];
     MTLRenderPipelineDescriptor* desc = [[MTLRenderPipelineDescriptor alloc] init];
 
     desc.vertexFunction = [library
