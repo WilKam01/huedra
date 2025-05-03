@@ -31,7 +31,8 @@ public:
 private:
     void initLayout();
 
-    VkShaderModule loadShader(ShaderModule* shader);
+    static VkPolygonMode convertPolygonMode(PrimitiveType type);
+    static VkPrimitiveTopology convertPrimitiveTopology(PrimitiveLayout layout);
 
     Device* m_device{nullptr};
     PipelineBuilder m_builder;

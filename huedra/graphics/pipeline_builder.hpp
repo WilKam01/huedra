@@ -22,6 +22,9 @@ public:
     PipelineBuilder& addShader(ShaderModule& shaderModule, const std::string& entryPointName);
     PipelineBuilder& addVertexInputStream(const VertexInputStream& inputStream);
 
+    // Default: TRIANGLE and TRIANGLE_LIST
+    PipelineBuilder& setPrimitive(PrimitiveType type, PrimitiveLayout layout);
+
     u64 generateHash();
 
     bool empty() const { return !m_initialized; }
@@ -30,6 +33,8 @@ public:
     PipelineType getType() const { return m_type; }
     std::map<ShaderStage, ShaderInput> getShaderStages() const { return m_shaderStages; }
     std::vector<VertexInputStream> getVertexInputStreams() const { return m_vertexStreams; }
+    PrimitiveType getPrimitiveType() const { return m_primitiveType; }
+    PrimitiveLayout getPrimitiveLayout() const { return m_primitiveLayout; }
 
 private:
     bool m_initialized{false};
@@ -40,6 +45,8 @@ private:
 
     // Graphics specific
     std::vector<VertexInputStream> m_vertexStreams;
+    PrimitiveType m_primitiveType{PrimitiveType::TRIANGLE};
+    PrimitiveLayout m_primitiveLayout{PrimitiveLayout::TRIANGLE_LIST};
 };
 
 } // namespace huedra

@@ -54,6 +54,18 @@ PipelineBuilder& PipelineBuilder::addVertexInputStream(const VertexInputStream& 
     return *this;
 }
 
+PipelineBuilder& PipelineBuilder::setPrimitive(PrimitiveType type, PrimitiveLayout layout)
+{
+    if (m_type != PipelineType::GRAPHICS)
+    {
+        log(LogLevel::WARNING, "PipelineBuilder::setPrimitive() used on non Graphics pipeline");
+        return *this;
+    }
+    m_primitiveType = type;
+    m_primitiveLayout = layout;
+    return *this;
+}
+
 u64 PipelineBuilder::generateHash()
 {
     u64 fnvPrime = 0x00000100000001b3;
