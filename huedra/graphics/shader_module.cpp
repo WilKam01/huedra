@@ -10,7 +10,7 @@ namespace huedra {
 
 namespace {
 
-ShaderStage convertShaderStage(SlangStage shaderStage)
+ShaderStage convertSlangShaderStage(SlangStage shaderStage)
 {
     switch (shaderStage)
     {
@@ -26,7 +26,7 @@ ShaderStage convertShaderStage(SlangStage shaderStage)
     return ShaderStage::NONE;
 }
 
-ResourceType convertResourceType(slang::BindingType bindingType)
+ResourceType convertSlangResourceType(slang::BindingType bindingType)
 {
     switch (bindingType)
     {
@@ -69,7 +69,7 @@ void ShaderModule::init(Slang::ComPtr<slang::IModule> shaderModule,
     for (u64 i = 0; i < m_entryPoints.size(); ++i)
     {
         m_entryPoints[i].name = m_slangEntryPoints[i]->getFunctionReflection()->getName();
-        m_entryPoints[i].stage = convertShaderStage(stages[i]);
+        m_entryPoints[i].stage = convertSlangShaderStage(stages[i]);
     }
 }
 
@@ -97,15 +97,14 @@ void CompiledShaderModule::init(Slang::ComPtr<slang::IComponentType> program, co
     std::vector<std::string_view> descriptorNames;
     std::vector<std::string_view> subObjectNames;
 
-    slang::TypeLayoutReflection* globalParameters = programLayout->getGlobalParamsTypeLayout();
     i32 parameterCount = programLayout->getParameterCount();
     for (i32 i = 0; i < parameterCount; ++i)
     {
         findParameterNames(programLayout->getParameterByIndex(i), descriptorNames, subObjectNames);
     }
 
-    addParameterBlockRanges(ShaderStage::ALL, programLayout->getGlobalParamsTypeLayout()->getElementTypeLayout(), "",
-                            descriptorNames, subObjectNames, 0);
+    addParameterBlockRanges(ShaderStage::ALL, programLayout->getGlobalParamsTypeLayout(), "", descriptorNames,
+                            subObjectNames, 0);
 
     i32 entryPointCount = programLayout->getEntryPointCount();
     for (i32 i = 0; i < entryPointCount; ++i)
@@ -120,33 +119,68 @@ void CompiledShaderModule::init(Slang::ComPtr<slang::IComponentType> program, co
             findParameterNames(entryPointLayout->getParameterByIndex(i), descriptorNames, subObjectNames, true);
         }
 
-        addParameterBlockRanges(convertShaderStage(entryPointLayout->getStage()), entryPointLayout->getTypeLayout(), "",
-                                descriptorNames, subObjectNames, 0);
+        addParameterBlockRanges(convertSlangShaderStage(entryPointLayout->getStage()),
+                                entryPointLayout->getTypeLayout(), "", descriptorNames, subObjectNames, 0);
     }
+}
+
+std::optional<ResourcePosition> CompiledShaderModule::getResource(std::string_view name) const
+{
+    for (u32 i = 0; i < m_resources.size(); ++i)
+    {
+        for (u32 j = 0; j < m_resources[i].size(); ++j)
+        {
+            if (m_resources[i][j].name == name)
+            {
+                ResourcePosition resource;
+                resource.info = m_resources[i][j];
+                resource.set = i;
+                resource.binding = j;
+                return resource;
+            }
+        }
+    }
+
+    return std::nullopt;
+}
+
+std::optional<ParameterBinding> CompiledShaderModule::getParameter(std::string_view name) const
+{
+    for (u32 i = 0; i < m_parameters.size(); ++i)
+    {
+        if (m_parameters[i].name == name)
+        {
+            return m_parameters[i];
+        }
+    }
+
+    return std::nullopt;
 }
 
 JsonObject CompiledShaderModule::getJson() const
 {
     JsonObject root;
-    for (auto& resourceSet : m_resources)
+    for (u32 i = 0; i < m_resources.size(); ++i)
     {
-        for (auto& resourceBinding : resourceSet)
+        for (u32 j = 0; j < m_resources[i].size(); ++j)
         {
-            std::vector<std::string> splitString = splitByChar(resourceBinding.name, '.');
+            std::vector<std::string> splitString = splitByChar(m_resources[i][j].name, '.');
             JsonValue* dest = &root["resources"];
             for (auto& str : splitString)
             {
                 dest = &(*dest)[str];
             }
 
-            (*dest)["stage"] = ShaderStageNames[static_cast<u32>(resourceBinding.stage)];
-            (*dest)["type"] = ResourceTypeNames[static_cast<u32>(resourceBinding.type)];
+            (*dest)["stage"] = ShaderStageNames[static_cast<u32>(m_resources[i][j].shaderStage)];
+            (*dest)["type"] = ResourceTypeNames[static_cast<u32>(m_resources[i][j].type)];
+            (*dest)["set"] = i;
+            (*dest)["binding"] = j;
         }
     }
 
-    for (auto& param : m_pushParameters)
+    for (auto& param : m_parameters)
     {
-        root["push parameters"][param.name]["stage"] = ShaderStageNames[static_cast<u32>(param.stage)];
+        root["push parameters"][param.name]["stage"] = ShaderStageNames[static_cast<u32>(param.shaderStage)];
         root["push parameters"][param.name]["offset"] = param.offset;
         root["push parameters"][param.name]["size"] = param.size;
     }
@@ -161,9 +195,9 @@ void CompiledShaderModule::addParameterBlockRanges(ShaderStage stage, slang::Typ
 {
     if (typeLayout->getSize() > 0)
     {
-        ResourceInfo resource;
+        ResourceBinding resource;
         resource.name = namePrefix + "<misc>";
-        resource.stage = stage;
+        resource.shaderStage = stage;
         resource.type = ResourceType::CONSTANT_BUFFER;
         m_resources[setIndex].push_back(resource);
     }
@@ -173,7 +207,6 @@ void CompiledShaderModule::addParameterBlockRanges(ShaderStage stage, slang::Typ
     for (i32 i = 0; i < rangeCount; ++i)
     {
         slang::BindingType bindingType = typeLayout->getDescriptorSetDescriptorRangeType(0, i);
-        i32 descriptorCount = typeLayout->getDescriptorSetDescriptorRangeDescriptorCount(0, i);
 
         // Skip push constants
         if (bindingType == slang::BindingType::PushConstant)
@@ -181,10 +214,10 @@ void CompiledShaderModule::addParameterBlockRanges(ShaderStage stage, slang::Typ
             continue;
         }
 
-        ResourceInfo resource;
+        ResourceBinding resource;
         resource.name = namePrefix + std::string(descriptorNames[nameIndex++]);
-        resource.stage = stage;
-        resource.type = convertResourceType(bindingType);
+        resource.shaderStage = stage;
+        resource.type = convertSlangResourceType(bindingType);
         m_resources[setIndex].push_back(resource);
     }
 
@@ -228,13 +261,12 @@ void CompiledShaderModule::addParameterBlockRanges(ShaderStage stage, slang::Typ
             slang::TypeLayoutReflection* elementTypeLayout =
                 typeLayout->getBindingRangeLeafTypeLayout(bindingRangeIndex)->getElementTypeLayout();
 
-            PushParameterInfo parameter;
+            ParameterBinding parameter;
             parameter.name = namePrefix + std::string(subObjectNames[nameIndex++]);
-            parameter.stage = stage;
-            parameter.offset =
-                m_pushParameters.empty() ? 0 : m_pushParameters.back().offset + m_pushParameters.back().size;
+            parameter.shaderStage = stage;
+            parameter.offset = m_parameters.empty() ? 0 : m_parameters.back().offset + m_parameters.back().size;
             parameter.size = static_cast<u32>(elementTypeLayout->getSize());
-            m_pushParameters.push_back(parameter);
+            m_parameters.push_back(parameter);
         }
         break;
         default:

@@ -59,35 +59,97 @@ void VulkanRenderContext::bindIndexBuffer(Ref<Buffer> buffer)
     m_boundIndexBuffer = true;
 }
 
-void VulkanRenderContext::bindBuffer(Ref<Buffer> buffer, u32 set, u32 binding)
+void VulkanRenderContext::bindBuffer(Ref<Buffer> buffer, std::string_view name)
 {
     if (!buffer.valid())
     {
         log(LogLevel::WARNING, "Could not bind buffer, reference invalid");
+        return;
     }
 
-    m_descriptorHandler->writeBuffer(*static_cast<VulkanBuffer*>(buffer.get()), set, binding);
+    std::optional<ResourcePosition> resource = m_renderPass->getPipeline().getShaderModule().getResource(name);
+    if (!resource.has_value())
+    {
+        log(LogLevel::WARNING, "Could not bind buffer, no resource named \"{}\"", name);
+        return;
+    }
+
+    if (resource.value().info.type != ResourceType::CONSTANT_BUFFER &&
+        resource.value().info.type != ResourceType::STRUCTURED_BUFFER)
+    {
+        log(LogLevel::WARNING, "Could not bind buffer, \"{}\" is a {}", name,
+            ResourceTypeNames[static_cast<u32>(resource.value().info.type)]);
+        return;
+    }
+
+    m_descriptorHandler->writeBuffer(*static_cast<VulkanBuffer*>(buffer.get()), resource.value().set,
+                                     resource.value().binding);
 }
 
-void VulkanRenderContext::bindTexture(Ref<Texture> texture, u32 set, u32 binding)
+void VulkanRenderContext::bindTexture(Ref<Texture> texture, std::string_view name)
 {
     if (!texture.valid())
     {
         log(LogLevel::WARNING, "Could not bind texture, reference invalid");
+        return;
     }
 
-    m_descriptorHandler->writeTexture(*static_cast<VulkanTexture*>(texture.get()), set, binding);
+    std::optional<ResourcePosition> resource = m_renderPass->getPipeline().getShaderModule().getResource(name);
+    if (!resource.has_value())
+    {
+        log(LogLevel::WARNING, "Could not bind texture, no resource named \"{}\"", name);
+        return;
+    }
+
+    if (resource.value().info.type != ResourceType::TEXTURE && resource.value().info.type != ResourceType::RW_TEXTURE)
+    {
+        log(LogLevel::WARNING, "Could not bind texture, \"{}\" is a {}", name,
+            ResourceTypeNames[static_cast<u32>(resource.value().info.type)]);
+        return;
+    }
+
+    m_descriptorHandler->writeTexture(*static_cast<VulkanTexture*>(texture.get()), resource.value().set,
+                                      resource.value().binding);
 }
 
-void VulkanRenderContext::bindSampler(const SamplerSettings& sampler, u32 set, u32 binding)
+void VulkanRenderContext::bindSampler(const SamplerSettings& sampler, std::string_view name)
 {
-    m_descriptorHandler->writeSampler(m_context->getSampler(sampler), set, binding);
+    std::optional<ResourcePosition> resource = m_renderPass->getPipeline().getShaderModule().getResource(name);
+    if (!resource.has_value())
+    {
+        log(LogLevel::WARNING, "Could not bind sampler, no resource named \"{}\"", name);
+        return;
+    }
+
+    if (resource.value().info.type != ResourceType::SAMPLER)
+    {
+        log(LogLevel::WARNING, "Could not bind sampler, \"{}\" is a {}", name,
+            ResourceTypeNames[static_cast<u32>(resource.value().info.type)]);
+        return;
+    }
+
+    m_descriptorHandler->writeSampler(m_context->getSampler(sampler), resource.value().set, resource.value().binding);
 }
 
-void VulkanRenderContext::setParameters(ShaderStageFlags shaderStage, u32 size, void* data)
+void VulkanRenderContext::setParameter(void* data, u32 size, std::string_view name)
 {
+    std::optional<ParameterBinding> parameter = m_renderPass->getPipeline().getShaderModule().getParameter(name);
+    if (!parameter.has_value())
+    {
+        log(LogLevel::WARNING, "Could not set parameter, no parameter named \"{}\"", name);
+        return;
+    }
+
+    if (parameter.value().size != size)
+    {
+        log(LogLevel::WARNING, "Could not set parameter \"{}\", got size {}, expected {}", name, size,
+            parameter.value().size);
+        return;
+    }
+
     vkCmdPushConstants(m_commandBuffer, m_renderPass->getPipeline().getLayout(),
-                       converter::convertShaderStage(m_renderPass->getPipelineType(), shaderStage), 0, size, data);
+                       converter::convertShaderStage(m_renderPass->getPipelineType(), parameter.value().shaderStage),
+                       parameter.value().offset, size, data);
 }
 
 void VulkanRenderContext::draw(u32 vertexCount, u32 instanceCount, u32 vertexOffset, u32 instanceOffset)

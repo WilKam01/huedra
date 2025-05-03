@@ -56,7 +56,13 @@ public:
     CompiledShaderModule(CompiledShaderModule&& rhs) = default;
     CompiledShaderModule& operator=(CompiledShaderModule&& rhs) = default;
 
+    std::optional<ResourcePosition> getResource(std::string_view name) const;
+    std::optional<ParameterBinding> getParameter(std::string_view name) const;
+
     const std::vector<u8>& getCode() const { return m_code; }
+    const std::vector<std::vector<ResourceBinding>>& getResources() const { return m_resources; }
+    const std::vector<ParameterBinding>& getParameters() const { return m_parameters; }
+
     JsonObject getJson() const;
 
 private:
@@ -67,23 +73,8 @@ private:
                             std::vector<std::string_view>& subObjectNames, bool isEntryPointParameters = false);
 
     std::vector<u8> m_code;
-
-    struct ResourceInfo
-    {
-        std::string name;
-        ShaderStage stage;
-        ResourceType type;
-    };
-    std::vector<std::vector<ResourceInfo>> m_resources;
-
-    struct PushParameterInfo
-    {
-        std::string name;
-        ShaderStage stage;
-        u32 offset;
-        u32 size;
-    };
-    std::vector<PushParameterInfo> m_pushParameters;
+    std::vector<std::vector<ResourceBinding>> m_resources;
+    std::vector<ParameterBinding> m_parameters;
 };
 
 struct ShaderInput

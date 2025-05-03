@@ -11,7 +11,6 @@ void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device
 {
     m_device = &device;
     m_builder = pipelineBuilder;
-    initLayout();
 
     std::vector<VkPipelineShaderStageCreateInfo> shaderCreateInfos{};
     VkPipelineShaderStageCreateInfo shaderStageInfo{};
@@ -30,6 +29,9 @@ void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device
     }
 
     m_shaderModule = global::graphicsManager.compileAndLinkShaderModules(shaderModules);
+
+    initLayout();
+
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = static_cast<u32>(m_shaderModule.getCode().size());
@@ -113,7 +115,7 @@ void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
     multisampling.sampleShadingEnable = VK_TRUE;
-    multisampling.minSampleShading = .2f;
+    multisampling.minSampleShading = 0.2f;
     multisampling.pSampleMask = nullptr;
     multisampling.alphaToCoverageEnable = VK_FALSE;
     multisampling.alphaToOneEnable = VK_FALSE;
@@ -231,25 +233,25 @@ void VulkanPipeline::initLayout()
 {
     PipelineBuilder& builder = getBuilder();
 
-    std::vector<std::vector<ResourceBinding>> resources = builder.getResources();
-    std::vector<std::vector<VkDescriptorSetLayoutBinding>> bindings(resources.size());
+    std::vector<std::vector<ResourceBinding>> resources = m_shaderModule.getResources();
+    std::vector<std::vector<VkDescriptorSetLayoutBinding>> sets(resources.size());
     m_descriptorLayout.resize(resources.size());
 
     for (u64 i = 0; i < resources.size(); ++i)
     {
-        bindings[i].resize(resources[i].size());
+        sets[i].resize(resources[i].size());
         for (u64 j = 0; j < resources[i].size(); ++j)
         {
-            bindings[i][j].binding = j;
-            bindings[i][j].descriptorType = converter::convertResourceType(resources[i][j].resource);
-            bindings[i][j].stageFlags = converter::convertShaderStage(builder.getType(), resources[i][j].shaderStage);
-            bindings[i][j].descriptorCount = 1; // TODO: Support binding arrays
+            sets[i][j].binding = j;
+            sets[i][j].descriptorType = converter::convertResourceType(resources[i][j].type);
+            sets[i][j].stageFlags = converter::convertShaderStage(builder.getType(), resources[i][j].shaderStage);
+            sets[i][j].descriptorCount = 1; // TODO: Support binding arrays
         }
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = static_cast<u32>(bindings[i].size());
-        layoutInfo.pBindings = bindings[i].data();
+        layoutInfo.bindingCount = static_cast<u32>(sets[i].size());
+        layoutInfo.pBindings = sets[i].data();
 
         if (vkCreateDescriptorSetLayout(m_device->getLogical(), &layoutInfo, nullptr, &m_descriptorLayout[i]) !=
             VK_SUCCESS)
@@ -258,18 +260,14 @@ void VulkanPipeline::initLayout()
         }
     }
 
-    std::vector<u32> pushConstantRanges = builder.getParameterRanges();
-    std::vector<ShaderStageFlags> pushConstantsStages = builder.getParameterShaderStages();
-    std::vector<VkPushConstantRange> pushConstants(pushConstantRanges.size());
+    std::vector<ParameterBinding> parameterBinding = m_shaderModule.getParameters();
+    std::vector<VkPushConstantRange> pushConstants(parameterBinding.size());
 
-    u32 pushConstantOffset = 0;
     for (u64 i = 0; i < pushConstants.size(); ++i)
     {
-        pushConstants[i].stageFlags = converter::convertShaderStage(builder.getType(), pushConstantsStages[i]);
-        pushConstants[i].offset = pushConstantOffset;
-        pushConstants[i].size = pushConstantRanges[i];
-
-        pushConstantOffset += pushConstantRanges[i];
+        pushConstants[i].stageFlags = converter::convertShaderStage(builder.getType(), parameterBinding[i].shaderStage);
+        pushConstants[i].offset = parameterBinding[i].offset;
+        pushConstants[i].size = parameterBinding[i].size;
     }
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};

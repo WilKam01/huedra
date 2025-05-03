@@ -111,25 +111,20 @@ int main()
                                .attributes{{.format = GraphicsDataFormat::RG_32_FLOAT, .offset = 0}}})
         .addVertexInputStream({.size = sizeof(vec3),
                                .inputRate = VertexInputRate::VERTEX,
-                               .attributes{{.format = GraphicsDataFormat::RGB_32_FLOAT, .offset = 0}}})
-        .addParameterRange(HU_SHADER_STAGE_VERTEX, sizeof(matrix4))
-        .addResourceSet()
-        .addResourceBinding(HU_SHADER_STAGE_VERTEX, ResourceType::CONSTANT_BUFFER)
-        .addResourceBinding(HU_SHADER_STAGE_FRAGMENT, ResourceType::TEXTURE)
-        .addResourceBinding(HU_SHADER_STAGE_FRAGMENT, ResourceType::SAMPLER);
+                               .attributes{{.format = GraphicsDataFormat::RGB_32_FLOAT, .offset = 0}}});
 
     RenderCommands commands = [&meshes, positionsBuffer, uvsBuffer, normalsBuffer, indexBuffer, viewProjBuffer, texture,
                                numEnities](RenderContext& renderContext) {
         renderContext.bindVertexBuffers({positionsBuffer, uvsBuffer, normalsBuffer});
         renderContext.bindIndexBuffer(indexBuffer);
-        renderContext.bindBuffer(viewProjBuffer, 0, 0);
-        renderContext.bindTexture(texture, 0, 1);
-        renderContext.bindSampler(SAMPLER_LINEAR, 0, 2);
+        renderContext.bindBuffer(viewProjBuffer, "cameraBuffer");
+        renderContext.bindTexture(texture, "resources.texture");
+        renderContext.bindSampler(SAMPLER_LINEAR, "resources.sampler");
 
         global::sceneManager.query<Transform>([&](Transform& transform) {
             transform.rotation += vec3(math::radians(5), math::radians(10), 0.0f) * global::timer.dt();
             matrix4 mat = transform.applyMatrix();
-            renderContext.setParameters(HU_SHADER_STAGE_VERTEX, sizeof(matrix4), &mat);
+            renderContext.setParameter(&mat, sizeof(matrix4), "model");
             renderContext.drawIndexed(static_cast<u32>(meshes[0].indices.size()), 1, 0, 0);
         });
     };
@@ -202,8 +197,8 @@ int main()
             RenderPassBuilder renderPass =
                 RenderPassBuilder()
                     .init(RenderPassType::GRAPHICS, builder)
-                    .addResource(ResourceAccessType::READ, viewProjBuffer, HU_SHADER_STAGE_VERTEX)
-                    .addResource(ResourceAccessType::READ, texture, HU_SHADER_STAGE_FRAGMENT)
+                    .addResource(ResourceAccessType::READ, viewProjBuffer, ShaderStage::VERTEX)
+                    .addResource(ResourceAccessType::READ, texture, ShaderStage::FRAGMENT)
                     .addRenderTarget(window->getRenderTarget())
                     .setCommands(commands);
             renderGraph.addPass("Render Pass", renderPass);
@@ -238,6 +233,11 @@ int main()
             log(LogLevel::D_INFO, "Elapsed: {:.5f}, Delta: {:.5f}, FPS: {}", global::timer.secondsElapsed(),
                 global::timer.dt(), sum / 500);
             i = 0;
+
+            if (window.valid())
+            {
+                window->setTitle(std::format("Main FPS: {}", sum / 500));
+            }
         }
         global::input.update();
     }
