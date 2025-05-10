@@ -31,12 +31,12 @@ int main()
     global::resourceManager.init();
 
     Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720));
-    Ref<Window> window1 = global::windowManager.addWindow("Main", WindowInput(480, 480, 1400, 500), window);
+    Ref<Window> window1 = global::windowManager.addWindow("Second", WindowInput(480, 480, 1400, 500), window);
 
     ShaderModule& module = global::resourceManager.loadShaderModule("assets/shaders/triangle.slang");
 
     PipelineBuilder pipelineBuilder;
-    pipelineBuilder.init(PipelineType::GRAPHICS).addShader(module, "vert_main").addShader(module, "frag_main");
+    pipelineBuilder.init(PipelineType::GRAPHICS).addShader(module, "vertMain").addShader(module, "fragMain");
 
     while (global::windowManager.update())
     {

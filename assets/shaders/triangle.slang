@@ -5,7 +5,7 @@ struct VertexOut
 };
 
 [shader("vertex")]
-VertexOut vert_main(uint vertexID: SV_VertexID)
+VertexOut vertMain(uint vertexID: SV_VertexID)
 {
     float4 positions[3] = {
         float4(0.0, 0.5, 0.0, 1.0),   // Top
@@ -26,4 +26,4 @@ VertexOut vert_main(uint vertexID: SV_VertexID)
 }
 
 [shader("fragment")]
-float4 frag_main(VertexOut in) : SV_Target { return in.color; }
+float4 fragMain(VertexOut in) : SV_Target { return in.color; }

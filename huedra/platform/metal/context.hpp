@@ -9,7 +9,9 @@
 #include "platform/metal/swapchain.hpp"
 #include "platform/metal/texture.hpp"
 
+#include <array>
 #include <deque>
+#include <dispatch/dispatch.h>
 
 namespace huedra {
 
@@ -44,12 +46,16 @@ public:
     void render() override;
 
 private:
+    void waitIdle();
+
     id<MTLDevice> m_device;
     id<MTLCommandQueue> m_commandQueue;
     std::deque<MetalSwapchain> m_swapchains;
     std::deque<MetalBuffer> m_buffers;
     std::deque<MetalTexture> m_textures;
     std::deque<MetalRenderTarget> m_renderTargets;
+
+    std::vector<dispatch_semaphore_t> m_inFlightSemaphores;
 
     RenderGraphBuilder m_curGraph;
 

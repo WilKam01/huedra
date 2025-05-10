@@ -17,11 +17,20 @@ public:
     MetalTexture(MetalTexture&& rhs) = default;
     MetalTexture& operator=(MetalTexture&& rhs) = default;
 
-    void init(id<MTLDevice> device, const TextureData& data);
+    void init(id<MTLDevice> device, const TextureData& data); // Static texture
+    void init(id<MTLDevice> device, TextureType type, GraphicsDataFormat format, u32 width, u32 height,
+              u32 imageCount); // Render target texture
     void cleanup();
 
+    id<MTLTexture> get() const { return m_textures[getIndex()]; }
+    id<MTLTexture> getWithIndex(u32 index) const { return m_textures[index]; }
+
 private:
+    u32 getIndex() const;
+
     id<MTLDevice> m_device;
+    std::vector<id<MTLTexture>> m_textures;
+    bool m_isRenderTargetTexture{false};
 };
 
 } // namespace huedra
