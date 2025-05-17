@@ -10,6 +10,23 @@
 #include <CoreFoundation/CFCGTypes.h>
 #include <Foundation/Foundation.h>
 
+namespace {
+NSRect findMainFrame()
+{
+    for (NSScreen* screen in [NSScreen screens])
+    {
+        NSDictionary* desc = [screen deviceDescription];
+        NSNumber* isPrimary = desc[@"NSScreenNumber"];
+
+        if (NSMinX([screen frame]) == 0 && NSMinY([screen frame]) == 0)
+        {
+            return screen.frame;
+        }
+    }
+    return [NSScreen mainScreen].frame;
+}
+} // namespace
+
 @interface MyWindowDelegate : NSObject <NSWindowDelegate>
 @property(nonatomic, assign) huedra::WindowCocoa* cppWindow;
 @end
@@ -22,7 +39,7 @@
     NSWindow* window = notification.object;
     NSRect frame = [window frame];
     NSRect contentFrame = [window contentRectForFrameRect:frame];
-    NSRect mainFrame = [NSScreen mainScreen].frame;
+    NSRect mainFrame = ::findMainFrame();
 
     i32 positionX(static_cast<i32>(frame.origin.x));
     i32 positionY(static_cast<i32>(mainFrame.size.height - frame.origin.y - frame.size.height));
@@ -65,7 +82,7 @@ namespace huedra {
 
 bool WindowCocoa::init(const std::string& title, const WindowInput& input)
 {
-    NSRect mainFrame = [NSScreen mainScreen].frame;
+    NSRect mainFrame = ::findMainFrame();
 
     i32 positionX = input.positionX.value_or(0);
     i32 positionY =
@@ -205,7 +222,7 @@ bool WindowCocoa::update()
         case NSEventTypeLeftMouseDragged:
         case NSEventTypeRightMouseDragged:
         case NSEventTypeOtherMouseDragged: {
-            NSRect mainFrame = [NSScreen mainScreen].frame;
+            NSRect mainFrame = ::findMainFrame();
             global::input.setMousePos(ivec2(static_cast<i32>([NSEvent mouseLocation].x),
                                             static_cast<i32>(mainFrame.size.height - [NSEvent mouseLocation].y)));
             global::input.setMouseDelta(ivec2(static_cast<i32>(event.deltaX), static_cast<i32>(event.deltaY)));
@@ -239,7 +256,7 @@ void WindowCocoa::setTitle(const std::string& title)
 void WindowCocoa::setResolution(u32 width, u32 height)
 {
     NSRect frame = [m_window frame];
-    NSRect mainFrame = [NSScreen mainScreen].frame;
+    NSRect mainFrame = ::findMainFrame();
 
     WindowRect rect = getRect();
     [m_window
@@ -251,7 +268,7 @@ void WindowCocoa::setResolution(u32 width, u32 height)
 void WindowCocoa::setPosition(i32 x, i32 y)
 {
     NSRect frame = [m_window frame];
-    NSRect mainFrame = [NSScreen mainScreen].frame;
+    NSRect mainFrame = ::findMainFrame();
 
     WindowRect rect = getRect();
     [m_window setFrame:NSMakeRect(x, mainFrame.size.height - y - frame.size.height, rect.width, rect.height)

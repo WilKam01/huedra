@@ -5,6 +5,7 @@
 #include "core/log.hpp"
 #include "core/serialization/json.hpp"
 #include "core/string/utils.hpp"
+#include "core/types.hpp"
 #include "graphics/pipeline_builder.hpp"
 #include "graphics/pipeline_data.hpp"
 #include "graphics/render_context.hpp"
@@ -31,7 +32,7 @@ int main()
     global::resourceManager.init();
 
     Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720));
-    Ref<Window> window1 = global::windowManager.addWindow("Second", WindowInput(480, 480, 1400, 500), window);
+    Ref<Window> window1 = global::windowManager.addWindow("Second", WindowInput(480, 480, 1400, -250), window);
 
     ShaderModule& module = global::resourceManager.loadShaderModule("assets/shaders/triangle.slang");
 
@@ -66,7 +67,7 @@ int main()
         static MouseMode mode{MouseMode::DISABLED};
         if (global::input.isKeyPressed(Keys::ENTER))
         {
-            mode = static_cast<MouseMode>(((static_cast<u32>(mode) + 1) % 3) + 1);
+            mode = static_cast<MouseMode>(((static_cast<u32>(mode)) % 3) + 1);
             global::input.setMouseMode(mode);
             cursor = static_cast<CursorType>((static_cast<u32>(cursor) + 1) % 15);
             global::input.setCursor(cursor);

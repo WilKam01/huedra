@@ -34,8 +34,6 @@ ivec2 Window::getRelativeScreenPosition(ivec2 position) const
     return position - ivec2(m_rect.screenPositionX, m_rect.screenPositionY);
 }
 
-// No recursion happens since check is done before calling to ensure it's not calling itselt
-// NOLINTNEXTLINE(misc-no-recursion)
 void Window::cleanup()
 {
     m_close = true;
@@ -54,7 +52,7 @@ void Window::cleanup()
     {
         if (window.valid() && window.get() != this)
         {
-            window->cleanup();
+            window->setShouldClose();
         }
     }
 }

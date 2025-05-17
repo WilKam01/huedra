@@ -83,6 +83,7 @@ protected:
     void updatePosition(i32 positionX, i32 positionY, i32 screenPositionX, i32 screenPositionY);
     void updateResolution(u32 width, u32 height, u32 screenWidth, u32 screenHeight);
     void updateMinimized(bool isMinimized);
+    void setShouldClose() { m_close = true; }
 
 private:
     void setRenderTarget(Ref<RenderTarget> renderTarget);

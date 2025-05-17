@@ -44,8 +44,8 @@ void MetalSwapchain::init(id<MTLDevice> device, id<MTLCommandQueue> commandQueue
     [m_window->get().contentView setWantsLayer:YES];
 
     m_renderTarget.init(m_device, RenderTargetType::COLOR, GraphicsDataFormat::RGBA_8_UNORM,
-                        static_cast<u32>(m_window->getScreenSize().x * m_window->getScreenDPI()),
-                        static_cast<u32>(m_window->getScreenSize().y * m_window->getScreenDPI()));
+                        static_cast<u32>(static_cast<float>(m_window->getScreenSize().x) * m_window->getScreenDPI()),
+                        static_cast<u32>(static_cast<float>(m_window->getScreenSize().y) * m_window->getScreenDPI()));
     m_window->setRenderTarget(Ref<RenderTarget>(&m_renderTarget));
 
     m_threadInfo.runningThread = true;
@@ -109,16 +109,18 @@ void MetalSwapchain::aquireNextDrawable()
         m_threadInfo.alreadyFetchedDrawable.store(false);
     }
 
-    if (m_window->getScreenSize() != m_renderTarget.getSize())
+    if (static_cast<uvec2>(static_cast<dvec2>(m_window->getScreenSize()) * m_window->getScreenDPI()) !=
+        m_renderTarget.getSize())
     {
         if (m_threadInfo.alreadyFetchedDrawable.load())
         {
             dispatch_semaphore_wait(m_presentSemaphore, DISPATCH_TIME_FOREVER);
         }
-        m_layer.drawableSize = CGSizeMake(m_window->getScreenSize().x * m_window->getScreenDPI(),
-                                          m_window->getScreenSize().y * m_window->getScreenDPI());
-        m_renderTarget.recreate(static_cast<u32>(m_window->getScreenSize().x * m_window->getScreenDPI()),
-                                static_cast<u32>(m_window->getScreenSize().y * m_window->getScreenDPI()));
+        m_layer.drawableSize = CGSizeMake(static_cast<CGFloat>(m_window->getScreenSize().x) * m_window->getScreenDPI(),
+                                          static_cast<CGFloat>(m_window->getScreenSize().y) * m_window->getScreenDPI());
+        m_renderTarget.recreate(
+            static_cast<u32>(static_cast<float>(m_window->getScreenSize().x) * m_window->getScreenDPI()),
+            static_cast<u32>(static_cast<float>(m_window->getScreenSize().y) * m_window->getScreenDPI()));
 
         m_threadInfo.alreadyFetchedDrawable.store(false);
         m_threadInfo.condition.notify_one();

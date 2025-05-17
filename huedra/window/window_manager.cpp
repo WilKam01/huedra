@@ -143,7 +143,6 @@ void WindowManager::init()
 
     NSMenu* appMenu = [[NSMenu alloc] init];
     [appMenuItem setSubmenu:appMenu];
-    [NSApp activateIgnoringOtherApps:YES];
 
     waitCursor = loadCursor(@"busybutclickable");
     helpCursor = loadCursor(@"help");
@@ -174,6 +173,13 @@ bool WindowManager::update()
         ClipCursor(nullptr);
     }
 #elif defined(MACOS)
+    static bool hasActivatedApp{false};
+    if (!hasActivatedApp)
+    {
+        [NSApp activateIgnoringOtherApps:YES];
+        hasActivatedApp = true;
+    }
+
     static bool isHidden{false};
 
     bool withinAnyWindow{false};
