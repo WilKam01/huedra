@@ -22,8 +22,11 @@ public:
     void write(u64 size, void* data) override;
     void read(u64 size, void* data) override;
 
+    id<MTLBuffer> get();
+
 private:
     id<MTLDevice> m_device;
+    std::vector<id<MTLBuffer>> m_buffers;
 };
 
 } // namespace huedra

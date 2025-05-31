@@ -56,7 +56,6 @@ static constexpr std::vector<NSCursor*> loadCursor(NSString* name)
                                                   hotSpot:NSMakePoint([[info valueForKey:@"hotx"] doubleValue],
                                                                       [[info valueForKey:@"hoty"] doubleValue])]);
     }
-
     return cursors;
 };
 
@@ -133,26 +132,29 @@ void WindowManager::init()
     rid.hwndTarget = nullptr;
     RegisterRawInputDevices(&rid, 1, sizeof(rid));
 #elif defined(MACOS)
-    [NSApplication sharedApplication];
-    [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+    @autoreleasepool
+    {
+        [NSApplication sharedApplication];
+        [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
 
-    NSMenu* menubar = [[NSMenu alloc] init];
-    NSMenuItem* appMenuItem = [[NSMenuItem alloc] init];
-    [menubar addItem:appMenuItem];
-    [NSApp setMainMenu:menubar];
+        NSMenu* menubar = [[NSMenu alloc] init];
+        NSMenuItem* appMenuItem = [[NSMenuItem alloc] init];
+        [menubar addItem:appMenuItem];
+        [NSApp setMainMenu:menubar];
 
-    NSMenu* appMenu = [[NSMenu alloc] init];
-    [appMenuItem setSubmenu:appMenu];
+        NSMenu* appMenu = [[NSMenu alloc] init];
+        [appMenuItem setSubmenu:appMenu];
 
-    waitCursor = loadCursor(@"busybutclickable");
-    helpCursor = loadCursor(@"help");
-    noEntryCursor = loadCursor(@"notAllowed");
-    movingCursor = loadCursor(@"move");
-    sizeNSCursor = loadCursor(@"resizenorthsouth");
-    sizeWECursor = loadCursor(@"resizeeastwest");
-    sizeNESWCursor = loadCursor(@"resizenortheastsouthwest");
-    sizeNWSECursor = loadCursor(@"resizenorthwestsoutheast");
-    cursorAnimationTimer.init();
+        waitCursor = loadCursor(@"busybutclickable");
+        helpCursor = loadCursor(@"help");
+        noEntryCursor = loadCursor(@"notAllowed");
+        movingCursor = loadCursor(@"move");
+        sizeNSCursor = loadCursor(@"resizenorthsouth");
+        sizeWECursor = loadCursor(@"resizeeastwest");
+        sizeNESWCursor = loadCursor(@"resizenortheastsouthwest");
+        sizeNWSECursor = loadCursor(@"resizenorthwestsoutheast");
+        cursorAnimationTimer.init();
+    }
 #endif
 }
 
@@ -173,82 +175,85 @@ bool WindowManager::update()
         ClipCursor(nullptr);
     }
 #elif defined(MACOS)
-    static bool hasActivatedApp{false};
-    if (!hasActivatedApp)
+    @autoreleasepool
     {
-        [NSApp activateIgnoringOtherApps:YES];
-        hasActivatedApp = true;
-    }
-
-    static bool isHidden{false};
-
-    bool withinAnyWindow{false};
-    for (auto& window : m_windows)
-    {
-        if (window->isWithinScreenBounds(global::input.getMousePosition()))
+        static bool hasActivatedApp{false};
+        if (!hasActivatedApp)
         {
-            withinAnyWindow = true;
+            [NSApp activateIgnoringOtherApps:YES];
+            hasActivatedApp = true;
         }
 
-        // This is reached if the mouse is on the window handle,
-        // result should be false regardless if it's in another window,
-        // but only if this window is in front, most often by being focused
-        else if (window->isWithinBounds(global::input.getMousePosition()) && m_focusedWindow == window)
+        static bool isHidden{false};
+
+        bool withinAnyWindow{false};
+        for (auto& window : m_windows)
         {
-            withinAnyWindow = false;
-            break;
+            if (window->isWithinScreenBounds(global::input.getMousePosition()))
+            {
+                withinAnyWindow = true;
+            }
+
+            // This is reached if the mouse is on the window handle,
+            // result should be false regardless if it's in another window,
+            // but only if this window is in front, most often by being focused
+            else if (window->isWithinBounds(global::input.getMousePosition()) && m_focusedWindow == window)
+            {
+                withinAnyWindow = false;
+                break;
+            }
         }
-    }
-    if (global::input.isMouseHidden())
-    {
-        if (withinAnyWindow && !isHidden)
+        if (global::input.isMouseHidden())
         {
-            [NSCursor hide];
-            isHidden = true;
+            if (withinAnyWindow && !isHidden)
+            {
+                [NSCursor hide];
+                isHidden = true;
+            }
+            else if (!withinAnyWindow && isHidden)
+            {
+                [NSCursor unhide];
+                isHidden = false;
+            }
         }
-        else if (!withinAnyWindow && isHidden)
+        else if (isHidden)
         {
             [NSCursor unhide];
             isHidden = false;
         }
-    }
-    else if (isHidden)
-    {
-        [NSCursor unhide];
-        isHidden = false;
-    }
 
-    if (global::input.getMouseMode() == MouseMode::CONFINED && m_focusedWindow != nullptr)
-    {
-        WindowRect rect = m_focusedWindow->getRect();
-        ivec2 position = global::input.getMousePosition();
-        position.x = std::min(rect.screenPositionX + static_cast<i32>(rect.screenWidth),
-                              std::max(position.x, rect.screenPositionX));
-        position.y = std::min(rect.screenPositionY + static_cast<i32>(rect.screenHeight),
-                              std::max(position.y, rect.screenPositionY));
-
-        // Outside bounds
-        if (position != global::input.getMousePosition())
+        if (global::input.getMouseMode() == MouseMode::CONFINED && m_focusedWindow != nullptr)
         {
-            global::input.setMousePosition(position);
-        }
-    }
+            WindowRect rect = m_focusedWindow->getRect();
+            ivec2 position = global::input.getMousePosition();
+            position.x = std::min(rect.screenPositionX + static_cast<i32>(rect.screenWidth),
+                                  std::max(position.x, rect.screenPositionX));
+            position.y = std::min(rect.screenPositionY + static_cast<i32>(rect.screenHeight),
+                                  std::max(position.y, rect.screenPositionY));
 
-    cursorAnimationTimer.update();
-    // No point in changing the cursor if it's hidden
-    if (!global::input.isMouseHidden())
-    {
-        if (withinAnyWindow)
-        {
-            NSCursor* cursor = getMacCursor(global::input.getCursor());
-            if (cursor != [NSCursor currentCursor])
+            // Outside bounds
+            if (position != global::input.getMousePosition())
             {
-                [cursor set];
+                global::input.setMousePosition(position);
             }
         }
-        else if ([NSCursor currentCursor] != [NSCursor arrowCursor])
+
+        cursorAnimationTimer.update();
+        // No point in changing the cursor if it's hidden
+        if (!global::input.isMouseHidden())
         {
-            [[NSCursor arrowCursor] set];
+            if (withinAnyWindow)
+            {
+                NSCursor* cursor = getMacCursor(global::input.getCursor());
+                if (cursor != [NSCursor currentCursor])
+                {
+                    [cursor set];
+                }
+            }
+            else if ([NSCursor currentCursor] != [NSCursor arrowCursor])
+            {
+                [[NSCursor arrowCursor] set];
+            }
         }
     }
 #endif
@@ -288,6 +293,39 @@ void WindowManager::cleanup()
     }
 
 #ifdef MACOS
+    for (auto& cursor : sizeNWSECursor)
+    {
+        [cursor release];
+    }
+    for (auto& cursor : sizeNESWCursor)
+    {
+        [cursor release];
+    }
+    for (auto& cursor : sizeWECursor)
+    {
+        [cursor release];
+    }
+    for (auto& cursor : sizeNSCursor)
+    {
+        [cursor release];
+    }
+    for (auto& cursor : movingCursor)
+    {
+        [cursor release];
+    }
+    for (auto& cursor : noEntryCursor)
+    {
+        [cursor release];
+    }
+    for (auto& cursor : helpCursor)
+    {
+        [cursor release];
+    }
+    for (auto& cursor : waitCursor)
+    {
+        [cursor release];
+    }
+
     [NSApp terminate:nil];
 #endif
 }

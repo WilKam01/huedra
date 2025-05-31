@@ -36,9 +36,27 @@ int main()
 
     ShaderModule& module = global::resourceManager.loadShaderModule("assets/shaders/triangle.slang");
 
-    PipelineBuilder pipelineBuilder;
-    pipelineBuilder.init(PipelineType::GRAPHICS).addShader(module, "vertMain").addShader(module, "fragMain");
+    std::array<vec2, 3> positions{vec2(0.0f, 0.5f), vec2(-0.5f, -0.5f), vec2(0.5f, -0.5f)};
+    Ref<Buffer> positionsBuffer = global::graphicsManager.createBuffer(
+        BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER, positions.size() * sizeof(vec2), positions.data());
 
+    std::array<vec3, 3> colors{vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f)};
+    Ref<Buffer> colorsBuffer = global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER,
+                                                                    colors.size() * sizeof(vec3), colors.data());
+
+    PipelineBuilder pipelineBuilder;
+    pipelineBuilder.init(PipelineType::GRAPHICS)
+        .addShader(module, "vertMain")
+        .addShader(module, "fragMain")
+        .addVertexInputStream({.size = sizeof(vec2),
+                               .inputRate = VertexInputRate::VERTEX,
+                               .attributes{{.format = GraphicsDataFormat::RG_32_FLOAT, .offset = 0}}})
+        .addVertexInputStream({.size = sizeof(vec3),
+                               .inputRate = VertexInputRate::VERTEX,
+                               .attributes{{.format = GraphicsDataFormat::RGB_32_FLOAT, .offset = 0}}});
+
+    Timer renderTimer;
+    renderTimer.init();
     while (global::windowManager.update())
     {
         global::timer.update();
@@ -79,10 +97,17 @@ int main()
             graph.addPass("Pass", RenderPassBuilder()
                                       .init(RenderPassType::GRAPHICS, pipelineBuilder)
                                       .addRenderTarget(window->getRenderTarget(), vec3(0.1f))
-                                      .setCommands([](RenderContext& context) { context.draw(3, 1, 0, 0); }));
+                                      .setCommands([&](RenderContext& context) {
+                                          context.bindVertexBuffers({positionsBuffer, colorsBuffer});
+                                          context.draw(3, 1, 0, 0);
+                                      }));
         }
 
-        global::graphicsManager.render(graph);
+        renderTimer.update();
+        if (renderTimer.passedInterval((1.0 / 240.0) * Timer::SECONDS_TO_NANO))
+        {
+            global::graphicsManager.render(graph);
+        }
 
         static u32 i = 0;
         static std::array<u32, 500> avgFps;
@@ -94,11 +119,6 @@ int main()
             for (auto& fps : avgFps)
             {
                 sum += fps;
-            }
-
-            if (window.valid())
-            {
-                window->setTitle("Main (FPS:" + std::to_string(sum / 500) + ")");
             }
 
             log(LogLevel::D_INFO, "Elapsed: {:.5f}, Delta: {:.5f}, FPS: {}", global::timer.elapsedSeconds(),

@@ -83,7 +83,27 @@ void MetalContext::removeSwapchain(u64 index)
 Buffer* MetalContext::createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data)
 {
     MetalBuffer& buffer = m_buffers.emplace_back();
-    buffer.init(m_device, type, size, usage, data);
+    @autoreleasepool 
+    {
+        if (type == BufferType::STATIC && data != nullptr)
+        {
+            id<MTLBuffer> stagingBuffer = [m_device newBufferWithBytes:data
+                                                                length:size
+                                                            options:MTLResourceStorageModeShared];
+            buffer.init(m_device, type, size, usage);
+
+            id<MTLCommandBuffer> cmd = [m_commandQueue commandBuffer];
+            id<MTLBlitCommandEncoder> blit = [cmd blitCommandEncoder];
+            [blit copyFromBuffer:stagingBuffer sourceOffset:0 toBuffer:buffer.get() destinationOffset:0 size:size];
+            [blit endEncoding];
+            [cmd commit];
+        }
+        else
+        {
+            buffer.init(m_device, type, size, usage, data);
+        }
+    }
+
     return &buffer;
 }
 
@@ -158,44 +178,43 @@ void MetalContext::setRenderGraph(RenderGraphBuilder& builder)
 
 void MetalContext::render()
 {
-    dispatch_semaphore_wait(m_inFlightSemaphores[global::graphicsManager.getCurrentFrame()], DISPATCH_TIME_FOREVER);
-
-    id<MTLCommandBuffer> cmd = [m_commandQueue commandBuffer];
-    [cmd addCompletedHandler:^(id<MTLCommandBuffer> _) {
-      dispatch_semaphore_signal(m_inFlightSemaphores[global::graphicsManager.getCurrentFrame()]);
-      for (auto& swapchain : m_swapchains)
-      {
-          swapchain.setTextureRendered();
-      }
-    }];
-
-    for (auto& [name, info] : m_curGraph.getRenderPasses())
+    @autoreleasepool 
     {
-        MTLRenderPassDescriptor* renderPassDesc = [MTLRenderPassDescriptor renderPassDescriptor];
-        renderPassDesc.colorAttachments[0].texture =
-            static_cast<MetalTexture*>(info.getRenderTargets().begin()->target->getColorTexture().get())->get();
-        renderPassDesc.colorAttachments[0].loadAction = MTLLoadActionClear;
-        renderPassDesc.colorAttachments[0].storeAction = MTLStoreActionStore;
+        dispatch_semaphore_wait(m_inFlightSemaphores[global::graphicsManager.getCurrentFrame()], DISPATCH_TIME_FOREVER);
 
-        vec3 clearColor = info.getRenderTargets().begin()->clearColor;
-        renderPassDesc.colorAttachments[0].clearColor =
-            MTLClearColorMake(clearColor.r, clearColor.g, clearColor.b, 1.0);
+        id<MTLCommandBuffer> cmd = [m_commandQueue commandBuffer];
+        [cmd addCompletedHandler:^(id<MTLCommandBuffer> _) {
+        dispatch_semaphore_signal(m_inFlightSemaphores[global::graphicsManager.getCurrentFrame()]);
+        for (auto& swapchain : m_swapchains)
+        {
+            swapchain.setTextureRendered();
+        }
+        }];
 
-        id<MTLRenderCommandEncoder> encoder = [cmd renderCommandEncoderWithDescriptor:renderPassDesc];
-        [encoder setRenderPipelineState:m_pipeline.get()];
+        for (auto& [name, info] : m_curGraph.getRenderPasses())
+        {
+            MTLRenderPassDescriptor* renderPassDesc = [MTLRenderPassDescriptor renderPassDescriptor];
+            renderPassDesc.colorAttachments[0].texture =
+                static_cast<MetalTexture*>(info.getRenderTargets().begin()->target->getColorTexture().get())->get();
+            renderPassDesc.colorAttachments[0].loadAction = MTLLoadActionClear;
+            renderPassDesc.colorAttachments[0].storeAction = MTLStoreActionStore;
 
-        MetalRenderContext renderContext;
-        renderContext.init(encoder, m_pipeline);
-        info.getCommands()(renderContext);
+            vec3 clearColor = info.getRenderTargets().begin()->clearColor;
+            renderPassDesc.colorAttachments[0].clearColor =
+                MTLClearColorMake(clearColor.r, clearColor.g, clearColor.b, 1.0);
 
-        [encoder endEncoding];
-        [encoder release];
+            id<MTLRenderCommandEncoder> encoder = [cmd renderCommandEncoderWithDescriptor:renderPassDesc];
+            [encoder setRenderPipelineState:m_pipeline.get()];
+
+            MetalRenderContext renderContext;
+            renderContext.init(encoder, m_pipeline);
+            info.getCommands()(renderContext);
+
+            [encoder endEncoding];
+        }
+
+        [cmd commit];
     }
-
-    //[cmd presentDrawable:m_swapchains[0].getDrawable()];
-    [cmd commit];
-
-    [cmd release];
 }
 
 void MetalContext::waitIdle()

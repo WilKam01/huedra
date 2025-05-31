@@ -79,6 +79,8 @@ enum class VertexInputRate
     INSTANCE
 };
 
+// TODO: Add all combinations of values, make it less Vulkan dependant, add checks for availability based on API,
+// platform etc.
 enum class GraphicsDataFormat
 {
     UNDEFINED,

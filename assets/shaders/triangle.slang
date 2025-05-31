@@ -1,3 +1,9 @@
+struct VertexIn
+{
+    float2 position : POSITION;
+    float3 color : COLOR;
+}
+
 struct VertexOut
 {
     float4 position : SV_Position;
@@ -5,23 +11,11 @@ struct VertexOut
 };
 
 [shader("vertex")]
-VertexOut vertMain(uint vertexID: SV_VertexID)
+VertexOut vertMain(VertexIn in)
 {
-    float4 positions[3] = {
-        float4(0.0, 0.5, 0.0, 1.0),   // Top
-        float4(-0.5, -0.5, 0.0, 1.0), // Bottom Left
-        float4(0.5, -0.5, 0.0, 1.0)   // Bottom Right
-    };
-
-    float4 colors[3] = {
-        float4(1.0, 0.0, 0.0, 1.0), // Red
-        float4(0.0, 1.0, 0.0, 1.0), // Green
-        float4(0.0, 0.0, 1.0, 1.0)  // Blue
-    };
-
     VertexOut out;
-    out.position = positions[vertexID];
-    out.color = colors[vertexID];
+    out.position = float4(in.position, 0.0, 1.0);
+    out.color = float4(in.color, 1.0);
     return out;
 }
 

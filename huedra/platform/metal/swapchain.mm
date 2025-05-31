@@ -9,12 +9,15 @@ void fetchDrawableThread(bool& running, std::atomic_bool& alreadyAquiredDrawable
 {
     while (running)
     {
-        drawable = [layer nextDrawable];
-        alreadyAquiredDrawable.store(true);
+        @autoreleasepool
+        {
+            drawable = [layer nextDrawable];
+            alreadyAquiredDrawable.store(true);
 
-        std::unique_lock<std::mutex> lock(mutex);
-        condition.wait(lock,
-                       [&alreadyAquiredDrawable, &running] { return !alreadyAquiredDrawable.load() || !running; });
+            std::unique_lock<std::mutex> lock(mutex);
+            condition.wait(lock,
+                           [&alreadyAquiredDrawable, &running] { return !alreadyAquiredDrawable.load() || !running; });
+        }
     }
 }
 
@@ -70,61 +73,62 @@ void MetalSwapchain::cleanup()
 
 void MetalSwapchain::aquireNextDrawable()
 {
-    if (m_window->isMinimized())
+    @autoreleasepool
     {
-        m_renderTarget.setAvailability(false);
-        return;
-    }
-
-    m_renderTarget.setAvailability(m_threadInfo.runningThread);
-
-    // Until texture has been rendered, don't present
-    if (m_threadInfo.alreadyFetchedDrawable.load() && m_textureRendered)
-    {
-        id<MTLCommandBuffer> cmd = [m_commandQueue commandBuffer];
-        [cmd addCompletedHandler:^(id<MTLCommandBuffer> _) {
-          m_threadInfo.condition.notify_one();
-          dispatch_semaphore_signal(m_presentSemaphore);
-        }];
-
-        id<MTLBlitCommandEncoder> blitEncoder = [cmd blitCommandEncoder];
-        id<MTLTexture> texture = m_renderTarget.getMetalColorTexture().getWithIndex(0);
-        [blitEncoder copyFromTexture:texture
-                         sourceSlice:0
-                         sourceLevel:0
-                        sourceOrigin:MTLOriginMake(0, 0, 0)
-                          sourceSize:MTLSizeMake(texture.width, texture.height, 1)
-                           toTexture:m_currentDrawable.texture
-                    destinationSlice:0
-                    destinationLevel:0
-                   destinationOrigin:MTLOriginMake(0, 0, 0)];
-        [blitEncoder endEncoding];
-
-        [cmd presentDrawable:m_currentDrawable];
-        [cmd commit];
-
-        [blitEncoder release];
-        [cmd release];
-
-        m_threadInfo.alreadyFetchedDrawable.store(false);
-    }
-
-    if (static_cast<uvec2>(static_cast<dvec2>(m_window->getScreenSize()) * m_window->getScreenDPI()) !=
-        m_renderTarget.getSize())
-    {
-        if (m_threadInfo.alreadyFetchedDrawable.load())
+        if (m_window->isMinimized())
         {
-            dispatch_semaphore_wait(m_presentSemaphore, DISPATCH_TIME_FOREVER);
+            m_renderTarget.setAvailability(false);
+            return;
         }
-        m_layer.drawableSize = CGSizeMake(static_cast<CGFloat>(m_window->getScreenSize().x) * m_window->getScreenDPI(),
-                                          static_cast<CGFloat>(m_window->getScreenSize().y) * m_window->getScreenDPI());
-        m_renderTarget.recreate(
-            static_cast<u32>(static_cast<float>(m_window->getScreenSize().x) * m_window->getScreenDPI()),
-            static_cast<u32>(static_cast<float>(m_window->getScreenSize().y) * m_window->getScreenDPI()));
 
-        m_threadInfo.alreadyFetchedDrawable.store(false);
-        m_threadInfo.condition.notify_one();
-        m_textureRendered = false;
+        m_renderTarget.setAvailability(m_threadInfo.runningThread);
+
+        // Until texture has been rendered, don't present
+        if (m_threadInfo.alreadyFetchedDrawable.load() && m_textureRendered)
+        {
+            id<MTLCommandBuffer> cmd = [m_commandQueue commandBuffer];
+            [cmd addCompletedHandler:^(id<MTLCommandBuffer> _) {
+            m_threadInfo.condition.notify_one();
+            dispatch_semaphore_signal(m_presentSemaphore);
+            }];
+
+            id<MTLBlitCommandEncoder> blitEncoder = [cmd blitCommandEncoder];
+            id<MTLTexture> texture = m_renderTarget.getMetalColorTexture().getWithIndex(0);
+            [blitEncoder copyFromTexture:texture
+                            sourceSlice:0
+                            sourceLevel:0
+                            sourceOrigin:MTLOriginMake(0, 0, 0)
+                            sourceSize:MTLSizeMake(texture.width, texture.height, 1)
+                            toTexture:m_currentDrawable.texture
+                        destinationSlice:0
+                        destinationLevel:0
+                    destinationOrigin:MTLOriginMake(0, 0, 0)];
+            [blitEncoder endEncoding];
+
+            [cmd presentDrawable:m_currentDrawable];
+            [cmd commit];
+
+            m_threadInfo.alreadyFetchedDrawable.store(false);
+        }
+
+        if (static_cast<uvec2>(static_cast<dvec2>(m_window->getScreenSize()) * m_window->getScreenDPI()) !=
+            m_renderTarget.getSize())
+        {
+            if (m_threadInfo.alreadyFetchedDrawable.load())
+            {
+                dispatch_semaphore_wait(m_presentSemaphore, DISPATCH_TIME_FOREVER);
+            }
+            m_layer.drawableSize = CGSizeMake(static_cast<CGFloat>(m_window->getScreenSize().x) * m_window->getScreenDPI(),
+                                            static_cast<CGFloat>(m_window->getScreenSize().y) * m_window->getScreenDPI());
+            m_renderTarget.recreate(
+                static_cast<u32>(static_cast<float>(m_window->getScreenSize().x) * m_window->getScreenDPI()),
+                static_cast<u32>(static_cast<float>(m_window->getScreenSize().y) * m_window->getScreenDPI()));
+
+            m_threadInfo.alreadyFetchedDrawable.store(false);
+            m_threadInfo.condition.notify_one();
+            dispatch_semaphore_signal(m_presentSemaphore);
+            m_textureRendered = false;
+        }
     }
 }
 

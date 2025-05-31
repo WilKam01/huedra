@@ -11,20 +11,25 @@
 #include <Foundation/Foundation.h>
 
 namespace {
+
 NSRect findMainFrame()
 {
-    for (NSScreen* screen in [NSScreen screens])
+    @autoreleasepool
     {
-        NSDictionary* desc = [screen deviceDescription];
-        NSNumber* isPrimary = desc[@"NSScreenNumber"];
-
-        if (NSMinX([screen frame]) == 0 && NSMinY([screen frame]) == 0)
+        for (NSScreen* screen in [NSScreen screens])
         {
-            return screen.frame;
+            NSDictionary* desc = [screen deviceDescription];
+            NSNumber* isPrimary = desc[@"NSScreenNumber"];
+
+            if (NSMinX([screen frame]) == 0 && NSMinY([screen frame]) == 0)
+            {
+                return screen.frame;
+            }
         }
     }
     return [NSScreen mainScreen].frame;
 }
+
 } // namespace
 
 @interface MyWindowDelegate : NSObject <NSWindowDelegate>
@@ -35,30 +40,36 @@ NSRect findMainFrame()
 
 - (void)windowDidMove:(NSNotification*)notification
 {
-    using namespace huedra;
-    NSWindow* window = notification.object;
-    NSRect frame = [window frame];
-    NSRect contentFrame = [window contentRectForFrameRect:frame];
-    NSRect mainFrame = ::findMainFrame();
+    @autoreleasepool
+    {
+        using namespace huedra;
+        NSWindow* window = notification.object;
+        NSRect frame = [window frame];
+        NSRect contentFrame = [window contentRectForFrameRect:frame];
+        NSRect mainFrame = ::findMainFrame();
 
-    i32 positionX(static_cast<i32>(frame.origin.x));
-    i32 positionY(static_cast<i32>(mainFrame.size.height - frame.origin.y - frame.size.height));
-    i32 screenPositionX(static_cast<i32>(contentFrame.origin.x));
-    i32 screenPositionY(static_cast<i32>(mainFrame.size.height - contentFrame.origin.y - contentFrame.size.height));
-    self.cppWindow->updatePositionInternal(positionX, positionY, screenPositionX, screenPositionY);
+        i32 positionX(static_cast<i32>(frame.origin.x));
+        i32 positionY(static_cast<i32>(mainFrame.size.height - frame.origin.y - frame.size.height));
+        i32 screenPositionX(static_cast<i32>(contentFrame.origin.x));
+        i32 screenPositionY(static_cast<i32>(mainFrame.size.height - contentFrame.origin.y - contentFrame.size.height));
+        self.cppWindow->updatePositionInternal(positionX, positionY, screenPositionX, screenPositionY);
+    }
 }
 - (void)windowDidResize:(NSNotification*)notification
 {
-    using namespace huedra;
-    NSWindow* window = notification.object;
-    NSRect frame = [window frame];
-    NSRect contentFrame = [window contentRectForFrameRect:frame];
+    @autoreleasepool
+    {
+        using namespace huedra;
+        NSWindow* window = notification.object;
+        NSRect frame = [window frame];
+        NSRect contentFrame = [window contentRectForFrameRect:frame];
 
-    u32 width{static_cast<u32>(frame.size.width)};
-    u32 height{static_cast<u32>(frame.size.height)};
-    u32 screenWidth{static_cast<u32>(contentFrame.size.width)};
-    u32 screenHeight{static_cast<u32>(contentFrame.size.height)};
-    self.cppWindow->updateResolutionInternal(width, height, screenWidth, screenHeight);
+        u32 width{static_cast<u32>(frame.size.width)};
+        u32 height{static_cast<u32>(frame.size.height)};
+        u32 screenWidth{static_cast<u32>(contentFrame.size.width)};
+        u32 screenHeight{static_cast<u32>(contentFrame.size.height)};
+        self.cppWindow->updateResolutionInternal(width, height, screenWidth, screenHeight);
+    }
 }
 
 - (void)windowDidBecomeKey:(NSNotification*)notification
@@ -82,46 +93,50 @@ namespace huedra {
 
 bool WindowCocoa::init(const std::string& title, const WindowInput& input)
 {
-    NSRect mainFrame = ::findMainFrame();
-
-    i32 positionX = input.positionX.value_or(0);
-    i32 positionY =
-        static_cast<i32>(mainFrame.size.height) - input.positionY.value_or(0) + static_cast<i32>(input.height);
-
-    NSRect frame = NSMakeRect(positionX, positionY, input.width, input.height);
-    m_window = [[NSWindow alloc] initWithContentRect:frame
-                                           styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable |
-                                                      NSWindowStyleMaskResizable | NSWindowStyleMaskMiniaturizable)
-                                             backing:NSBackingStoreBuffered
-                                               defer:NO];
-    [m_window
-        setCollectionBehavior:(NSWindowCollectionBehaviorManaged | NSWindowCollectionBehaviorFullScreenAllowsTiling)];
-
-    [m_window setTitle:[NSString stringWithUTF8String:title.c_str()]];
-    [m_window makeKeyAndOrderFront:nil];
-    if (!input.positionX.has_value() || !input.positionY.has_value())
+    @autoreleasepool
     {
-        [m_window center];
+        NSRect mainFrame = ::findMainFrame();
+
+        i32 positionX = input.positionX.value_or(0);
+        i32 positionY =
+            static_cast<i32>(mainFrame.size.height) - input.positionY.value_or(0) + static_cast<i32>(input.height);
+
+        NSRect frame = NSMakeRect(positionX, positionY, input.width, input.height);
+        m_window = [[NSWindow alloc] initWithContentRect:frame
+                                               styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable |
+                                                          NSWindowStyleMaskResizable | NSWindowStyleMaskMiniaturizable)
+                                                 backing:NSBackingStoreBuffered
+                                                   defer:NO];
+        [m_window setCollectionBehavior:(NSWindowCollectionBehaviorManaged |
+                                         NSWindowCollectionBehaviorFullScreenAllowsTiling)];
+
+        [m_window setTitle:[NSString stringWithUTF8String:title.c_str()]];
+        [m_window makeKeyAndOrderFront:nil];
+        if (!input.positionX.has_value() || !input.positionY.has_value())
+        {
+            [m_window center];
+        }
+
+        MyWindowDelegate* delegate = [[MyWindowDelegate alloc] init];
+        delegate.cppWindow = this;
+        [m_window setDelegate:delegate];
+
+        // Init base window class with position and resolution
+        WindowRect rect{};
+        frame = [m_window frame];
+        NSRect contentFrame = [m_window contentRectForFrameRect:frame];
+
+        rect.positionX = static_cast<i32>(frame.origin.x);
+        rect.positionY = static_cast<i32>(mainFrame.size.height - frame.origin.y - frame.size.height);
+        rect.screenPositionX = static_cast<i32>(contentFrame.origin.x);
+        rect.screenPositionY =
+            static_cast<i32>(mainFrame.size.height - contentFrame.origin.y - contentFrame.size.height);
+        rect.width = static_cast<u32>(frame.size.width);
+        rect.height = static_cast<u32>(frame.size.height);
+        rect.screenWidth = static_cast<u32>(contentFrame.size.width);
+        rect.screenHeight = static_cast<u32>(contentFrame.size.height);
+        Window::init(title, rect);
     }
-
-    MyWindowDelegate* delegate = [[MyWindowDelegate alloc] init];
-    delegate.cppWindow = this;
-    [m_window setDelegate:delegate];
-
-    // Init base window class with position and resolution
-    WindowRect rect{};
-    frame = [m_window frame];
-    NSRect contentFrame = [m_window contentRectForFrameRect:frame];
-
-    rect.positionX = static_cast<i32>(frame.origin.x);
-    rect.positionY = static_cast<i32>(mainFrame.size.height - frame.origin.y - frame.size.height);
-    rect.screenPositionX = static_cast<i32>(contentFrame.origin.x);
-    rect.screenPositionY = static_cast<i32>(mainFrame.size.height - contentFrame.origin.y - contentFrame.size.height);
-    rect.width = static_cast<u32>(frame.size.width);
-    rect.height = static_cast<u32>(frame.size.height);
-    rect.screenWidth = static_cast<u32>(contentFrame.size.width);
-    rect.screenHeight = static_cast<u32>(contentFrame.size.height);
-    Window::init(title, rect);
 
     return true;
 }
@@ -130,150 +145,167 @@ void WindowCocoa::cleanup()
 {
     Window::cleanup();
     [m_window close];
+    [m_window release];
 }
 
 bool WindowCocoa::update()
 {
-    NSEvent* event{nullptr};
-    while ((event = [NSApp nextEventMatchingMask:NSEventMaskAny untilDate:nil inMode:NSDefaultRunLoopMode dequeue:YES]))
+    @autoreleasepool
     {
-        switch (event.type)
+        NSEvent* event{nullptr};
+        while ((event = [NSApp nextEventMatchingMask:NSEventMaskAny
+                                           untilDate:nil
+                                              inMode:NSDefaultRunLoopMode
+                                             dequeue:YES]))
         {
-        case NSEventTypeKeyDown:
-            global::input.setKey(convertKey(event.keyCode, [event.characters characterAtIndex:0]), true);
-            break;
-        case NSEventTypeKeyUp:
-            global::input.setKey(convertKey(event.keyCode, [event.characters characterAtIndex:0]), false);
-            break;
-        case NSEventTypeFlagsChanged: {
-            u32 flags = event.modifierFlags;
-            global::input.setKey(Keys::SHIFT, static_cast<bool>(flags & NSEventModifierFlagShift));
-            global::input.setKey(Keys::CTRL, static_cast<bool>(flags & NSEventModifierFlagControl));
-            global::input.setKey(Keys::OPTION, static_cast<bool>(flags & NSEventModifierFlagOption));
-            global::input.setKey(Keys::CMD, static_cast<bool>(flags & NSEventModifierFlagCommand));
-            global::input.setKey(Keys::CAPS_LOCK, static_cast<bool>(flags & NSEventModifierFlagCapsLock));
-        }
-        break;
-        case NSEventTypeLeftMouseDown:
-        case NSEventTypeRightMouseDown:
-        case NSEventTypeOtherMouseDown: {
-            MouseButton button{MouseButton::NONE};
-            switch (event.buttonNumber)
+            switch (event.type)
             {
-            case 0:
-                button = MouseButton::LEFT;
+            case NSEventTypeKeyDown:
+                global::input.setKey(convertKey(event.keyCode, [event.characters characterAtIndex:0]), true);
                 break;
-            case 1:
-                button = MouseButton::RIGHT;
+            case NSEventTypeKeyUp:
+                global::input.setKey(convertKey(event.keyCode, [event.characters characterAtIndex:0]), false);
                 break;
-            case 2:
-                button = MouseButton::MIDDLE;
+            case NSEventTypeFlagsChanged: {
+                u32 flags = event.modifierFlags;
+                global::input.setKey(Keys::SHIFT, static_cast<bool>(flags & NSEventModifierFlagShift));
+                global::input.setKey(Keys::CTRL, static_cast<bool>(flags & NSEventModifierFlagControl));
+                global::input.setKey(Keys::OPTION, static_cast<bool>(flags & NSEventModifierFlagOption));
+                global::input.setKey(Keys::CMD, static_cast<bool>(flags & NSEventModifierFlagCommand));
+                global::input.setKey(Keys::CAPS_LOCK, static_cast<bool>(flags & NSEventModifierFlagCapsLock));
+            }
+            break;
+            case NSEventTypeLeftMouseDown:
+            case NSEventTypeRightMouseDown:
+            case NSEventTypeOtherMouseDown: {
+                MouseButton button{MouseButton::NONE};
+                switch (event.buttonNumber)
+                {
+                case 0:
+                    button = MouseButton::LEFT;
+                    break;
+                case 1:
+                    button = MouseButton::RIGHT;
+                    break;
+                case 2:
+                    button = MouseButton::MIDDLE;
+                    break;
+                case 3:
+                    button = MouseButton::EXTRA1;
+                    break;
+                case 4:
+                    button = MouseButton::EXTRA2;
+                    break;
+                default:
+                    button = MouseButton::NONE;
+                    break;
+                }
+                if (event.clickCount == 2)
+                {
+                    global::input.setMouseButtonDoubleClick(button);
+                }
+                global::input.setMouseButton(button, true);
+            }
+            break;
+            case NSEventTypeLeftMouseUp:
+            case NSEventTypeRightMouseUp:
+            case NSEventTypeOtherMouseUp: {
+                MouseButton button{MouseButton::NONE};
+                switch (event.buttonNumber)
+                {
+                case 0:
+                    button = MouseButton::LEFT;
+                    break;
+                case 1:
+                    button = MouseButton::RIGHT;
+                    break;
+                case 2:
+                    button = MouseButton::MIDDLE;
+                    break;
+                case 3:
+                    button = MouseButton::EXTRA1;
+                    break;
+                case 4:
+                    button = MouseButton::EXTRA2;
+                    break;
+                default:
+                    button = MouseButton::NONE;
+                    break;
+                }
+                global::input.setMouseButton(button, false);
+            }
+            break;
+            case NSEventTypeScrollWheel:
+                global::input.setMouseScrollHorizontal(static_cast<float>(event.scrollingDeltaX));
+                global::input.setMouseScrollVertical(static_cast<float>(event.scrollingDeltaY));
                 break;
-            case 3:
-                button = MouseButton::EXTRA1;
-                break;
-            case 4:
-                button = MouseButton::EXTRA2;
-                break;
+            case NSEventTypeMouseMoved:
+            case NSEventTypeLeftMouseDragged:
+            case NSEventTypeRightMouseDragged:
+            case NSEventTypeOtherMouseDragged: {
+                NSRect mainFrame = ::findMainFrame();
+                global::input.setMousePos(ivec2(static_cast<i32>([NSEvent mouseLocation].x),
+                                                static_cast<i32>(mainFrame.size.height - [NSEvent mouseLocation].y)));
+                global::input.setMouseDelta(ivec2(static_cast<i32>(event.deltaX), static_cast<i32>(event.deltaY)));
+            }
+            break;
             default:
-                button = MouseButton::NONE;
                 break;
             }
-            if (event.clickCount == 2)
+            // Prevent sounds on clicking of keyboard
+            if (event.type != NSEventTypeKeyDown && event.type != NSEventTypeKeyUp)
             {
-                global::input.setMouseButtonDoubleClick(button);
+                [NSApp sendEvent:event];
             }
-            global::input.setMouseButton(button, true);
         }
-        break;
-        case NSEventTypeLeftMouseUp:
-        case NSEventTypeRightMouseUp:
-        case NSEventTypeOtherMouseUp: {
-            MouseButton button{MouseButton::NONE};
-            switch (event.buttonNumber)
-            {
-            case 0:
-                button = MouseButton::LEFT;
-                break;
-            case 1:
-                button = MouseButton::RIGHT;
-                break;
-            case 2:
-                button = MouseButton::MIDDLE;
-                break;
-            case 3:
-                button = MouseButton::EXTRA1;
-                break;
-            case 4:
-                button = MouseButton::EXTRA2;
-                break;
-            default:
-                button = MouseButton::NONE;
-                break;
-            }
-            global::input.setMouseButton(button, false);
-        }
-        break;
-        case NSEventTypeScrollWheel:
-            global::input.setMouseScrollHorizontal(static_cast<float>(event.scrollingDeltaX));
-            global::input.setMouseScrollVertical(static_cast<float>(event.scrollingDeltaY));
-            break;
-        case NSEventTypeMouseMoved:
-        case NSEventTypeLeftMouseDragged:
-        case NSEventTypeRightMouseDragged:
-        case NSEventTypeOtherMouseDragged: {
-            NSRect mainFrame = ::findMainFrame();
-            global::input.setMousePos(ivec2(static_cast<i32>([NSEvent mouseLocation].x),
-                                            static_cast<i32>(mainFrame.size.height - [NSEvent mouseLocation].y)));
-            global::input.setMouseDelta(ivec2(static_cast<i32>(event.deltaX), static_cast<i32>(event.deltaY)));
-        }
-        break;
-        default:
-            break;
-        }
-        // Prevent sounds on clicking of keyboard
-        if (event.type != NSEventTypeKeyDown && event.type != NSEventTypeKeyUp)
-        {
-            [NSApp sendEvent:event];
-        }
+
+        CGEventFlags flags = CGEventSourceFlagsState(kCGEventSourceStateHIDSystemState);
+        global::input.setKeyToggle(KeyToggles::CAPS_LOCK, static_cast<bool>(flags & kCGEventFlagMaskAlphaShift));
+        global::input.setKeyToggle(KeyToggles::NUM_LOCK, true);
+        global::input.setKeyToggle(KeyToggles::SCR_LOCK, true);
+
+        updateMinimized(static_cast<bool>(m_window.isMiniaturized));
     }
-
-    CGEventFlags flags = CGEventSourceFlagsState(kCGEventSourceStateHIDSystemState);
-    global::input.setKeyToggle(KeyToggles::CAPS_LOCK, static_cast<bool>(flags & kCGEventFlagMaskAlphaShift));
-    global::input.setKeyToggle(KeyToggles::NUM_LOCK, true);
-    global::input.setKeyToggle(KeyToggles::SCR_LOCK, true);
-
-    updateMinimized(static_cast<bool>(m_window.isMiniaturized));
     return !m_shouldClose;
 }
 
 void WindowCocoa::setTitle(const std::string& title)
 {
-    [m_window setTitle:[NSString stringWithUTF8String:title.c_str()]];
+    @autoreleasepool
+    {
+        NSString* nsTitle = [NSString stringWithCString:title.c_str() encoding:NSUTF8StringEncoding];
+        [m_window setTitle:nsTitle];
+    }
     updateTitle(title);
 }
 
 void WindowCocoa::setResolution(u32 width, u32 height)
 {
-    NSRect frame = [m_window frame];
-    NSRect mainFrame = ::findMainFrame();
+    @autoreleasepool
+    {
+        NSRect frame = [m_window frame];
+        NSRect mainFrame = ::findMainFrame();
 
-    WindowRect rect = getRect();
-    [m_window
-        setFrame:NSMakeRect(rect.positionX, mainFrame.size.height - rect.positionY - frame.size.height, width, height)
-         display:YES
-         animate:YES];
+        WindowRect rect = getRect();
+        [m_window setFrame:NSMakeRect(rect.positionX, mainFrame.size.height - rect.positionY - frame.size.height, width,
+                                      height)
+                   display:YES
+                   animate:YES];
+    }
 }
 
 void WindowCocoa::setPosition(i32 x, i32 y)
 {
-    NSRect frame = [m_window frame];
-    NSRect mainFrame = ::findMainFrame();
+    @autoreleasepool
+    {
+        NSRect frame = [m_window frame];
+        NSRect mainFrame = ::findMainFrame();
 
-    WindowRect rect = getRect();
-    [m_window setFrame:NSMakeRect(x, mainFrame.size.height - y - frame.size.height, rect.width, rect.height)
-               display:YES
-               animate:YES];
+        WindowRect rect = getRect();
+        [m_window setFrame:NSMakeRect(x, mainFrame.size.height - y - frame.size.height, rect.width, rect.height)
+                   display:YES
+                   animate:YES];
+    }
 }
 
 void WindowCocoa::updatePositionInternal(i32 positionX, i32 positionY, i32 screenPositionX, i32 screenPositionY)

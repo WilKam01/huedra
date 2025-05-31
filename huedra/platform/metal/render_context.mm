@@ -2,7 +2,9 @@
 #include "core/log.hpp"
 #include "platform/metal/buffer.hpp"
 #include "platform/metal/render_target.hpp"
+#include <Foundation/Foundation.h>
 #include <Metal/Metal.h>
+#include <objc/NSObjCRuntime.h>
 
 namespace huedra {
 
@@ -31,6 +33,7 @@ void MetalRenderContext::bindVertexBuffers(std::vector<Ref<Buffer>> buffers)
     }
 
     std::vector<id<MTLBuffer>> metalBuffers(buffers.size());
+    std::vector<NSUInteger> offsets(buffers.size(), 0);
     for (u64 i = 0; i < buffers.size(); ++i)
     {
         if (!buffers[i].valid())
@@ -43,8 +46,9 @@ void MetalRenderContext::bindVertexBuffers(std::vector<Ref<Buffer>> buffers)
             log(LogLevel::WARNING, "Could not bind vertex buffer: {}. Buffer usage flag vertex buffer not set", i);
             return;
         }
-        // metalBuffers[i] = static_cast<MetalBuffer*>(buffers[i]->get());
+        metalBuffers[i] = static_cast<MetalBuffer*>(buffers[i].get())->get();
     }
+    [m_encoder setVertexBuffers:metalBuffers.data() offsets:offsets.data() withRange:NSMakeRange(0, buffers.size())];
 }
 
 void MetalRenderContext::bindIndexBuffer(Ref<Buffer> buffer)
@@ -100,7 +104,7 @@ void MetalRenderContext::draw(u32 vertexCount, u32 instanceCount, u32 vertexOffs
         return;
     }
 
-    [m_encoder drawPrimitives:MTLPrimitiveTypeTriangleStrip
+    [m_encoder drawPrimitives:MTLPrimitiveTypeTriangle
                   vertexStart:vertexOffset
                   vertexCount:vertexCount
                 instanceCount:instanceCount
@@ -121,7 +125,7 @@ void MetalRenderContext::drawIndexed(u32 indexCount, u32 instanceCount, u32 inde
         return;
     }
 
-    [m_encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangleStrip
+    [m_encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                           indexCount:indexCount
                            indexType:MTLIndexTypeUInt32
                          indexBuffer:m_boundIndexBuffer
