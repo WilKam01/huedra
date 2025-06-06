@@ -2,8 +2,12 @@
 
 #include "core/file/utils.hpp"
 #include "core/global.hpp"
+#include "core/log.hpp"
+#include "core/serialization/json.hpp"
 #include "core/string/utils.hpp"
+#include "graphics/pipeline_data.hpp"
 
+#include <algorithm>
 #include <ranges>
 
 namespace huedra {
@@ -92,19 +96,20 @@ void CompiledShaderModule::init(Slang::ComPtr<slang::IComponentType> program, co
 {
     m_code = std::vector<u8>(code, code + codeLen);
     slang::ProgramLayout* programLayout = program->getLayout();
-    m_resources.emplace_back(); // First set
 
+#ifdef VULKAN
+    m_resources.emplace_back(); // First set
     std::vector<std::string_view> descriptorNames;
     std::vector<std::string_view> subObjectNames;
 
     i32 parameterCount = programLayout->getParameterCount();
     for (i32 i = 0; i < parameterCount; ++i)
     {
-        findParameterNames(programLayout->getParameterByIndex(i), descriptorNames, subObjectNames);
+        findParameterNamesVulkan(programLayout->getParameterByIndex(i), descriptorNames, subObjectNames);
     }
 
-    addParameterBlockRanges(ShaderStage::ALL, programLayout->getGlobalParamsTypeLayout(), "", descriptorNames,
-                            subObjectNames, 0);
+    addParameterBlockRangesVulkan(ShaderStage::ALL, programLayout->getGlobalParamsTypeLayout(), "", descriptorNames,
+                                  subObjectNames, 0);
 
     i32 entryPointCount = programLayout->getEntryPointCount();
     for (i32 i = 0; i < entryPointCount; ++i)
@@ -116,12 +121,32 @@ void CompiledShaderModule::init(Slang::ComPtr<slang::IComponentType> program, co
         parameterCount = entryPointLayout->getParameterCount();
         for (i32 i = 0; i < parameterCount; ++i)
         {
-            findParameterNames(entryPointLayout->getParameterByIndex(i), descriptorNames, subObjectNames, true);
+            findParameterNamesVulkan(entryPointLayout->getParameterByIndex(i), descriptorNames, subObjectNames, true);
         }
 
-        addParameterBlockRanges(convertSlangShaderStage(entryPointLayout->getStage()),
-                                entryPointLayout->getTypeLayout(), "", descriptorNames, subObjectNames, 0);
+        addParameterBlockRangesVulkan(convertSlangShaderStage(entryPointLayout->getStage()),
+                                      entryPointLayout->getTypeLayout(), "", descriptorNames, subObjectNames, 0);
     }
+#elif defined(METAL)
+    i32 parameterCount = programLayout->getParameterCount();
+    for (i32 i = 0; i < parameterCount; ++i)
+    {
+        addParametersMetal(ShaderStage::ALL, "", programLayout->getParameterByIndex(i),
+                           programLayout->getGlobalParamsTypeLayout());
+    }
+
+    i32 entryPointCount = programLayout->getEntryPointCount();
+    for (i32 i = 0; i < entryPointCount; ++i)
+    {
+        slang::EntryPointReflection* entryPointLayout = programLayout->getEntryPointByIndex(i);
+        parameterCount = entryPointLayout->getParameterCount();
+        for (i32 i = 0; i < parameterCount; ++i)
+        {
+            addParametersMetal(convertSlangShaderStage(entryPointLayout->getStage()), "",
+                               entryPointLayout->getParameterByIndex(i), entryPointLayout->getTypeLayout(), true);
+        }
+    }
+#endif
 }
 
 std::optional<ResourcePosition> CompiledShaderModule::getResource(std::string_view name) const
@@ -146,14 +171,11 @@ std::optional<ResourcePosition> CompiledShaderModule::getResource(std::string_vi
 
 std::optional<ParameterBinding> CompiledShaderModule::getParameter(std::string_view name) const
 {
-    for (u32 i = 0; i < m_parameters.size(); ++i)
+    auto it = std::ranges::find_if(m_parameters, [name](const ParameterBinding& param) { return param.name == name; });
+    if (it != m_parameters.end())
     {
-        if (m_parameters[i].name == name)
-        {
-            return m_parameters[i];
-        }
+        return *it;
     }
-
     return std::nullopt;
 }
 
@@ -188,10 +210,11 @@ JsonObject CompiledShaderModule::getJson() const
     return root;
 }
 
-void CompiledShaderModule::addParameterBlockRanges(ShaderStage stage, slang::TypeLayoutReflection* typeLayout,
-                                                   const std::string& namePrefix,
-                                                   const std::vector<std::string_view>& descriptorNames,
-                                                   const std::vector<std::string_view>& subObjectNames, u32 setIndex)
+void CompiledShaderModule::addParameterBlockRangesVulkan(ShaderStage stage, slang::TypeLayoutReflection* typeLayout,
+                                                         const std::string& namePrefix,
+                                                         const std::vector<std::string_view>& descriptorNames,
+                                                         const std::vector<std::string_view>& subObjectNames,
+                                                         u32 setIndex)
 {
     if (typeLayout->getSize() > 0)
     {
@@ -204,6 +227,14 @@ void CompiledShaderModule::addParameterBlockRanges(ShaderStage stage, slang::Typ
 
     i32 rangeCount = typeLayout->getDescriptorSetDescriptorRangeCount(0);
     u32 nameIndex = 0;
+    if (descriptorNames.size() != rangeCount)
+    {
+        log(LogLevel::D_INFO,
+            "addParameterBlockRangesVulkan(): Descriptor names and rangeCount are different sizes ({} != {})",
+            descriptorNames.size(), rangeCount);
+        return;
+    }
+
     for (i32 i = 0; i < rangeCount; ++i)
     {
         slang::BindingType bindingType = typeLayout->getDescriptorSetDescriptorRangeType(0, i);
@@ -223,6 +254,14 @@ void CompiledShaderModule::addParameterBlockRanges(ShaderStage stage, slang::Typ
 
     rangeCount = typeLayout->getSubObjectRangeCount();
     nameIndex = 0;
+    if (subObjectNames.size() != rangeCount)
+    {
+        log(LogLevel::D_INFO,
+            "addParameterBlockRangesVulkan(): Subobject names and rangeCount are different sizes ({} != {})",
+            subObjectNames.size(), rangeCount);
+        return;
+    }
+
     for (i32 i = 0; i < rangeCount; ++i)
     {
         i32 bindingRangeIndex = typeLayout->getSubObjectRangeBindingRangeIndex(i);
@@ -239,14 +278,14 @@ void CompiledShaderModule::addParameterBlockRanges(ShaderStage stage, slang::Typ
             i32 fieldCount = elementLayout->getFieldCount();
             for (i32 i = 0; i < fieldCount; ++i)
             {
-                findParameterNames(elementLayout->getFieldByIndex(i), descNames, subObjNames);
+                findParameterNamesVulkan(elementLayout->getFieldByIndex(i), descNames, subObjNames);
             }
 
             // Type should be a struct
             if (fieldCount == 0)
             {
                 log(LogLevel::WARNING,
-                    "CompiledShaderModule::addParameterResources(): Parameter block \"{}\" is not a "
+                    "CompiledShaderModule::addParameterBlockRangesVulkan(): Parameter block \"{}\" is not a "
                     "struct and will be ignored",
                     subObjectNames[nameIndex++]);
                 continue;
@@ -254,7 +293,7 @@ void CompiledShaderModule::addParameterBlockRanges(ShaderStage stage, slang::Typ
 
             m_resources.emplace_back();
             std::string prefix = namePrefix + std::string(subObjectNames[nameIndex++]) + ".";
-            addParameterBlockRanges(stage, elementLayout, prefix, descNames, subObjNames, m_resources.size() - 1);
+            addParameterBlockRangesVulkan(stage, elementLayout, prefix, descNames, subObjNames, m_resources.size() - 1);
         }
         break;
         case slang::BindingType::PushConstant: {
@@ -275,27 +314,166 @@ void CompiledShaderModule::addParameterBlockRanges(ShaderStage stage, slang::Typ
     }
 }
 
-void CompiledShaderModule::findParameterNames(slang::VariableLayoutReflection* varLayout,
-                                              std::vector<std::string_view>& descriptorNames,
-                                              std::vector<std::string_view>& subObjectNames,
-                                              bool isEntryPointParameters)
+void CompiledShaderModule::findParameterNamesVulkan(slang::VariableLayoutReflection* varLayout,
+                                                    std::vector<std::string_view>& descriptorNames,
+                                                    std::vector<std::string_view>& subObjectNames,
+                                                    bool isEntryPointParameters)
 {
     if (varLayout->getCategory() == slang::ParameterCategory::DescriptorTableSlot)
     {
-        descriptorNames.push_back(varLayout->getName());
+        descriptorNames.emplace_back(varLayout->getName());
     }
     else if (varLayout->getCategory() == slang::ParameterCategory::SubElementRegisterSpace ||
              (varLayout->getCategory() == slang::ParameterCategory::Uniform && isEntryPointParameters))
     {
         // Only add ParamterBlock and entry point uniform parameter names
-        subObjectNames.push_back(varLayout->getName());
+        subObjectNames.emplace_back(varLayout->getName());
     }
     else if (varLayout->getCategory() == slang::ParameterCategory::Mixed)
     {
         i32 fieldCount = varLayout->getTypeLayout()->getFieldCount();
         for (i32 i = 0; i < fieldCount; ++i)
         {
-            findParameterNames(varLayout->getTypeLayout()->getFieldByIndex(i), descriptorNames, subObjectNames);
+            findParameterNamesVulkan(varLayout->getTypeLayout()->getFieldByIndex(i), descriptorNames, subObjectNames);
+        }
+    }
+}
+
+void CompiledShaderModule::addParametersMetal(ShaderStage stage, const std::string& namePrefix,
+                                              slang::VariableLayoutReflection* varLayout,
+                                              slang::TypeLayoutReflection* typeLayout, bool isEntryPointParameters)
+{
+    switch (varLayout->getTypeLayout()->getBindingRangeType(0))
+    {
+    case slang::BindingType::ConstantBuffer: {
+        u32 fieldCount = varLayout->getTypeLayout()->getFieldCount();
+        // Type is a struct
+        if (fieldCount != 0)
+        {
+            std::string prefix = namePrefix + std::string(varLayout->getName()) + ".";
+            for (u32 i = 0; i < fieldCount; ++i)
+            {
+                addParametersMetal(stage, prefix, varLayout->getTypeLayout()->getFieldByIndex(i),
+                                   varLayout->getTypeLayout());
+            }
+            break;
+        }
+    }
+    case slang::BindingType::Texture:
+    case slang::BindingType::Sampler: {
+        addResourcesMetal(stage, namePrefix + varLayout->getName(),
+                          convertSlangResourceType(varLayout->getTypeLayout()->getBindingRangeType(0)),
+                          varLayout->getCategory());
+    }
+    break;
+    case slang::BindingType::ParameterBlock: {
+        u32 fieldCount = varLayout->getTypeLayout()->getElementTypeLayout()->getFieldCount();
+        // Type should be a struct
+        if (fieldCount == 0)
+        {
+            log(LogLevel::WARNING,
+                "CompiledShaderModule::addParametersMetal(): Parameter block \"{}\" is not a "
+                "struct and will be ignored",
+                varLayout->getName());
+            break;
+        }
+
+        m_resources.emplace_back();    // Add set for argument buffer
+        m_metalBuffers.emplace_back(); // Add set for argument buffer
+        std::string prefix = namePrefix + std::string(varLayout->getName()) + ".";
+        for (u32 i = 0; i < fieldCount; ++i)
+        {
+            addParametersMetal(stage, prefix, varLayout->getTypeLayout()->getElementTypeLayout()->getFieldByIndex(i),
+                               typeLayout->getBindingRangeLeafTypeLayout(0)->getElementTypeLayout());
+        }
+    }
+    break;
+    case slang::BindingType::Unknown:
+        if (varLayout->getCategory() == slang::ParameterCategory::Uniform && isEntryPointParameters)
+        {
+            ParameterBinding parameter;
+            parameter.name = varLayout->getName();
+            parameter.shaderStage = stage;
+            parameter.offset = m_parameters.empty() ? 0 : m_parameters.back().offset + m_parameters.back().size;
+            parameter.size = static_cast<u32>(varLayout->getTypeLayout()->getSize());
+
+            // Start of new shader stage, add starting offset (since metal uses separate buffers per entrypoint)
+            ShaderStage curStage = m_parameters.empty() ? ShaderStage::NONE : m_parameters.back().shaderStage;
+            if (curStage != parameter.shaderStage)
+            {
+                MetalParameter param;
+                param.startOffset = parameter.offset;
+
+                // Find first instance of a buffer that is not this shader stage
+                auto it =
+                    std::ranges::find_if(m_metalBuffers, [&parameter](const std::vector<ResourceBinding>& buffers) {
+                        return buffers[0].shaderStage == parameter.shaderStage;
+                    });
+
+                ResourceBinding paramBuffer;
+                paramBuffer.name = std::string("__") +
+                                   std::string(ShaderStageNames[static_cast<u64>(parameter.shaderStage)]) +
+                                   std::string("__");
+                paramBuffer.shaderStage = parameter.shaderStage;
+                paramBuffer.type = ResourceType::NONE; // Use none to indicate parameters
+
+                // Did not find any other instance of this shader stage
+                if (it == m_metalBuffers.end())
+                {
+                    param.bufferIndex = m_metalBuffers.empty() ? 0 : m_metalBuffers.size();
+                    m_metalBuffers.push_back({paramBuffer});
+                }
+                // Did find first instance of a buffer in this shader stage, push parameters in front
+                else
+                {
+                    param.bufferIndex = std::distance(m_metalBuffers.begin(), it);
+                    m_metalBuffers.insert(it, {paramBuffer});
+                }
+
+                m_metalParameters.insert(std::pair<ShaderStage, MetalParameter>(parameter.shaderStage, param));
+            }
+
+            m_parameters.push_back(parameter);
+        }
+        // Add automatically created constant buffer
+        else if (!getResource(namePrefix + "<misc>").has_value())
+        {
+            addResourcesMetal(stage, namePrefix + "<misc>", ResourceType::CONSTANT_BUFFER, varLayout->getCategory());
+        }
+        break;
+    default:
+        break;
+    }
+}
+
+void CompiledShaderModule::addResourcesMetal(ShaderStage stage, const std::string& name, ResourceType type,
+                                             slang::ParameterCategory category)
+{
+    ResourceBinding resource;
+    resource.name = name;
+    resource.shaderStage = stage;
+    resource.type = type;
+
+    // Should not need to look at None, but seems that some resources are not set correctly when in Parameter Block
+    if (category == slang::ParameterCategory::MetalArgumentBufferElement || category == slang::ParameterCategory::None)
+    {
+        m_resources.back().push_back(resource);
+        m_metalBuffers.back().push_back(resource);
+    }
+    else
+    {
+        m_resources.push_back({resource});
+        if (resource.type == ResourceType::CONSTANT_BUFFER || resource.type == ResourceType::STRUCTURED_BUFFER)
+        {
+            m_metalBuffers.push_back({resource});
+        }
+        else if (resource.type == ResourceType::TEXTURE || resource.type == ResourceType::RW_TEXTURE)
+        {
+            m_metalTextures.push_back(resource);
+        }
+        else if (resource.type == ResourceType::SAMPLER)
+        {
+            m_metalSamplers.push_back(resource);
         }
     }
 }

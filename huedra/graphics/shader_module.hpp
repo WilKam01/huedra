@@ -63,18 +63,43 @@ public:
     const std::vector<std::vector<ResourceBinding>>& getResources() const { return m_resources; }
     const std::vector<ParameterBinding>& getParameters() const { return m_parameters; }
 
+    // Metal specific getters
+    const std::vector<std::vector<ResourceBinding>>& getMetalBuffer() const { return m_metalBuffers; }
+    const std::vector<ResourceBinding>& getMetalTextures() const { return m_metalTextures; }
+    const std::vector<ResourceBinding>& getMetalSamplers() const { return m_metalSamplers; }
+
     JsonObject getJson() const;
 
 private:
-    void addParameterBlockRanges(ShaderStage stage, slang::TypeLayoutReflection* typeLayout,
-                                 const std::string& namePrefix, const std::vector<std::string_view>& descriptorNames,
-                                 const std::vector<std::string_view>& subObjectNames, u32 setIndex);
-    void findParameterNames(slang::VariableLayoutReflection* varLayout, std::vector<std::string_view>& descriptorNames,
-                            std::vector<std::string_view>& subObjectNames, bool isEntryPointParameters = false);
+    void addParameterBlockRangesVulkan(ShaderStage stage, slang::TypeLayoutReflection* typeLayout,
+                                       const std::string& namePrefix,
+                                       const std::vector<std::string_view>& descriptorNames,
+                                       const std::vector<std::string_view>& subObjectNames, u32 setIndex);
+    void findParameterNamesVulkan(slang::VariableLayoutReflection* varLayout,
+                                  std::vector<std::string_view>& descriptorNames,
+                                  std::vector<std::string_view>& subObjectNames, bool isEntryPointParameters = false);
+
+    void addParametersMetal(ShaderStage stage, const std::string& namePrefix,
+                            slang::VariableLayoutReflection* varLayout, slang::TypeLayoutReflection* typeLayout,
+                            bool isEntryPointParameters = false);
+    void addResourcesMetal(ShaderStage stage, const std::string& name, ResourceType type,
+                           slang::ParameterCategory category);
 
     std::vector<u8> m_code;
     std::vector<std::vector<ResourceBinding>> m_resources;
     std::vector<ParameterBinding> m_parameters;
+
+    // Metal specific data
+    std::vector<std::vector<ResourceBinding>> m_metalBuffers;
+    std::vector<ResourceBinding> m_metalTextures;
+    std::vector<ResourceBinding> m_metalSamplers;
+
+    struct MetalParameter
+    {
+        u32 startOffset{0};
+        u32 bufferIndex{0};
+    };
+    std::map<ShaderStage, MetalParameter> m_metalParameters; // Per shader stage, will use separate buffer
 };
 
 struct ShaderInput

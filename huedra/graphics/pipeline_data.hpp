@@ -61,8 +61,8 @@ struct ResourceBinding
 struct ResourcePosition
 {
     ResourceBinding info;
-    u32 set;
-    u32 binding;
+    u32 set{0};
+    u32 binding{0};
 };
 
 struct ParameterBinding

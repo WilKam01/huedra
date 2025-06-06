@@ -34,7 +34,7 @@ int main()
     Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720));
     Ref<Window> window1 = global::windowManager.addWindow("Second", WindowInput(480, 480, 1400, -250), window);
 
-    ShaderModule& module = global::resourceManager.loadShaderModule("assets/shaders/triangle.slang");
+    ShaderModule& module = global::resourceManager.loadShaderModule("assets/shaders/shader.slang");
 
     std::array<vec2, 3> positions{vec2(0.0f, 0.5f), vec2(-0.5f, -0.5f), vec2(0.5f, -0.5f)};
     Ref<Buffer> positionsBuffer = global::graphicsManager.createBuffer(
@@ -48,6 +48,9 @@ int main()
     pipelineBuilder.init(PipelineType::GRAPHICS)
         .addShader(module, "vertMain")
         .addShader(module, "fragMain")
+        .addVertexInputStream({.size = sizeof(vec3),
+                               .inputRate = VertexInputRate::VERTEX,
+                               .attributes{{.format = GraphicsDataFormat::RGB_32_FLOAT, .offset = 0}}})
         .addVertexInputStream({.size = sizeof(vec2),
                                .inputRate = VertexInputRate::VERTEX,
                                .attributes{{.format = GraphicsDataFormat::RG_32_FLOAT, .offset = 0}}})
