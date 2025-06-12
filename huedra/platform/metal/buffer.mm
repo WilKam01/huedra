@@ -36,11 +36,35 @@ void MetalBuffer::init(id<MTLDevice> device, BufferType type, u64 size, BufferUs
     }
 }
 
-void MetalBuffer::cleanup() {}
+void MetalBuffer::cleanup()
+{
+    for (auto& buffer : m_buffers)
+    {
+        [buffer release];
+    }
+}
 
-void MetalBuffer::write(u64 size, void* data) {}
+void MetalBuffer::write(void* data, u64 size)
+{
+    if (getType() == BufferType::STATIC)
+    {
+        log(LogLevel::WARNING, "MetalBuffer::write(): Could not write to buffer, buffer is static");
+        return;
+    }
 
-void MetalBuffer::read(u64 size, void* data) {}
+    std::memcpy([m_buffers[global::graphicsManager.getCurrentFrame()] contents], data, size);
+}
+
+void MetalBuffer::read(void* data, u64 size)
+{
+    if (getType() == BufferType::STATIC)
+    {
+        log(LogLevel::WARNING, "MetalBuffer::read(): Could not read to buffer, buffer is static");
+        return;
+    }
+
+    std::memcpy(data, [m_buffers[global::graphicsManager.getCurrentFrame()] contents], size);
+}
 
 id<MTLBuffer> MetalBuffer::get()
 {

@@ -58,6 +58,12 @@ void MetalContext::cleanup()
     }
     m_renderTargets.clear();
 
+    for (auto& info : m_samplers)
+    {
+        [info.sampler release];
+    }
+    m_samplers.clear();
+
     for (auto& swapchain : m_swapchains)
     {
         swapchain.cleanup();
@@ -83,13 +89,13 @@ void MetalContext::removeSwapchain(u64 index)
 Buffer* MetalContext::createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data)
 {
     MetalBuffer& buffer = m_buffers.emplace_back();
-    @autoreleasepool 
+    @autoreleasepool
     {
         if (type == BufferType::STATIC && data != nullptr)
         {
             id<MTLBuffer> stagingBuffer = [m_device newBufferWithBytes:data
                                                                 length:size
-                                                            options:MTLResourceStorageModeShared];
+                                                               options:MTLResourceStorageModeShared];
             buffer.init(m_device, type, size, usage);
 
             id<MTLCommandBuffer> cmd = [m_commandQueue commandBuffer];
@@ -110,7 +116,7 @@ Buffer* MetalContext::createBuffer(BufferType type, BufferUsageFlags usage, u64 
 Texture* MetalContext::createTexture(const TextureData& textureData)
 {
     MetalTexture& texture = m_textures.emplace_back();
-    texture.init(m_device, textureData);
+    texture.init(m_device, m_commandQueue, textureData);
     return &texture;
 }
 
@@ -178,17 +184,17 @@ void MetalContext::setRenderGraph(RenderGraphBuilder& builder)
 
 void MetalContext::render()
 {
-    @autoreleasepool 
+    @autoreleasepool
     {
         dispatch_semaphore_wait(m_inFlightSemaphores[global::graphicsManager.getCurrentFrame()], DISPATCH_TIME_FOREVER);
 
         id<MTLCommandBuffer> cmd = [m_commandQueue commandBuffer];
         [cmd addCompletedHandler:^(id<MTLCommandBuffer> _) {
-        dispatch_semaphore_signal(m_inFlightSemaphores[global::graphicsManager.getCurrentFrame()]);
-        for (auto& swapchain : m_swapchains)
-        {
-            swapchain.setTextureRendered();
-        }
+          dispatch_semaphore_signal(m_inFlightSemaphores[global::graphicsManager.getCurrentFrame()]);
+          for (auto& swapchain : m_swapchains)
+          {
+              swapchain.setTextureRendered();
+          }
         }];
 
         for (auto& [name, info] : m_curGraph.getRenderPasses())
@@ -199,6 +205,15 @@ void MetalContext::render()
             renderPassDesc.colorAttachments[0].loadAction = MTLLoadActionClear;
             renderPassDesc.colorAttachments[0].storeAction = MTLStoreActionStore;
 
+            // Assumes all are using depth when first is
+            if (info.getRenderTargets().begin()->target->usesDepth())
+            {
+                renderPassDesc.depthAttachment.texture =
+                    static_cast<MetalTexture*>(info.getRenderTargets().begin()->target->getDepthTexture().get())->get();
+                renderPassDesc.depthAttachment.loadAction = MTLLoadActionClear;
+                renderPassDesc.depthAttachment.storeAction = MTLStoreActionStore;
+            }
+
             vec3 clearColor = info.getRenderTargets().begin()->clearColor;
             renderPassDesc.colorAttachments[0].clearColor =
                 MTLClearColorMake(clearColor.r, clearColor.g, clearColor.b, 1.0);
@@ -207,7 +222,7 @@ void MetalContext::render()
             [encoder setRenderPipelineState:m_pipeline.get()];
 
             MetalRenderContext renderContext;
-            renderContext.init(encoder, m_pipeline);
+            renderContext.init(m_device, encoder, *this, m_pipeline);
             info.getCommands()(renderContext);
 
             [encoder endEncoding];
@@ -215,6 +230,67 @@ void MetalContext::render()
 
         [cmd commit];
     }
+}
+
+id<MTLSamplerState> MetalContext::getSampler(const SamplerSettings& settings)
+{
+    for (auto& info : m_samplers)
+    {
+        if (info.settings == settings)
+        {
+            return info.sampler;
+        }
+    }
+
+    @autoreleasepool
+    {
+        MTLSamplerDescriptor* samplerDesc = [[MTLSamplerDescriptor alloc] init];
+
+        MTLSamplerMinMagFilter filter =
+            settings.filter == SamplerFilter::LINEAR ? MTLSamplerMinMagFilterLinear : MTLSamplerMinMagFilterNearest;
+        samplerDesc.minFilter = filter;
+        samplerDesc.magFilter = filter;
+        samplerDesc.mipFilter = MTLSamplerMipFilterNotMipmapped;
+
+        constexpr auto convertAddressMode = [](SamplerAddressMode addressMode) -> MTLSamplerAddressMode {
+            switch (addressMode)
+            {
+            case SamplerAddressMode::REPEAT:
+                return MTLSamplerAddressModeRepeat;
+            case SamplerAddressMode::MIRROR_REPEAT:
+                return MTLSamplerAddressModeMirrorRepeat;
+            case SamplerAddressMode::CLAMP_EDGE:
+                return MTLSamplerAddressModeClampToEdge;
+            case SamplerAddressMode::CLAMP_COLOR:
+                return MTLSamplerAddressModeClampToBorderColor;
+            default:
+                return MTLSamplerAddressModeRepeat;
+            };
+            return MTLSamplerAddressModeRepeat;
+        };
+
+        samplerDesc.sAddressMode = convertAddressMode(settings.adressModeU);
+        samplerDesc.tAddressMode = convertAddressMode(settings.adressModeV);
+        samplerDesc.rAddressMode = convertAddressMode(settings.adressModeW);
+
+        MTLSamplerBorderColor borderColor{MTLSamplerBorderColorOpaqueWhite};
+        switch (settings.color)
+        {
+        case SamplerColor::WHITE:
+            borderColor = MTLSamplerBorderColorOpaqueWhite;
+        case SamplerColor::BLACK:
+            borderColor = MTLSamplerBorderColorOpaqueBlack;
+        case SamplerColor::ZERO_ALPHA:
+            borderColor = MTLSamplerBorderColorTransparentBlack;
+        };
+        samplerDesc.borderColor = borderColor;
+        samplerDesc.normalizedCoordinates = YES;
+        samplerDesc.supportArgumentBuffers = YES;
+
+        m_samplers.push_back({.settings = settings, .sampler = [m_device newSamplerStateWithDescriptor:samplerDesc]});
+    }
+
+    return m_samplers.back().sampler;
 }
 
 void MetalContext::waitIdle()

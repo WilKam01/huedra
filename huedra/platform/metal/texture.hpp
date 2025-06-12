@@ -17,7 +17,7 @@ public:
     MetalTexture(MetalTexture&& rhs) = default;
     MetalTexture& operator=(MetalTexture&& rhs) = default;
 
-    void init(id<MTLDevice> device, const TextureData& data); // Static texture
+    void init(id<MTLDevice> device, id<MTLCommandQueue> commandQueue, const TextureData& data); // Static texture
     void init(id<MTLDevice> device, TextureType type, GraphicsDataFormat format, u32 width, u32 height,
               u32 imageCount); // Render target texture
     void cleanup();

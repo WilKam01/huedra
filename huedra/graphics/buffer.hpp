@@ -16,8 +16,8 @@ public:
     Buffer(Buffer&& rhs) = default;
     Buffer& operator=(Buffer&& rhs) = default;
 
-    virtual void write(u64 size, void* data) = 0;
-    virtual void read(u64 size, void* data) = 0;
+    virtual void write(void* data, u64 size) = 0;
+    virtual void read(void* data, u64 size) = 0;
 
     BufferType getType() const { return m_type; }
     BufferUsageFlags getBufferUsage() const { return m_usage; }

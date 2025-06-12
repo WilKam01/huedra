@@ -5,7 +5,7 @@ if(WIN32)
 endif()
 
 # Shader-Slang
-set(SLANG_VERSION "2025.7")
+set(SLANG_VERSION "2025.10.2")
 
 if(WIN32)
     set(SLANG_OS "windows")

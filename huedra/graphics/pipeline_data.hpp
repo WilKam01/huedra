@@ -56,6 +56,7 @@ struct ResourceBinding
     std::string name;
     ShaderStage shaderStage;
     ResourceType type;
+    bool partOfArgBuffer{false}; // Only for Metal
 };
 
 struct ResourcePosition

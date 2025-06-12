@@ -37,7 +37,7 @@ void MetalSwapchain::init(id<MTLDevice> device, id<MTLCommandQueue> commandQueue
 
     m_layer = [CAMetalLayer layer];
     m_layer.device = m_device;
-    m_layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
+    m_layer.pixelFormat = MTLPixelFormatRGBA8Unorm;
     m_layer.framebufferOnly = NO;
     m_layer.contentsScale = m_window->getScreenDPI();
     m_layer.frame = m_window->get().contentView.bounds;
@@ -88,21 +88,21 @@ void MetalSwapchain::aquireNextDrawable()
         {
             id<MTLCommandBuffer> cmd = [m_commandQueue commandBuffer];
             [cmd addCompletedHandler:^(id<MTLCommandBuffer> _) {
-            m_threadInfo.condition.notify_one();
-            dispatch_semaphore_signal(m_presentSemaphore);
+              m_threadInfo.condition.notify_one();
+              dispatch_semaphore_signal(m_presentSemaphore);
             }];
 
             id<MTLBlitCommandEncoder> blitEncoder = [cmd blitCommandEncoder];
             id<MTLTexture> texture = m_renderTarget.getMetalColorTexture().getWithIndex(0);
             [blitEncoder copyFromTexture:texture
-                            sourceSlice:0
-                            sourceLevel:0
+                             sourceSlice:0
+                             sourceLevel:0
                             sourceOrigin:MTLOriginMake(0, 0, 0)
-                            sourceSize:MTLSizeMake(texture.width, texture.height, 1)
-                            toTexture:m_currentDrawable.texture
+                              sourceSize:MTLSizeMake(texture.width, texture.height, 1)
+                               toTexture:m_currentDrawable.texture
                         destinationSlice:0
                         destinationLevel:0
-                    destinationOrigin:MTLOriginMake(0, 0, 0)];
+                       destinationOrigin:MTLOriginMake(0, 0, 0)];
             [blitEncoder endEncoding];
 
             [cmd presentDrawable:m_currentDrawable];
@@ -118,8 +118,9 @@ void MetalSwapchain::aquireNextDrawable()
             {
                 dispatch_semaphore_wait(m_presentSemaphore, DISPATCH_TIME_FOREVER);
             }
-            m_layer.drawableSize = CGSizeMake(static_cast<CGFloat>(m_window->getScreenSize().x) * m_window->getScreenDPI(),
-                                            static_cast<CGFloat>(m_window->getScreenSize().y) * m_window->getScreenDPI());
+            m_layer.drawableSize =
+                CGSizeMake(static_cast<CGFloat>(m_window->getScreenSize().x) * m_window->getScreenDPI(),
+                           static_cast<CGFloat>(m_window->getScreenSize().y) * m_window->getScreenDPI());
             m_renderTarget.recreate(
                 static_cast<u32>(static_cast<float>(m_window->getScreenSize().x) * m_window->getScreenDPI()),
                 static_cast<u32>(static_cast<float>(m_window->getScreenSize().y) * m_window->getScreenDPI()));

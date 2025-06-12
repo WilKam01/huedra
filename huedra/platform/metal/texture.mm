@@ -1,11 +1,13 @@
 #include "texture.hpp"
 #include "core/global.hpp"
 #include "graphics/texture.hpp"
+#include "platform/metal/type_converter.hpp"
 #include "resources/texture/data.hpp"
+#include <Metal/Metal.h>
 
 namespace huedra {
 
-void MetalTexture::init(id<MTLDevice> device, const TextureData& data)
+void MetalTexture::init(id<MTLDevice> device, id<MTLCommandQueue> commandQueue, const TextureData& data)
 {
     @autoreleasepool
     {
@@ -13,10 +15,10 @@ void MetalTexture::init(id<MTLDevice> device, const TextureData& data)
         m_device = device;
         m_isRenderTargetTexture = false;
 
-        m_textures.resize(0);
+        m_textures.resize(1);
         MTLTextureDescriptor* desc = [[MTLTextureDescriptor alloc] init];
         desc.textureType = MTLTextureType2D;
-        desc.pixelFormat = MTLPixelFormatBGRA8Unorm; // TODO: Find format
+        desc.pixelFormat = converter::convertPixelDataFormat(data.format);
         desc.width = data.width;
         desc.height = data.height;
         desc.mipmapLevelCount = 1;
@@ -24,7 +26,36 @@ void MetalTexture::init(id<MTLDevice> device, const TextureData& data)
         desc.storageMode = MTLStorageModePrivate;
 
         m_textures[0] = [m_device newTextureWithDescriptor:desc];
-        // TODO: Transfer data to texture
+
+        // Create staging texture
+        desc.storageMode = MTLStorageModeShared;
+        desc.usage = MTLTextureUsageShaderRead | MTLTextureUsagePixelFormatView;
+
+        id<MTLTexture> stagingTexture = [device newTextureWithDescriptor:desc];
+        MTLRegion region = {{0, 0, 0}, {data.width, data.height, 1}};
+
+        [stagingTexture replaceRegion:region
+                          mipmapLevel:0
+                            withBytes:data.texels.data()
+                          bytesPerRow:static_cast<NSUInteger>(data.width * data.texelSize)];
+
+        id<MTLCommandBuffer> cmd = [commandQueue commandBuffer];
+        id<MTLBlitCommandEncoder> blitEncoder = [cmd blitCommandEncoder];
+
+        [blitEncoder copyFromTexture:stagingTexture
+                         sourceSlice:0
+                         sourceLevel:0
+                        sourceOrigin:{0, 0, 0}
+                          sourceSize:{data.width, data.height, 1}
+                           toTexture:m_textures[0]
+                    destinationSlice:0
+                    destinationLevel:0
+                   destinationOrigin:{0, 0, 0}];
+
+        [blitEncoder endEncoding];
+        [cmd commit];
+        [cmd waitUntilCompleted];
+        [stagingTexture release];
     }
 }
 
@@ -40,7 +71,8 @@ void MetalTexture::init(id<MTLDevice> device, TextureType type, GraphicsDataForm
 
         MTLTextureDescriptor* desc = [[MTLTextureDescriptor alloc] init];
         desc.textureType = MTLTextureType2D;
-        desc.pixelFormat = MTLPixelFormatBGRA8Unorm; // TODO: Find format
+        desc.pixelFormat =
+            type == TextureType::COLOR ? converter::convertPixelDataFormat(format) : MTLPixelFormatDepth32Float;
         desc.width = width;
         desc.height = height;
         desc.mipmapLevelCount = 1;

@@ -35,11 +35,11 @@ private:
     Device* m_device{nullptr};
     VulkanRenderPass* m_renderPass{nullptr};
     VkDescriptorPool m_pool{nullptr};
-    std::vector<VkDescriptorSetLayout> m_layouts;
+    std::vector<VkDescriptorSetLayout> m_layouts{};
     struct SetInfo
     {
-        std::vector<VkDescriptorSet> instances;
-        std::vector<VkDescriptorType> bindingTypes;
+        std::vector<VkDescriptorSet> instances{};
+        std::vector<VkDescriptorType> bindingTypes{};
         u64 curIndex{0};
     };
     std::vector<SetInfo> m_sets;

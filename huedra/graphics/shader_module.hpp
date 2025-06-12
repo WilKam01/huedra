@@ -3,6 +3,7 @@
 #include "core/types.hpp"
 #include "graphics/pipeline_data.hpp"
 #include "platform/slang/config.hpp"
+#include <array>
 
 namespace huedra {
 
@@ -46,6 +47,12 @@ private:
 class CompiledShaderModule
 {
 public:
+    struct MetalShaderStageParametersInfo
+    {
+        u32 bufferIndex{0};
+        u32 startByte{0};
+    };
+
     CompiledShaderModule() = default;
     ~CompiledShaderModule() = default;
 
@@ -62,11 +69,16 @@ public:
     const std::vector<u8>& getCode() const { return m_code; }
     const std::vector<std::vector<ResourceBinding>>& getResources() const { return m_resources; }
     const std::vector<ParameterBinding>& getParameters() const { return m_parameters; }
+    u32 getParametersSize() const { return m_nextParameterOffset; }
 
-    // Metal specific getters
-    const std::vector<std::vector<ResourceBinding>>& getMetalBuffer() const { return m_metalBuffers; }
-    const std::vector<ResourceBinding>& getMetalTextures() const { return m_metalTextures; }
-    const std::vector<ResourceBinding>& getMetalSamplers() const { return m_metalSamplers; }
+    // Since vertex buffers and other buffers in the vertex shader stage share the same binding group, vertex buffers
+    // should start after the other buffers to avoid collisions
+    u32 getVertexBufferOffsetMetal() const { return static_cast<u32>(m_metalBuffers.size()); }
+    const std::vector<std::vector<ResourceBinding>>& getMetalBuffers() const { return m_metalBuffers; }
+    const std::map<ShaderStage, MetalShaderStageParametersInfo>& getMetalParameters() const
+    {
+        return m_metalParameters;
+    }
 
     JsonObject getJson() const;
 
@@ -88,18 +100,15 @@ private:
     std::vector<u8> m_code;
     std::vector<std::vector<ResourceBinding>> m_resources;
     std::vector<ParameterBinding> m_parameters;
+    u32 m_nextParameterOffset{0};
 
     // Metal specific data
     std::vector<std::vector<ResourceBinding>> m_metalBuffers;
     std::vector<ResourceBinding> m_metalTextures;
     std::vector<ResourceBinding> m_metalSamplers;
 
-    struct MetalParameter
-    {
-        u32 startOffset{0};
-        u32 bufferIndex{0};
-    };
-    std::map<ShaderStage, MetalParameter> m_metalParameters; // Per shader stage, will use separate buffer
+    // Per shader stage, uses separate buffer in shader
+    std::map<ShaderStage, MetalShaderStageParametersInfo> m_metalParameters;
 };
 
 struct ShaderInput

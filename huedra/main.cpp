@@ -1,17 +1,9 @@
 #include "core/file/utils.hpp"
 #include "core/global.hpp"
-#include "core/input/keys.hpp"
-#include "core/input/mouse.hpp"
 #include "core/log.hpp"
 #include "core/serialization/json.hpp"
 #include "core/string/utils.hpp"
-#include "core/types.hpp"
-#include "graphics/pipeline_builder.hpp"
-#include "graphics/pipeline_data.hpp"
-#include "graphics/render_context.hpp"
-#include "graphics/render_graph_builder.hpp"
 #include "graphics/render_pass_builder.hpp"
-#include "graphics/shader_module.hpp"
 #include "math/conversions.hpp"
 #include "math/matrix_projection.hpp"
 #include "math/matrix_transform.hpp"
@@ -20,7 +12,6 @@
 #include "resources/mesh/loader.hpp"
 #include "resources/texture/loader.hpp"
 #include "scene/components/transform.hpp"
-#include "window/window.hpp"
 
 using namespace huedra;
 
@@ -32,22 +23,73 @@ int main()
     global::resourceManager.init();
 
     Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720));
-    Ref<Window> window1 = global::windowManager.addWindow("Second", WindowInput(480, 480, 1400, -250), window);
 
-    ShaderModule& module = global::resourceManager.loadShaderModule("assets/shaders/shader.slang");
+    // Draw data
+    std::vector<MeshData>& meshes = global::resourceManager.loadMeshData("assets/mesh/untitled.glb");
 
-    std::array<vec2, 3> positions{vec2(0.0f, 0.5f), vec2(-0.5f, -0.5f), vec2(0.5f, -0.5f)};
-    Ref<Buffer> positionsBuffer = global::graphicsManager.createBuffer(
-        BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER, positions.size() * sizeof(vec2), positions.data());
+    if (meshes.empty())
+    {
+        log(LogLevel::ERR, "meshes array is empty");
+    }
+    if (meshes[0].uvs.empty())
+    {
+        log(LogLevel::ERR, "Imported mesh: {} has no uv coordinates", meshes[0].name.c_str());
+    }
+    if (meshes[0].normals.empty())
+    {
+        log(LogLevel::ERR, "Imported mesh: {} has no normals", meshes[0].name.c_str());
+    }
 
-    std::array<vec3, 3> colors{vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f)};
-    Ref<Buffer> colorsBuffer = global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER,
-                                                                    colors.size() * sizeof(vec3), colors.data());
+    Ref<Buffer> positionsBuffer =
+        global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER,
+                                             sizeof(vec3) * meshes[0].positions.size(), meshes[0].positions.data());
 
-    PipelineBuilder pipelineBuilder;
-    pipelineBuilder.init(PipelineType::GRAPHICS)
-        .addShader(module, "vertMain")
-        .addShader(module, "fragMain")
+    Ref<Buffer> uvsBuffer = global::graphicsManager.createBuffer(
+        BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER, sizeof(vec2) * meshes[0].uvs.size(), meshes[0].uvs.data());
+
+    Ref<Buffer> normalsBuffer =
+        global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER,
+                                             sizeof(vec3) * meshes[0].normals.size(), meshes[0].normals.data());
+    Ref<Buffer> indexBuffer =
+        global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_INDEX_BUFFER,
+                                             sizeof(u32) * meshes[0].indices.size(), meshes[0].indices.data());
+
+    // Scene Entities
+    const u32 numEnities = 7;
+    for (u32 x = 0; x < numEnities; ++x)
+    {
+        for (u32 y = 0; y < numEnities; ++y)
+        {
+            Entity e = global::sceneManager.addEntity();
+            Transform transform;
+            transform.position = vec3(-(numEnities / 2.0f) + static_cast<float>(x) + 0.5f,
+                                      -(numEnities / 2.0f) + static_cast<float>(y) + 0.5f, 0.0f) *
+                                 3.0f;
+            transform.rotation =
+                vec3(math::radians(15) * static_cast<float>(x), math::radians(15) * static_cast<float>(y), 0.0f);
+            transform.scale = vec3(1.0f);
+            global::sceneManager.setComponent(e, transform);
+        }
+    }
+
+    // Shader Resources
+    WindowRect rect = window->getRect();
+    matrix4 viewProj = math::perspective(math::radians(45),
+                                         static_cast<float>(rect.screenWidth) / static_cast<float>(rect.screenHeight),
+                                         vec2(0.1f, 100.0f)) *
+                       math::lookAt(vec3(0.0f, 0.0f, -5.0f), vec3(0.0f), vec3(0.0f, 1.0f, 0.0f));
+
+    Ref<Buffer> viewProjBuffer = global::graphicsManager.createBuffer(
+        BufferType::DYNAMIC, HU_BUFFER_USAGE_CONSTANT_BUFFER, sizeof(viewProj), &viewProj);
+
+    TextureData& tex = global::resourceManager.loadTextureData("assets/textures/test.png", TexelChannelFormat::RGBA);
+    Ref<Texture> texture = global::graphicsManager.createTexture(tex);
+
+    ShaderModule& shaderModule = global::resourceManager.loadShaderModule("assets/shaders/shader.slang");
+    PipelineBuilder builder;
+    builder.init(PipelineType::GRAPHICS)
+        .addShader(shaderModule, "vertMain")
+        .addShader(shaderModule, "fragMain")
         .addVertexInputStream({.size = sizeof(vec3),
                                .inputRate = VertexInputRate::VERTEX,
                                .attributes{{.format = GraphicsDataFormat::RGB_32_FLOAT, .offset = 0}}})
@@ -58,58 +100,110 @@ int main()
                                .inputRate = VertexInputRate::VERTEX,
                                .attributes{{.format = GraphicsDataFormat::RGB_32_FLOAT, .offset = 0}}});
 
-    Timer renderTimer;
-    renderTimer.init();
+    RenderCommands commands = [&meshes, positionsBuffer, uvsBuffer, normalsBuffer, indexBuffer, viewProjBuffer, texture,
+                               numEnities](RenderContext& renderContext) {
+        renderContext.bindVertexBuffers({positionsBuffer, uvsBuffer, normalsBuffer});
+        renderContext.bindIndexBuffer(indexBuffer);
+        renderContext.bindBuffer(viewProjBuffer, "cameraBuffer");
+        renderContext.bindTexture(texture, "resources.texture");
+        renderContext.bindSampler(SAMPLER_LINEAR, "resources.sampler");
+
+        global::sceneManager.query<Transform>([&](Transform& transform) {
+            transform.rotation += vec3(math::radians(5), math::radians(10), 0.0f) * global::timer.dt();
+            matrix4 mat = transform.applyMatrix();
+            renderContext.setParameter(&mat, sizeof(matrix4), "model");
+            renderContext.drawIndexed(static_cast<u32>(meshes[0].indices.size()), 1, 0, 0);
+        });
+    };
+
+    vec3 eye(0.0f, 0.0f, 12.0f);
+    vec3 rot(0.0f);
     while (global::windowManager.update())
     {
         global::timer.update();
         global::graphicsManager.update();
 
-        if (global::input.isKeyActive(KeyToggles::CAPS_LOCK))
-        {
-            log(LogLevel::D_INFO, "CAPS ACTIVE");
-        }
-
-        if (global::input.isMouseButtonPressed(MouseButton::EXTRA2))
-        {
-            log(LogLevel::D_INFO, "Extra 2 click is pressed");
-        }
-        if (global::input.isMouseButtonDoubleClicked(MouseButton::EXTRA2))
-        {
-            log(LogLevel::D_INFO, "Extra 2 is double pressed");
-        }
-
+        static bool lock = false;
         if (global::input.isKeyPressed(Keys::ESCAPE))
         {
-            global::input.toggleMouseHidden();
+            lock = !lock;
+            if (lock)
+            {
+                global::input.setMouseMode(MouseMode::LOCKED);
+            }
+            else
+            {
+                global::input.setMouseMode(MouseMode::NORMAL);
+            }
+            global::input.setMouseHidden(lock);
         }
 
-        static CursorType cursor{CursorType::DEFAULT};
-        static MouseMode mode{MouseMode::DISABLED};
         if (global::input.isKeyPressed(Keys::ENTER))
         {
-            mode = static_cast<MouseMode>(((static_cast<u32>(mode)) % 3) + 1);
-            global::input.setMouseMode(mode);
-            cursor = static_cast<CursorType>((static_cast<u32>(cursor) + 1) % 15);
-            global::input.setCursor(cursor);
+            global::input.setCursor(static_cast<CursorType>((static_cast<u32>(global::input.getCursor()) + 1) % 13));
         }
 
-        RenderGraphBuilder graph;
+        if (lock)
+        {
+            ivec2 mouseDt = global::input.getMouseDelta();
+            rot -= vec3(static_cast<float>(mouseDt.y), static_cast<float>(mouseDt.x), 0.0f) * 1.0f * global::timer.dt();
+        }
+        else
+        {
+            rot += vec3(static_cast<float>(global::input.isKeyDown(Keys::I)) -
+                            static_cast<float>(global::input.isKeyDown(Keys::K)),
+                        static_cast<float>(global::input.isKeyDown(Keys::J)) -
+                            static_cast<float>(global::input.isKeyDown(Keys::L)),
+                        static_cast<float>(global::input.isKeyDown(Keys::O)) -
+                            static_cast<float>(global::input.isKeyDown(Keys::U))) *
+                   1.0f * global::timer.dt();
+        }
+
+        matrix3 rMat = math::rotateZ(matrix3(1.0f), rot.z) * math::rotateY(matrix3(1.0f), rot.y) *
+                       math::rotateX(matrix3(1.0f), rot.x);
+
+        vec3 right = vec3(rMat(0, 0), rMat(1, 0), rMat(2, 0));
+        vec3 up = vec3(rMat(0, 1), rMat(1, 1), rMat(2, 1));
+        vec3 forward = vec3(rMat(0, 2), rMat(1, 2), rMat(2, 2));
+
+        float eyeSpeed = 5.0f + (10.0f * static_cast<float>(global::input.isKeyDown(Keys::SHIFT)));
+        eye += ((static_cast<float>(global::input.isKeyDown(Keys::D)) -
+                 static_cast<float>(global::input.isKeyDown(Keys::A))) *
+                    right +
+                (static_cast<float>(global::input.isKeyDown(Keys::Q)) -
+                 static_cast<float>(global::input.isKeyDown(Keys::E))) *
+                    up +
+                (static_cast<float>(global::input.isKeyDown(Keys::S)) -
+                 static_cast<float>(global::input.isKeyDown(Keys::W))) *
+                    forward) *
+               eyeSpeed * global::timer.dt();
+
+        RenderGraphBuilder renderGraph;
         if (window.valid() && window->getRenderTarget()->isAvailable())
         {
-            graph.addPass("Pass", RenderPassBuilder()
-                                      .init(RenderPassType::GRAPHICS, pipelineBuilder)
-                                      .addRenderTarget(window->getRenderTarget(), vec3(0.1f))
-                                      .setCommands([&](RenderContext& context) {
-                                          context.bindVertexBuffers({positionsBuffer, colorsBuffer});
-                                          context.draw(3, 1, 0, 0);
-                                      }));
+            RenderPassBuilder renderPass =
+                RenderPassBuilder()
+                    .init(RenderPassType::GRAPHICS, builder)
+                    .addResource(ResourceAccessType::READ, viewProjBuffer, ShaderStage::VERTEX)
+                    .addResource(ResourceAccessType::READ, texture, ShaderStage::FRAGMENT)
+                    .addRenderTarget(window->getRenderTarget())
+                    .setCommands(commands);
+            renderGraph.addPass("Render Pass", renderPass);
         }
 
-        renderTimer.update();
-        if (renderTimer.passedInterval((1.0 / 240.0) * Timer::SECONDS_TO_NANO))
+        rect = window->getRect();
+        viewProj = math::perspective(math::radians(90.0f),
+                                     static_cast<float>(rect.screenWidth) / static_cast<float>(rect.screenHeight),
+                                     vec2(0.1f, 100.0f)) *
+                   math::lookTo(eye, -forward, up);
+
+        viewProjBuffer->write(&viewProj, sizeof(viewProj));
+
+        global::graphicsManager.render(renderGraph);
+
+        if (global::input.isKeyActive(KeyToggles::CAPS_LOCK))
         {
-            global::graphicsManager.render(graph);
+            log(LogLevel::D_INFO, "Caps is on");
         }
 
         static u32 i = 0;
@@ -135,6 +229,9 @@ int main()
         }
         global::input.update();
     }
+
+    global::graphicsManager.removeTexture(texture);
+    global::graphicsManager.removeBuffer(viewProjBuffer);
 
     global::resourceManager.cleanup();
     global::graphicsManager.cleanup();

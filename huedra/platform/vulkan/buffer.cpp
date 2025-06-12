@@ -112,7 +112,7 @@ void VulkanBuffer::cleanup()
     }
 }
 
-void VulkanBuffer::write(u64 size, void* data)
+void VulkanBuffer::write(void* data, u64 size)
 {
     if (getType() == BufferType::STATIC)
     {
@@ -125,10 +125,10 @@ void VulkanBuffer::write(u64 size, void* data)
         log(LogLevel::WARNING, "Could not write to buffer, memory is not mapped, therefore unaccessible");
         return;
     }
-    memcpy(m_mapped[global::graphicsManager.getCurrentFrame()], data, size);
+    std::memcpy(m_mapped[global::graphicsManager.getCurrentFrame()], data, size);
 }
 
-void VulkanBuffer::read(u64 size, void* data)
+void VulkanBuffer::read(void* data, u64 size)
 {
     if (getType() == BufferType::STATIC)
     {
@@ -141,7 +141,7 @@ void VulkanBuffer::read(u64 size, void* data)
         log(LogLevel::WARNING, "Could not read from buffer, memory is not mapped, therefore unaccessible");
         return;
     }
-    memcpy(data, m_mapped[global::graphicsManager.getCurrentFrame(], size);
+    std::memcpy(data, m_mapped[global::graphicsManager.getCurrentFrame(], size);
 }
 
 VkBuffer VulkanBuffer::get()

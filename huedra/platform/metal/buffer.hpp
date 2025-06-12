@@ -19,8 +19,8 @@ public:
     void init(id<MTLDevice> device, BufferType type, u64 size, BufferUsageFlags usage, const void* data = nullptr);
     void cleanup();
 
-    void write(u64 size, void* data) override;
-    void read(u64 size, void* data) override;
+    void write(void* data, u64 size) override;
+    void read(void* data, u64 size) override;
 
     id<MTLBuffer> get();
 

@@ -45,6 +45,8 @@ public:
     void setRenderGraph(RenderGraphBuilder& builder) override;
     void render() override;
 
+    id<MTLSamplerState> getSampler(const SamplerSettings& settings);
+
 private:
     void waitIdle();
 
@@ -54,6 +56,13 @@ private:
     std::deque<MetalBuffer> m_buffers;
     std::deque<MetalTexture> m_textures;
     std::deque<MetalRenderTarget> m_renderTargets;
+
+    struct SamplerInfo
+    {
+        SamplerSettings settings;
+        id<MTLSamplerState> sampler{nullptr};
+    };
+    std::vector<SamplerInfo> m_samplers;
 
     std::vector<dispatch_semaphore_t> m_inFlightSemaphores;
 

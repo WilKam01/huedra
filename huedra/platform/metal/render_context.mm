@@ -1,26 +1,50 @@
 #include "render_context.hpp"
 #include "core/log.hpp"
+#include "graphics/pipeline_data.hpp"
+#include "graphics/texture.hpp"
 #include "platform/metal/buffer.hpp"
 #include "platform/metal/render_target.hpp"
+#include "platform/metal/texture.hpp"
 #include <Foundation/Foundation.h>
+#include <Metal/MTLRenderCommandEncoder.h>
 #include <Metal/Metal.h>
 #include <objc/NSObjCRuntime.h>
 
 namespace huedra {
 
-void MetalRenderContext::init(id<MTLRenderCommandEncoder> encoder, MetalPipeline& pipeline)
+void MetalRenderContext::init(id<MTLDevice> device, id<MTLRenderCommandEncoder> encoder, MetalContext& context,
+                              MetalPipeline& pipeline)
 {
     m_encoder = encoder;
     m_computeEncoder = nil;
+    m_context = &context;
     m_pipeline = &pipeline;
+    m_parameterHandler = &m_pipeline->getParameterHandler();
+    m_parameterHandler->resetIndices();
     m_boundIndexBuffer = nil;
+
+    @autoreleasepool
+    {
+        [encoder setFrontFacingWinding:MTLWindingCounterClockwise];
+        [encoder setCullMode:MTLCullModeBack];
+
+        MTLDepthStencilDescriptor* depthDesc = [[MTLDepthStencilDescriptor alloc] init];
+        depthDesc.depthCompareFunction = MTLCompareFunctionLess;
+        depthDesc.depthWriteEnabled = YES;
+
+        id<MTLDepthStencilState> depthState = [device newDepthStencilStateWithDescriptor:depthDesc];
+        [encoder setDepthStencilState:depthState];
+    }
 }
 
-void MetalRenderContext::init(id<MTLComputeCommandEncoder> encoder, MetalPipeline& pipeline)
+void MetalRenderContext::init(id<MTLComputeCommandEncoder> encoder, MetalContext& context, MetalPipeline& pipeline)
 {
     m_encoder = nil;
     m_computeEncoder = encoder;
+    m_context = &context;
     m_pipeline = &pipeline;
+    m_parameterHandler = &m_pipeline->getParameterHandler();
+    m_parameterHandler->resetIndices();
     m_boundIndexBuffer = nil;
 }
 
@@ -48,7 +72,10 @@ void MetalRenderContext::bindVertexBuffers(std::vector<Ref<Buffer>> buffers)
         }
         metalBuffers[i] = static_cast<MetalBuffer*>(buffers[i].get())->get();
     }
-    [m_encoder setVertexBuffers:metalBuffers.data() offsets:offsets.data() withRange:NSMakeRange(0, buffers.size())];
+    [m_encoder
+        setVertexBuffers:metalBuffers.data()
+                 offsets:offsets.data()
+               withRange:NSMakeRange(m_pipeline->getShaderModule().getVertexBufferOffsetMetal(), buffers.size())];
 }
 
 void MetalRenderContext::bindIndexBuffer(Ref<Buffer> buffer)
@@ -71,7 +98,7 @@ void MetalRenderContext::bindIndexBuffer(Ref<Buffer> buffer)
         return;
     }
 
-    // m_boundIndexBuffer = buffer->get();
+    m_boundIndexBuffer = static_cast<MetalBuffer*>(buffer.get())->get();
 }
 
 void MetalRenderContext::bindBuffer(Ref<Buffer> buffer, std::string_view name)
@@ -80,6 +107,88 @@ void MetalRenderContext::bindBuffer(Ref<Buffer> buffer, std::string_view name)
     {
         log(LogLevel::WARNING, "Could not bind buffer, reference invalid");
         return;
+    }
+
+    std::optional<ResourcePosition> resource = m_pipeline->getShaderModule().getResource(name);
+    if (!resource.has_value())
+    {
+        log(LogLevel::WARNING, "Could not bind buffer, no resource named \"{}\"", name);
+        return;
+    }
+
+    if (resource.value().info.type != ResourceType::CONSTANT_BUFFER &&
+        resource.value().info.type != ResourceType::STRUCTURED_BUFFER)
+    {
+        log(LogLevel::WARNING, "Could not bind buffer, \"{}\" is a {}", name,
+            ResourceTypeNames[static_cast<u32>(resource.value().info.type)]);
+        return;
+    }
+
+    @autoreleasepool
+    {
+
+        if (resource->info.partOfArgBuffer)
+        {
+            m_parameterHandler->writeBuffer(*static_cast<MetalBuffer*>(buffer.get()), resource.value().set,
+                                            resource.value().binding);
+
+            MTLResourceUsage usage = MTLResourceUsageRead;
+            if (resource.value().info.type != ResourceType::STRUCTURED_BUFFER)
+            {
+                usage |= MTLResourceUsageWrite;
+            }
+
+            if (m_pipeline->getBuilder().getType() == PipelineType::GRAPHICS)
+            {
+                MTLRenderStages stages =
+                    resource->info.shaderStage == ShaderStage::FRAGMENT ? MTLRenderStageFragment : MTLRenderStageVertex;
+                [m_encoder useResource:static_cast<MetalBuffer*>(buffer.get())->get() usage:usage stages:stages];
+            }
+            else if (m_pipeline->getBuilder().getType() == PipelineType::COMPUTE)
+            {
+                [m_computeEncoder useResource:static_cast<MetalBuffer*>(buffer.get())->get() usage:usage];
+            }
+        }
+        else
+        {
+            switch (resource->info.shaderStage)
+            {
+            case ShaderStage::ALL:
+                if (m_pipeline->getBuilder().getType() == PipelineType::GRAPHICS)
+                {
+                    [m_encoder setVertexBuffer:static_cast<MetalBuffer*>(buffer.get())->get()
+                                        offset:0
+                                       atIndex:resource->set];
+                    [m_encoder setFragmentBuffer:static_cast<MetalBuffer*>(buffer.get())->get()
+                                          offset:0
+                                         atIndex:resource->set];
+                }
+                else if (m_pipeline->getBuilder().getType() == PipelineType::COMPUTE)
+                {
+                    [m_computeEncoder setBuffer:static_cast<MetalBuffer*>(buffer.get())->get()
+                                         offset:0
+                                        atIndex:resource->set];
+                }
+                break;
+            case ShaderStage::VERTEX:
+                [m_encoder setVertexBuffer:static_cast<MetalBuffer*>(buffer.get())->get()
+                                    offset:0
+                                   atIndex:resource->set];
+                break;
+            case ShaderStage::FRAGMENT:
+                [m_encoder setFragmentBuffer:static_cast<MetalBuffer*>(buffer.get())->get()
+                                      offset:0
+                                     atIndex:resource->set];
+                break;
+            case ShaderStage::COMPUTE:
+                [m_computeEncoder setBuffer:static_cast<MetalBuffer*>(buffer.get())->get()
+                                     offset:0
+                                    atIndex:resource->set];
+                break;
+            default:
+                break;
+            }
+        }
     }
 }
 
@@ -90,11 +199,150 @@ void MetalRenderContext::bindTexture(Ref<Texture> texture, std::string_view name
         log(LogLevel::WARNING, "Could not bind texture, reference invalid");
         return;
     }
+
+    std::optional<ResourcePosition> resource = m_pipeline->getShaderModule().getResource(name);
+    if (!resource.has_value())
+    {
+        log(LogLevel::WARNING, "Could not bind texture, no resource named \"{}\"", name);
+        return;
+    }
+
+    if (resource.value().info.type != ResourceType::TEXTURE && resource.value().info.type != ResourceType::RW_TEXTURE)
+    {
+        log(LogLevel::WARNING, "Could not bind texture, \"{}\" is a {}", name,
+            ResourceTypeNames[static_cast<u32>(resource.value().info.type)]);
+        return;
+    }
+
+    @autoreleasepool
+    {
+        if (resource->info.partOfArgBuffer)
+        {
+            m_parameterHandler->writeTexture(*static_cast<MetalTexture*>(texture.get()), resource.value().set,
+                                             resource.value().binding);
+
+            MTLResourceUsage usage = MTLResourceUsageRead;
+            if (resource.value().info.type != ResourceType::RW_TEXTURE)
+            {
+                usage |= MTLResourceUsageWrite;
+            }
+
+            if (m_pipeline->getBuilder().getType() == PipelineType::GRAPHICS)
+            {
+                MTLRenderStages stages =
+                    resource->info.shaderStage == ShaderStage::FRAGMENT ? MTLRenderStageFragment : MTLRenderStageVertex;
+                [m_encoder useResource:static_cast<MetalTexture*>(texture.get())->get() usage:usage stages:stages];
+            }
+            else if (m_pipeline->getBuilder().getType() == PipelineType::COMPUTE)
+            {
+                [m_computeEncoder useResource:static_cast<MetalTexture*>(texture.get())->get() usage:usage];
+            }
+        }
+        else
+        {
+            switch (resource->info.shaderStage)
+            {
+            case ShaderStage::ALL:
+                if (m_pipeline->getBuilder().getType() == PipelineType::GRAPHICS)
+                {
+                    [m_encoder setVertexTexture:static_cast<MetalTexture*>(texture.get())->get() atIndex:resource->set];
+                    [m_encoder setFragmentTexture:static_cast<MetalTexture*>(texture.get())->get()
+                                          atIndex:resource->set];
+                }
+                else if (m_pipeline->getBuilder().getType() == PipelineType::COMPUTE)
+                {
+                    [m_computeEncoder setTexture:static_cast<MetalTexture*>(texture.get())->get()
+                                         atIndex:resource->set];
+                }
+                break;
+            case ShaderStage::VERTEX:
+                [m_encoder setVertexTexture:static_cast<MetalTexture*>(texture.get())->get() atIndex:resource->set];
+                break;
+            case ShaderStage::FRAGMENT:
+                [m_encoder setFragmentTexture:static_cast<MetalTexture*>(texture.get())->get() atIndex:resource->set];
+                break;
+            case ShaderStage::COMPUTE:
+                [m_computeEncoder setTexture:static_cast<MetalTexture*>(texture.get())->get() atIndex:resource->set];
+                break;
+            default:
+                break;
+            }
+        }
+    }
 }
 
-void MetalRenderContext::bindSampler(const SamplerSettings& sampler, std::string_view name) {}
+void MetalRenderContext::bindSampler(const SamplerSettings& sampler, std::string_view name)
+{
+    std::optional<ResourcePosition> resource = m_pipeline->getShaderModule().getResource(name);
+    if (!resource.has_value())
+    {
+        log(LogLevel::WARNING, "Could not bind sampler, no resource named \"{}\"", name);
+        return;
+    }
 
-void MetalRenderContext::setParameter(void* data, u32 size, std::string_view name) {}
+    if (resource.value().info.type != ResourceType::SAMPLER)
+    {
+        log(LogLevel::WARNING, "Could not bind sampler, \"{}\" is a {}", name,
+            ResourceTypeNames[static_cast<u32>(resource.value().info.type)]);
+        return;
+    }
+
+    @autoreleasepool
+    {
+        id<MTLSamplerState> metalSampler = m_context->getSampler(sampler);
+        if (resource->info.partOfArgBuffer)
+        {
+            m_parameterHandler->writeSampler(metalSampler, resource.value().set, resource.value().binding);
+        }
+        else
+        {
+            switch (resource->info.shaderStage)
+            {
+            case ShaderStage::ALL:
+                if (m_pipeline->getBuilder().getType() == PipelineType::GRAPHICS)
+                {
+                    [m_encoder setVertexSamplerState:metalSampler atIndex:resource->set];
+                    [m_encoder setFragmentSamplerState:metalSampler atIndex:resource->set];
+                }
+                else if (m_pipeline->getBuilder().getType() == PipelineType::COMPUTE)
+                {
+                    [m_computeEncoder setSamplerState:metalSampler atIndex:resource->set];
+                }
+                break;
+            case ShaderStage::VERTEX:
+                [m_encoder setVertexSamplerState:metalSampler atIndex:resource->set];
+                break;
+            case ShaderStage::FRAGMENT:
+                [m_encoder setFragmentSamplerState:metalSampler atIndex:resource->set];
+                break;
+            case ShaderStage::COMPUTE:
+                [m_computeEncoder setSamplerState:metalSampler atIndex:resource->set];
+                break;
+            default:
+                break;
+            }
+        }
+    }
+}
+
+void MetalRenderContext::setParameter(void* data, u32 size, std::string_view name)
+{
+    std::optional<ParameterBinding> parameter = m_pipeline->getShaderModule().getParameter(name);
+    if (!parameter.has_value())
+    {
+        log(LogLevel::WARNING, "Could not set parameter, no parameter named \"{}\"", name);
+        return;
+    }
+
+    if (parameter.value().size != size)
+    {
+        log(LogLevel::WARNING, "Could not set parameter \"{}\", got size {}, expected {}", name, size,
+            parameter.value().size);
+        return;
+    }
+
+    m_parameterHandler->writeParameter(parameter.value(), data, size);
+}
 
 void MetalRenderContext::draw(u32 vertexCount, u32 instanceCount, u32 vertexOffset, u32 instanceOffset)
 {
@@ -104,11 +352,13 @@ void MetalRenderContext::draw(u32 vertexCount, u32 instanceCount, u32 vertexOffs
         return;
     }
 
+    m_parameterHandler->bindBuffers(m_encoder);
     [m_encoder drawPrimitives:MTLPrimitiveTypeTriangle
                   vertexStart:vertexOffset
                   vertexCount:vertexCount
                 instanceCount:instanceCount
                  baseInstance:instanceOffset];
+    m_parameterHandler->updateIndices();
 }
 
 void MetalRenderContext::drawIndexed(u32 indexCount, u32 instanceCount, u32 indexOffset, u32 instanceOffset)
@@ -119,12 +369,13 @@ void MetalRenderContext::drawIndexed(u32 indexCount, u32 instanceCount, u32 inde
         return;
     }
 
-    if (m_boundIndexBuffer != nil)
+    if (m_boundIndexBuffer == nil)
     {
         log(LogLevel::WARNING, "Could not execute drawIndexed command, no index buffer has been bound");
         return;
     }
 
+    m_parameterHandler->bindBuffers(m_encoder);
     [m_encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                           indexCount:indexCount
                            indexType:MTLIndexTypeUInt32
@@ -133,6 +384,7 @@ void MetalRenderContext::drawIndexed(u32 indexCount, u32 instanceCount, u32 inde
                        instanceCount:instanceCount
                           baseVertex:0
                         baseInstance:instanceOffset];
+    m_parameterHandler->updateIndices();
 }
 
 void MetalRenderContext::dispatch(u32 groupX, u32 groupY, u32 groupZ)
@@ -143,8 +395,10 @@ void MetalRenderContext::dispatch(u32 groupX, u32 groupY, u32 groupZ)
         return;
     }
 
+    m_parameterHandler->bindBuffers(m_computeEncoder);
     [m_computeEncoder dispatchThreadgroups:MTLSizeMake(1, 1, 1)
                      threadsPerThreadgroup:MTLSizeMake(groupX, groupY, groupZ)];
+    m_parameterHandler->updateIndices();
 }
 
 } // namespace huedra
