@@ -180,7 +180,15 @@ bool WindowManager::update()
         static bool hasActivatedApp{false};
         if (!hasActivatedApp)
         {
-            [NSApp activateIgnoringOtherApps:YES];
+            [NSApp finishLaunching];
+            dispatch_async(dispatch_get_main_queue(), ^{
+              [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+              [NSApp activateIgnoringOtherApps:YES];
+              for (auto& window : m_windows)
+              {
+                  [static_cast<WindowCocoa*>(window)->get() makeKeyAndOrderFront:nil];
+              }
+            });
             hasActivatedApp = true;
         }
 

@@ -53,6 +53,12 @@ NSRect findMainFrame()
         i32 screenPositionX(static_cast<i32>(contentFrame.origin.x));
         i32 screenPositionY(static_cast<i32>(mainFrame.size.height - contentFrame.origin.y - contentFrame.size.height));
         self.cppWindow->updatePositionInternal(positionX, positionY, screenPositionX, screenPositionY);
+
+        u32 width{static_cast<u32>(frame.size.width)};
+        u32 height{static_cast<u32>(frame.size.height)};
+        u32 screenWidth{static_cast<u32>(contentFrame.size.width)};
+        u32 screenHeight{static_cast<u32>(contentFrame.size.height)};
+        self.cppWindow->updateResolutionInternal(width, height, screenWidth, screenHeight);
     }
 }
 - (void)windowDidResize:(NSNotification*)notification
@@ -63,6 +69,13 @@ NSRect findMainFrame()
         NSWindow* window = notification.object;
         NSRect frame = [window frame];
         NSRect contentFrame = [window contentRectForFrameRect:frame];
+        NSRect mainFrame = ::findMainFrame();
+
+        i32 positionX(static_cast<i32>(frame.origin.x));
+        i32 positionY(static_cast<i32>(mainFrame.size.height - frame.origin.y - frame.size.height));
+        i32 screenPositionX(static_cast<i32>(contentFrame.origin.x));
+        i32 screenPositionY(static_cast<i32>(mainFrame.size.height - contentFrame.origin.y - contentFrame.size.height));
+        self.cppWindow->updatePositionInternal(positionX, positionY, screenPositionX, screenPositionY);
 
         u32 width{static_cast<u32>(frame.size.width)};
         u32 height{static_cast<u32>(frame.size.height)};
@@ -111,7 +124,6 @@ bool WindowCocoa::init(const std::string& title, const WindowInput& input)
                                          NSWindowCollectionBehaviorFullScreenAllowsTiling)];
 
         [m_window setTitle:[NSString stringWithUTF8String:title.c_str()]];
-        [m_window makeKeyAndOrderFront:nil];
         if (!input.positionX.has_value() || !input.positionY.has_value())
         {
             [m_window center];
