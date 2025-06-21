@@ -1,4 +1,4 @@
-#include "parameterHandler.hpp"
+#include "parameter_handler.hpp"
 #include "core/log.hpp"
 #include "graphics/buffer.hpp"
 #include "graphics/pipeline_data.hpp"
@@ -41,7 +41,7 @@ void MetalParameterHandler::init(id<MTLDevice> device, const MetalPipeline& pipe
             }
             else if (pipeline.getBuilder().getType() == PipelineType::COMPUTE)
             {
-                // Same outcome regardless of ShaderStage::ALL or ShaderStage::COMPUTE
+                // Shader stage will either be Compute or All, will result in compute function either way
                 argBuffer.argEncoder =
                     [pipeline.getFunction(ShaderStage::COMPUTE).value() newArgumentEncoderWithBufferIndex:i];
             }

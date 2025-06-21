@@ -1,6 +1,7 @@
 #include "swapchain.hpp"
 #include "core/log.hpp"
 #include "graphics/graphics_manager.hpp"
+#include "graphics/render_target.hpp"
 
 namespace {
 
@@ -46,9 +47,11 @@ void MetalSwapchain::init(id<MTLDevice> device, id<MTLCommandQueue> commandQueue
     [m_window->get().contentView setLayer:m_layer];
     [m_window->get().contentView setWantsLayer:YES];
 
-    m_renderTarget.init(m_device, RenderTargetType::COLOR, GraphicsDataFormat::RGBA_8_UNORM,
+    RenderTargetType renderTargetType = renderDepth ? RenderTargetType::COLOR_AND_DEPTH : RenderTargetType::COLOR;
+    m_renderTarget.init(m_device, renderTargetType, GraphicsDataFormat::RGBA_8_UNORM,
                         static_cast<u32>(static_cast<float>(m_window->getScreenSize().x) * m_window->getScreenDPI()),
-                        static_cast<u32>(static_cast<float>(m_window->getScreenSize().y) * m_window->getScreenDPI()));
+                        static_cast<u32>(static_cast<float>(m_window->getScreenSize().y) * m_window->getScreenDPI()),
+                        this);
     m_window->setRenderTarget(Ref<RenderTarget>(&m_renderTarget));
 
     m_threadInfo.runningThread = true;

@@ -387,7 +387,23 @@ void MetalRenderContext::drawIndexed(u32 indexCount, u32 instanceCount, u32 inde
     m_parameterHandler->updateIndices();
 }
 
-void MetalRenderContext::dispatch(u32 groupX, u32 groupY, u32 groupZ)
+void MetalRenderContext::dispatchGroups(u32 groupX, u32 groupY, u32 groupZ)
+{
+    if (m_pipeline->getBuilder().getType() != PipelineType::COMPUTE)
+    {
+        log(LogLevel::WARNING, "Could not execute dispatchGroups call, not using a compute pipeline");
+        return;
+    }
+
+    m_parameterHandler->bindBuffers(m_computeEncoder);
+    uvec3 computeThreadsPerGroup = m_pipeline->getShaderModule().getComputeThreadsPerGroup();
+    [m_computeEncoder dispatchThreadgroups:MTLSizeMake(groupX, groupY, groupZ)
+                     threadsPerThreadgroup:MTLSizeMake(computeThreadsPerGroup.x, computeThreadsPerGroup.y,
+                                                       computeThreadsPerGroup.z)];
+    m_parameterHandler->updateIndices();
+}
+
+void MetalRenderContext::dispatch(u32 x, u32 y, u32 z)
 {
     if (m_pipeline->getBuilder().getType() != PipelineType::COMPUTE)
     {
@@ -396,8 +412,12 @@ void MetalRenderContext::dispatch(u32 groupX, u32 groupY, u32 groupZ)
     }
 
     m_parameterHandler->bindBuffers(m_computeEncoder);
-    [m_computeEncoder dispatchThreadgroups:MTLSizeMake(1, 1, 1)
-                     threadsPerThreadgroup:MTLSizeMake(groupX, groupY, groupZ)];
+    uvec3 computeThreadsPerGroup = m_pipeline->getShaderModule().getComputeThreadsPerGroup();
+    [m_computeEncoder dispatchThreadgroups:MTLSizeMake((x + computeThreadsPerGroup.x - 1) / computeThreadsPerGroup.x,
+                                                       (y + computeThreadsPerGroup.y - 1) / computeThreadsPerGroup.y,
+                                                       (z + computeThreadsPerGroup.z - 1) / computeThreadsPerGroup.z)
+                     threadsPerThreadgroup:MTLSizeMake(computeThreadsPerGroup.x, computeThreadsPerGroup.y,
+                                                       computeThreadsPerGroup.z)];
     m_parameterHandler->updateIndices();
 }
 

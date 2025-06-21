@@ -2,8 +2,8 @@
 #include "core/serialization/json.hpp"
 #include "core/types.hpp"
 #include "graphics/pipeline_data.hpp"
+#include "math/vec3.hpp"
 #include "platform/slang/config.hpp"
-#include <array>
 
 namespace huedra {
 
@@ -32,9 +32,9 @@ public:
     std::vector<EntryPoint> getEntryPoints() const { return m_entryPoints; }
 
     Slang::ComPtr<slang::IModule> getSlangModule() const { return m_module; }
-    std::vector<Slang::ComPtr<slang::IEntryPoint>> getSlangEntryPoints() const { return m_slangEntryPoints; }
 
-    ShaderStage getShaderStage(const std::string& entryPoint) const;
+    ShaderStage getShaderStage(const std::string& entryPointName) const;
+    Slang::ComPtr<slang::IEntryPoint> getSlangEntryPoint(const std::string& entryPointName) const;
 
 private:
     Slang::ComPtr<slang::IModule> m_module;
@@ -70,6 +70,7 @@ public:
     const std::vector<std::vector<ResourceBinding>>& getResources() const { return m_resources; }
     const std::vector<ParameterBinding>& getParameters() const { return m_parameters; }
     u32 getParametersSize() const { return m_nextParameterOffset; }
+    uvec3 getComputeThreadsPerGroup() const { return m_computeThreadsPerGroup; }
 
     // Since vertex buffers and other buffers in the vertex shader stage share the same binding group, vertex buffers
     // should start after the other buffers to avoid collisions
@@ -100,6 +101,7 @@ private:
     std::vector<u8> m_code;
     std::vector<std::vector<ResourceBinding>> m_resources;
     std::vector<ParameterBinding> m_parameters;
+    uvec3 m_computeThreadsPerGroup{};
     u32 m_nextParameterOffset{0};
 
     // Metal specific data

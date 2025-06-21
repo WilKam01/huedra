@@ -3,6 +3,7 @@
 #include "core/log.hpp"
 #include "graphics/pipeline_builder.hpp"
 #include "graphics/pipeline_data.hpp"
+#include "graphics/render_pass_builder.hpp"
 #include "graphics/render_target.hpp"
 #include "platform/cocoa/window.hpp"
 #include "platform/metal/buffer.hpp"
@@ -11,6 +12,7 @@
 #include "platform/metal/swapchain.hpp"
 #include "platform/metal/texture.hpp"
 
+#include <atomic>
 #include <ranges>
 
 namespace huedra {
@@ -27,12 +29,19 @@ void MetalContext::init()
     for (u32 i = 0; i < GraphicsManager::MAX_FRAMES_IN_FLIGHT; ++i)
     {
         m_inFlightSemaphores.push_back(dispatch_semaphore_create(1));
+        m_batchSharedEvents.push_back([m_device newSharedEvent]);
     }
 }
 
 void MetalContext::cleanup()
 {
     waitIdle();
+
+    for (auto& sharedEvent : m_batchSharedEvents)
+    {
+        [sharedEvent release];
+    }
+    m_batchSharedEvents.clear();
 
     for (auto& semaphore : m_inFlightSemaphores)
     {
@@ -57,6 +66,15 @@ void MetalContext::cleanup()
         renderTarget.cleanup();
     }
     m_renderTargets.clear();
+
+    for (auto& batch : m_passBatches)
+    {
+        for (auto& pass : batch.passes)
+        {
+            pass.pipeline.cleanup();
+        }
+    }
+    m_passBatches.clear();
 
     for (auto& info : m_samplers)
     {
@@ -179,7 +197,134 @@ void MetalContext::setRenderGraph(RenderGraphBuilder& builder)
 
     log(LogLevel::INFO, "New render graph with hash: 0x{:x}", m_curGraph.getHash());
 
-    m_pipeline.initGraphics(builder.getRenderPasses().begin()->second.getPipeline(), m_device);
+    for (auto& batch : m_passBatches)
+    {
+        for (auto& pass : batch.passes)
+        {
+            pass.pipeline.cleanup();
+        }
+    }
+    m_passBatches.clear();
+
+    for (auto& info : m_samplers)
+    {
+        [info.sampler release];
+    }
+    m_samplers.clear();
+
+    // Create render passes
+    struct VersionData
+    {
+        u32 version{0};
+    };
+    std::map<void*, VersionData> resourceVersions; // Keeping track on resource iterations
+
+    m_passBatches.emplace_back(GraphicsManager::MAX_FRAMES_IN_FLIGHT); // At least one batch
+    for (const auto& key : m_curGraph.getRenderPassNames())
+    {
+        const RenderPassBuilder& info = m_curGraph.getRenderPass(key);
+        PassInfo passInfo;
+        if (info.getType() == RenderPassType::GRAPHICS)
+        {
+            passInfo.pipeline.initGraphics(m_device, info.getPipeline(), info.getRenderTargets());
+        }
+        else if (info.getType() == RenderPassType::COMPUTE)
+        {
+            passInfo.pipeline.initCompute(m_device, info.getPipeline());
+        }
+        passInfo.commands = info.getCommands();
+        passInfo.clearTargets = info.getClearRenderTargets();
+
+        std::vector<MetalSwapchain*> swapchains;
+        u32 latestVersion = 0; // Checking the latest iteration of an input resource
+
+        // Inputs
+        for (auto& input : info.getInputs())
+        {
+            void* ptr = input.type == RenderPassReference::Type::BUFFER ? static_cast<void*>(input.buffer)
+                                                                        : static_cast<void*>(input.texture);
+            if (!resourceVersions.contains(ptr))
+            {
+                resourceVersions.insert(std::pair<void*, u32>(ptr, {}));
+            }
+            latestVersion = std::max(latestVersion, resourceVersions[ptr].version);
+
+            if (input.type == RenderPassReference::Type::TEXTURE)
+            {
+                auto* texture = static_cast<MetalTexture*>(input.texture);
+                if (texture->getRenderTarget() != nullptr && texture->getRenderTarget()->getSwapchain() != nullptr)
+                {
+                    swapchains.push_back(texture->getRenderTarget()->getSwapchain());
+                    m_activeSwapchains.insert(texture->getRenderTarget()->getSwapchain());
+                }
+            }
+        }
+
+        // Outputs
+        for (auto& output : info.getOutputs())
+        {
+            void* ptr = output.type == RenderPassReference::Type::BUFFER ? static_cast<void*>(output.buffer)
+                                                                         : static_cast<void*>(output.texture);
+            if (!resourceVersions.contains(ptr))
+            {
+                resourceVersions.insert(std::pair<void*, u32>(ptr, {}));
+            }
+            resourceVersions[ptr].version = latestVersion + 1;
+
+            if (output.type == RenderPassReference::Type::TEXTURE)
+            {
+                auto* texture = static_cast<MetalTexture*>(output.texture);
+                if (texture->getRenderTarget() != nullptr && texture->getRenderTarget()->getSwapchain() != nullptr)
+                {
+                    swapchains.push_back(texture->getRenderTarget()->getSwapchain());
+                    m_activeSwapchains.insert(texture->getRenderTarget()->getSwapchain());
+                }
+            }
+        }
+
+        // Render target (outputs for textures (color or depth or both))
+        for (auto& info : info.getRenderTargets())
+        {
+            auto* renderTarget = static_cast<MetalRenderTarget*>(info.target.get());
+            if (renderTarget->usesColor())
+            {
+                void* ptr = static_cast<void*>(renderTarget->getColorTexture().get());
+                if (!resourceVersions.contains(ptr))
+                {
+                    resourceVersions.insert(std::pair<void*, u32>(ptr, {}));
+                }
+                resourceVersions[ptr].version = latestVersion + 1;
+            }
+
+            if (renderTarget->usesDepth())
+            {
+                void* ptr = static_cast<void*>(renderTarget->getDepthTexture().get());
+                if (!resourceVersions.contains(ptr))
+                {
+                    resourceVersions.insert(std::pair<void*, u32>(ptr, {}));
+                }
+                resourceVersions[ptr].version = latestVersion + 1;
+            }
+
+            if (renderTarget->getSwapchain() != nullptr)
+            {
+                swapchains.push_back(renderTarget->getSwapchain());
+                m_activeSwapchains.insert(renderTarget->getSwapchain());
+            }
+
+            passInfo.renderTargets.push_back(renderTarget);
+            passInfo.clearColors.push_back(info.clearColor);
+        }
+
+        if (m_passBatches.size() <= latestVersion)
+        {
+            for (u64 i = m_passBatches.size(); i < latestVersion + 1; ++i)
+            {
+                m_passBatches.emplace_back(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
+            }
+        }
+        m_passBatches[latestVersion].passes.push_back(passInfo);
+    }
 }
 
 void MetalContext::render()
@@ -188,47 +333,105 @@ void MetalContext::render()
     {
         dispatch_semaphore_wait(m_inFlightSemaphores[global::graphicsManager.getCurrentFrame()], DISPATCH_TIME_FOREVER);
 
-        id<MTLCommandBuffer> cmd = [m_commandQueue commandBuffer];
-        [cmd addCompletedHandler:^(id<MTLCommandBuffer> _) {
-          dispatch_semaphore_signal(m_inFlightSemaphores[global::graphicsManager.getCurrentFrame()]);
-          for (auto& swapchain : m_swapchains)
-          {
-              swapchain.setTextureRendered();
-          }
-        }];
-
-        for (auto& [name, info] : m_curGraph.getRenderPasses())
+        for (u32 i = 0; i < m_passBatches.size(); ++i)
         {
-            MTLRenderPassDescriptor* renderPassDesc = [MTLRenderPassDescriptor renderPassDescriptor];
-            renderPassDesc.colorAttachments[0].texture =
-                static_cast<MetalTexture*>(info.getRenderTargets().begin()->target->getColorTexture().get())->get();
-            renderPassDesc.colorAttachments[0].loadAction = MTLLoadActionClear;
-            renderPassDesc.colorAttachments[0].storeAction = MTLStoreActionStore;
+            std::atomic_uint& cmdsLeft = m_passBatches[i].cmdsLeft[global::graphicsManager.getCurrentFrame()];
+            cmdsLeft.store(m_passBatches[i].passes.size());
 
-            // Assumes all are using depth when first is
-            if (info.getRenderTargets().begin()->target->usesDepth())
+            for (u32 j = 0; j < m_passBatches[i].passes.size(); ++j)
             {
-                renderPassDesc.depthAttachment.texture =
-                    static_cast<MetalTexture*>(info.getRenderTargets().begin()->target->getDepthTexture().get())->get();
-                renderPassDesc.depthAttachment.loadAction = MTLLoadActionClear;
-                renderPassDesc.depthAttachment.storeAction = MTLStoreActionStore;
+                PassInfo& pass = m_passBatches[i].passes[j];
+                id<MTLCommandBuffer> cmd = [m_commandQueue commandBuffer];
+
+                // Not first batch
+                if (i > 0)
+                {
+                    [cmd encodeWaitForEvent:m_batchSharedEvents[global::graphicsManager.getCurrentFrame()] value:i - 1];
+                }
+
+                if (pass.pipeline.getBuilder().getType() == PipelineType::GRAPHICS)
+                {
+                    MTLRenderPassDescriptor* renderPassDesc = [MTLRenderPassDescriptor renderPassDescriptor];
+                    for (u32 i = 0; i < pass.renderTargets.size(); ++i)
+                    {
+                        renderPassDesc.colorAttachments[i].texture =
+                            pass.renderTargets[i]->getMetalColorTexture().get();
+                        renderPassDesc.colorAttachments[i].loadAction =
+                            pass.clearTargets ? MTLLoadActionClear : MTLLoadActionLoad;
+                        renderPassDesc.colorAttachments[i].storeAction = MTLStoreActionStore;
+
+                        vec3 clearColor = pass.clearColors[i];
+                        renderPassDesc.colorAttachments[0].clearColor =
+                            MTLClearColorMake(clearColor.r, clearColor.g, clearColor.b, 1.0);
+                    }
+
+                    // Assumes all are using depth when first is
+                    if (pass.renderTargets.front()->usesDepth())
+                    {
+                        renderPassDesc.depthAttachment.texture =
+                            pass.renderTargets.front()->getMetalDepthTexture().get();
+                        renderPassDesc.depthAttachment.loadAction =
+                            pass.clearTargets ? MTLLoadActionClear : MTLLoadActionLoad;
+                        renderPassDesc.depthAttachment.storeAction = MTLStoreActionStore;
+                    }
+
+                    id<MTLRenderCommandEncoder> encoder = [cmd renderCommandEncoderWithDescriptor:renderPassDesc];
+                    [encoder setRenderPipelineState:pass.pipeline.getGraphicsPipeline()];
+
+                    MetalRenderContext renderContext;
+                    renderContext.init(m_device, encoder, *this, pass.pipeline);
+                    pass.commands(renderContext);
+
+                    [encoder endEncoding];
+                }
+                else if (pass.pipeline.getBuilder().getType() == PipelineType::COMPUTE)
+                {
+                    id<MTLComputeCommandEncoder> encoder =
+                        [cmd computeCommandEncoderWithDispatchType:MTLDispatchTypeConcurrent];
+                    [encoder setComputePipelineState:pass.pipeline.getComputePipeline()];
+
+                    MetalRenderContext renderContext;
+                    renderContext.init(encoder, *this, pass.pipeline);
+                    pass.commands(renderContext);
+
+                    [encoder endEncoding];
+                }
+
+                // Last batch
+                if (i == m_passBatches.size() - 1)
+                {
+                    [cmd addCompletedHandler:^(id<MTLCommandBuffer> _) {
+                      if (cmdsLeft.fetch_sub(1) - 1 == 0) // -1 since it returns previous value
+                      {
+                          dispatch_semaphore_signal(m_inFlightSemaphores[global::graphicsManager.getCurrentFrame()]);
+                          for (auto* swapchain : m_activeSwapchains)
+                          {
+                              swapchain->setTextureRendered();
+                          }
+                      }
+                    }];
+                }
+                // Only one pass in batch (can signal event directly instead of waiting on other command buffers)
+                else if (m_passBatches[i].passes.size() == 1)
+                {
+                    [cmd encodeSignalEvent:m_batchSharedEvents[global::graphicsManager.getCurrentFrame()] value:i];
+                }
+                else
+                {
+                    [cmd addCompletedHandler:^(id<MTLCommandBuffer> _) {
+                      if (cmdsLeft.fetch_sub(1) - 1 == 0) // -1 since it returns previous value
+                      {
+                          id<MTLCommandBuffer> signalCmd = [m_commandQueue commandBuffer];
+                          [signalCmd encodeSignalEvent:m_batchSharedEvents[global::graphicsManager.getCurrentFrame()]
+                                                 value:i];
+                          [signalCmd commit];
+                      }
+                    }];
+                }
+
+                [cmd commit];
             }
-
-            vec3 clearColor = info.getRenderTargets().begin()->clearColor;
-            renderPassDesc.colorAttachments[0].clearColor =
-                MTLClearColorMake(clearColor.r, clearColor.g, clearColor.b, 1.0);
-
-            id<MTLRenderCommandEncoder> encoder = [cmd renderCommandEncoderWithDescriptor:renderPassDesc];
-            [encoder setRenderPipelineState:m_pipeline.get()];
-
-            MetalRenderContext renderContext;
-            renderContext.init(m_device, encoder, *this, m_pipeline);
-            info.getCommands()(renderContext);
-
-            [encoder endEncoding];
         }
-
-        [cmd commit];
     }
 }
 

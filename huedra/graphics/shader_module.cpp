@@ -8,6 +8,7 @@
 #include "graphics/pipeline_data.hpp"
 
 #include <algorithm>
+#include <array>
 #include <ranges>
 
 namespace huedra {
@@ -77,18 +78,25 @@ void ShaderModule::init(Slang::ComPtr<slang::IModule> shaderModule,
     }
 }
 
-ShaderStage ShaderModule::getShaderStage(const std::string& entryPoint) const
+ShaderStage ShaderModule::getShaderStage(const std::string& entryPointName) const
 {
     ShaderStage stage = ShaderStage::NONE;
 
-    auto it =
-        std::ranges::find_if(m_entryPoints, [entryPoint](const EntryPoint& entry) { return entry.name == entryPoint; });
+    auto it = std::ranges::find_if(m_entryPoints,
+                                   [entryPointName](const EntryPoint& entry) { return entry.name == entryPointName; });
     if (it != m_entryPoints.end())
     {
         stage = it->stage;
     }
 
     return stage;
+}
+
+Slang::ComPtr<slang::IEntryPoint> ShaderModule::getSlangEntryPoint(const std::string& entryPointName) const
+{
+    Slang::ComPtr<slang::IEntryPoint> entryPoint;
+    m_module->findEntryPointByName(entryPointName.c_str(), entryPoint.writeRef());
+    return entryPoint;
 }
 
 // TODO: add support for resource arrays
@@ -126,6 +134,15 @@ void CompiledShaderModule::init(Slang::ComPtr<slang::IComponentType> program, co
 
         addParameterBlockRangesVulkan(convertSlangShaderStage(entryPointLayout->getStage()),
                                       entryPointLayout->getTypeLayout(), "", descriptorNames, subObjectNames, 0);
+
+        if (convertSlangShaderStage(entryPointLayout->getStage()) == ShaderStage::COMPUTE)
+        {
+            std::array<SlangUInt, 3> threadValues{{}};
+            entryPointLayout->getComputeThreadGroupSize(3, threadValues.data());
+            m_computeThreadsPerGroup.x = threadValues[0];
+            m_computeThreadsPerGroup.y = threadValues[1];
+            m_computeThreadsPerGroup.z = threadValues[2];
+        }
     }
 #elif defined(METAL)
     u32 parameterCount = programLayout->getParameterCount();
@@ -144,6 +161,15 @@ void CompiledShaderModule::init(Slang::ComPtr<slang::IComponentType> program, co
         {
             addParametersMetal(convertSlangShaderStage(entryPointLayout->getStage()), "",
                                entryPointLayout->getParameterByIndex(i), entryPointLayout->getTypeLayout(), true);
+        }
+
+        if (convertSlangShaderStage(entryPointLayout->getStage()) == ShaderStage::COMPUTE)
+        {
+            std::array<SlangUInt, 3> threadValues{{}};
+            entryPointLayout->getComputeThreadGroupSize(3, threadValues.data());
+            m_computeThreadsPerGroup.x = threadValues[0];
+            m_computeThreadsPerGroup.y = threadValues[1];
+            m_computeThreadsPerGroup.z = threadValues[2];
         }
     }
 
@@ -408,6 +434,7 @@ void CompiledShaderModule::addParametersMetal(ShaderStage stage, const std::stri
         }
     }
     case slang::BindingType::Texture:
+    case slang::BindingType::MutableTexture:
     case slang::BindingType::Sampler: {
         addResourcesMetal(stage, namePrefix + varLayout->getName(),
                           convertSlangResourceType(varLayout->getTypeLayout()->getBindingRangeType(0)),
@@ -487,7 +514,8 @@ void CompiledShaderModule::addParametersMetal(ShaderStage stage, const std::stri
             m_nextParameterOffset += parameter.size;
         }
         // Add automatically created constant buffer
-        else if (!getResource(namePrefix + "<misc>").has_value())
+        else if (!getResource(namePrefix + "<misc>").has_value() &&
+                 std::string(varLayout->getSemanticName()).substr(0, 3) != "SV_")
         {
             addResourcesMetal(stage, namePrefix + "<misc>", ResourceType::CONSTANT_BUFFER, varLayout->getCategory());
         }

@@ -6,6 +6,8 @@
 
 namespace huedra {
 
+class MetalSwapchain;
+
 class MetalRenderTarget : public RenderTarget
 {
 public:
@@ -17,7 +19,8 @@ public:
     MetalRenderTarget(MetalRenderTarget&& rhs) = default;
     MetalRenderTarget& operator=(MetalRenderTarget&& rhs) = default;
 
-    void init(id<MTLDevice> device, RenderTargetType type, GraphicsDataFormat format, u32 width, u32 height);
+    void init(id<MTLDevice> device, RenderTargetType type, GraphicsDataFormat format, u32 width, u32 height,
+              MetalSwapchain* swapchain = nullptr);
     void recreate(u32 width, u32 height);
     void cleanup();
 
@@ -25,6 +28,7 @@ public:
     Ref<Texture> getDepthTexture() override;
     MetalTexture& getMetalColorTexture() { return m_colorTexture; }
     MetalTexture& getMetalDepthTexture() { return m_depthTexture; }
+    MetalSwapchain* getSwapchain() { return m_swapchain; }
 
     void setAvailability(bool available);
 
@@ -32,6 +36,7 @@ private:
     id<MTLDevice> m_device;
     MetalTexture m_colorTexture;
     MetalTexture m_depthTexture;
+    MetalSwapchain* m_swapchain{nullptr};
 };
 
 } // namespace huedra

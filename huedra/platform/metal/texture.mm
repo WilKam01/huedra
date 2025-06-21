@@ -1,9 +1,9 @@
 #include "texture.hpp"
 #include "core/global.hpp"
 #include "graphics/texture.hpp"
+#include "platform/metal/render_target.hpp"
 #include "platform/metal/type_converter.hpp"
 #include "resources/texture/data.hpp"
-#include <Metal/Metal.h>
 
 namespace huedra {
 
@@ -13,7 +13,7 @@ void MetalTexture::init(id<MTLDevice> device, id<MTLCommandQueue> commandQueue, 
     {
         Texture::init(data.width, data.height, data.format, TextureType::COLOR);
         m_device = device;
-        m_isRenderTargetTexture = false;
+        m_renderTarget = nullptr;
 
         m_textures.resize(1);
         MTLTextureDescriptor* desc = [[MTLTextureDescriptor alloc] init];
@@ -59,14 +59,14 @@ void MetalTexture::init(id<MTLDevice> device, id<MTLCommandQueue> commandQueue, 
     }
 }
 
-void MetalTexture::init(id<MTLDevice> device, TextureType type, GraphicsDataFormat format, u32 width, u32 height,
-                        u32 imageCount)
+void MetalTexture::init(id<MTLDevice> device, MetalRenderTarget* renderTarget, TextureType type,
+                        GraphicsDataFormat format, u32 width, u32 height, u32 imageCount)
 {
     @autoreleasepool
     {
         Texture::init(width, height, format, type);
         m_device = device;
-        m_isRenderTargetTexture = true;
+        m_renderTarget = renderTarget;
         m_textures.resize(imageCount);
 
         MTLTextureDescriptor* desc = [[MTLTextureDescriptor alloc] init];
@@ -76,7 +76,7 @@ void MetalTexture::init(id<MTLDevice> device, TextureType type, GraphicsDataForm
         desc.width = width;
         desc.height = height;
         desc.mipmapLevelCount = 1;
-        desc.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead;
+        desc.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite;
         desc.storageMode = MTLStorageModePrivate;
 
         for (auto& texture : m_textures)
@@ -96,7 +96,7 @@ void MetalTexture::cleanup()
 
 u32 MetalTexture::getIndex() const
 {
-    if (m_isRenderTargetTexture)
+    if (m_renderTarget != nullptr)
     {
         return global::graphicsManager.getCurrentFrame();
     }

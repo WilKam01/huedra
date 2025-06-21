@@ -33,7 +33,13 @@ public:
 
     void draw(u32 vertexCount, u32 instanceCount, u32 vertexOffset, u32 instanceOffset) override;
     void drawIndexed(u32 indexCount, u32 instanceCount, u32 indexOffset, u32 instanceOffset) override;
-    void dispatch(u32 groupX, u32 groupY, u32 groupZ) override;
+    void dispatchGroups(u32 groupX, u32 groupY, u32 groupZ) override;
+    void dispatch(u32 x, u32 y, u32 z) override;
+
+    uvec3 getComputeThreadsPerGroup() override
+    {
+        return m_renderPass->getPipeline().getShaderModule().getComputeThreadsPerGroup();
+    }
 
 private:
     VkCommandBuffer m_commandBuffer{nullptr};

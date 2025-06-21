@@ -3,7 +3,7 @@
 #include "graphics/render_context.hpp"
 #include "platform/metal/config.hpp"
 #include "platform/metal/context.hpp"
-#include "platform/metal/parameterHandler.hpp"
+#include "platform/metal/parameter_handler.hpp"
 #include "platform/metal/pipeline.hpp"
 #include <string_view>
 
@@ -34,7 +34,10 @@ public:
 
     void draw(u32 vertexCount, u32 instanceCount, u32 vertexOffset, u32 instanceOffset) override;
     void drawIndexed(u32 indexCount, u32 instanceCount, u32 indexOffset, u32 instanceOffset) override;
-    void dispatch(u32 groupX, u32 groupY, u32 groupZ) override;
+    void dispatchGroups(u32 groupX, u32 groupY, u32 groupZ) override;
+    void dispatch(u32 x, u32 y, u32 z) override;
+
+    uvec3 getComputeThreadsPerGroup() override { return m_pipeline->getShaderModule().getComputeThreadsPerGroup(); };
 
 private:
     id<MTLRenderCommandEncoder> m_encoder;

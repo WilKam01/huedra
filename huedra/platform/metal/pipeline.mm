@@ -9,7 +9,8 @@
 
 namespace huedra {
 
-void MetalPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, id<MTLDevice> device)
+void MetalPipeline::initGraphics(id<MTLDevice> device, const PipelineBuilder& pipelineBuilder,
+                                 std::vector<RenderTargetInfo> renderTargets)
 {
     @autoreleasepool
     {
@@ -17,18 +18,7 @@ void MetalPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, id<MTLD
         m_builder = pipelineBuilder;
 
         std::map<ShaderStage, ShaderInput> shaders = pipelineBuilder.getShaderStages();
-        std::vector<ShaderModule> shaderModules{};
-        for (auto& [stage, input] : shaders)
-        {
-            if (std::ranges::find_if(shaderModules, [&input](ShaderModule& shaderModule) {
-                    return input.shaderModule->getSlangModule() == shaderModule.getSlangModule();
-                }) == shaderModules.end())
-            {
-                shaderModules.push_back(*input.shaderModule);
-            }
-        }
-
-        m_shaderModule = global::graphicsManager.compileAndLinkShaderModules(shaderModules);
+        m_shaderModule = global::graphicsManager.compileAndLinkShaderModules(shaders);
 
         NSError* error = nil;
         NSString* source = [[NSString alloc] initWithBytes:m_shaderModule.getCode().data()
@@ -78,14 +68,61 @@ void MetalPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, id<MTLD
             m_functions.insert(std::pair<ShaderStage, id<MTLFunction>>(ShaderStage::FRAGMENT, desc.fragmentFunction));
         }
 
-        desc.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA8Unorm;
+        for (u32 i = 0; i < renderTargets.size(); ++i)
+        {
+            desc.colorAttachments[i].pixelFormat =
+                converter::convertPixelDataFormat(renderTargets[i].target->getFormat());
+        }
 
         desc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
 
-        m_pipeline = [m_device newRenderPipelineStateWithDescriptor:desc error:&error];
-        if (m_pipeline == nullptr && [[error localizedDescription] UTF8String] != nullptr)
+        m_renderPipeline = [m_device newRenderPipelineStateWithDescriptor:desc error:&error];
+        if (m_renderPipeline == nullptr && [[error localizedDescription] UTF8String] != nullptr)
         {
             log(LogLevel::ERR, "MetalPipeline::initGraphics(): Failed to create pipeline state: {}",
+                [[error localizedDescription] UTF8String]);
+            return;
+        }
+
+        m_parameterHandlers.resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
+        for (auto& parameterHandler : m_parameterHandlers)
+        {
+            parameterHandler.init(m_device, *this, m_shaderModule);
+        }
+    }
+}
+
+void MetalPipeline::initCompute(id<MTLDevice> device, const PipelineBuilder& pipelineBuilder)
+{
+    @autoreleasepool
+    {
+        m_device = device;
+        m_builder = pipelineBuilder;
+
+        std::map<ShaderStage, ShaderInput> shaders = pipelineBuilder.getShaderStages();
+        m_shaderModule = global::graphicsManager.compileAndLinkShaderModules(shaders);
+
+        NSError* error = nil;
+        NSString* source = [[NSString alloc] initWithBytes:m_shaderModule.getCode().data()
+                                                    length:m_shaderModule.getCode().size()
+                                                  encoding:NSUTF8StringEncoding];
+
+        id<MTLLibrary> library = [m_device newLibraryWithSource:source options:nil error:&error];
+        if (library == nullptr && [[error localizedDescription] UTF8String] != nullptr)
+        {
+            log(LogLevel::ERR, "MetalPipeline::initCompute(): Failed to create library from source: {}",
+                [[error localizedDescription] UTF8String]);
+            return;
+        }
+
+        id<MTLFunction> computeFunction = [library
+            newFunctionWithName:[NSString stringWithUTF8String:shaders[ShaderStage::COMPUTE].entryPointName.c_str()]];
+        m_functions.insert(std::pair<ShaderStage, id<MTLFunction>>(ShaderStage::COMPUTE, computeFunction));
+
+        m_computePipeline = [m_device newComputePipelineStateWithFunction:computeFunction error:&error];
+        if (m_computePipeline == nullptr && [[error localizedDescription] UTF8String] != nullptr)
+        {
+            log(LogLevel::ERR, "MetalPipeline::initCompute(): Failed to create pipeline state: {}",
                 [[error localizedDescription] UTF8String]);
             return;
         }
@@ -112,7 +149,14 @@ void MetalPipeline::cleanup()
     }
     m_functions.clear();
 
-    [m_pipeline release];
+    if (m_builder.getType() == PipelineType::GRAPHICS)
+    {
+        [m_renderPipeline release];
+    }
+    else if (m_builder.getType() == PipelineType::COMPUTE)
+    {
+        [m_computePipeline release];
+    }
 }
 
 std::optional<id<MTLFunction>> MetalPipeline::getFunction(ShaderStage stage) const

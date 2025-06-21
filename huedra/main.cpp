@@ -3,7 +3,11 @@
 #include "core/log.hpp"
 #include "core/serialization/json.hpp"
 #include "core/string/utils.hpp"
+#include "graphics/pipeline_builder.hpp"
+#include "graphics/pipeline_data.hpp"
+#include "graphics/render_context.hpp"
 #include "graphics/render_pass_builder.hpp"
+#include "graphics/render_target.hpp"
 #include "math/conversions.hpp"
 #include "math/matrix_projection.hpp"
 #include "math/matrix_transform.hpp"
@@ -12,6 +16,7 @@
 #include "resources/mesh/loader.hpp"
 #include "resources/texture/loader.hpp"
 #include "scene/components/transform.hpp"
+#include <array>
 
 using namespace huedra;
 
@@ -85,7 +90,7 @@ int main()
     TextureData& tex = global::resourceManager.loadTextureData("assets/textures/test.png", TexelChannelFormat::RGBA);
     Ref<Texture> texture = global::graphicsManager.createTexture(tex);
 
-    ShaderModule& shaderModule = global::resourceManager.loadShaderModule("assets/shaders/shader.slang");
+    ShaderModule& shaderModule = global::resourceManager.loadShaderModule("assets/shaders/deffered.slang");
     PipelineBuilder builder;
     builder.init(PipelineType::GRAPHICS)
         .addShader(shaderModule, "vertMain")
@@ -104,20 +109,51 @@ int main()
                                numEnities](RenderContext& renderContext) {
         renderContext.bindVertexBuffers({positionsBuffer, uvsBuffer, normalsBuffer});
         renderContext.bindIndexBuffer(indexBuffer);
-        renderContext.bindBuffer(viewProjBuffer, "cameraBuffer");
+        renderContext.bindBuffer(viewProjBuffer, "cameraMatrix");
         renderContext.bindTexture(texture, "resources.texture");
         renderContext.bindSampler(SAMPLER_LINEAR, "resources.sampler");
 
         global::sceneManager.query<Transform>([&](Transform& transform) {
             transform.rotation += vec3(math::radians(5), math::radians(10), 0.0f) * global::timer.dt();
             matrix4 mat = transform.applyMatrix();
-            renderContext.setParameter(&mat, sizeof(matrix4), "model");
+            renderContext.setParameter(&mat, sizeof(matrix4), "modelMatrix");
             renderContext.drawIndexed(static_cast<u32>(meshes[0].indices.size()), 1, 0, 0);
         });
     };
 
+    // Deffered compute pass resources
+    struct
+    {
+        vec4 position;
+        vec4 color;
+    } lightData{.position = vec4(0.0f, 10.0f, 5.0f, 0.0f), .color = vec4(0.5f, 0.1f, 0.5f, 5.0f)};
+
+    Ref<Buffer> lightBuffer = global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_CONSTANT_BUFFER,
+                                                                   sizeof(lightData), &lightData);
+
+    std::array<Ref<RenderTarget>, 3> gBuffers;
+    for (auto& gBuffer : gBuffers)
+    {
+        gBuffer = global::graphicsManager.createRenderTarget(
+            RenderTargetType::COLOR_AND_DEPTH, window->getRenderTarget()->getFormat(),
+            window->getRenderTarget()->getWidth(), window->getRenderTarget()->getHeight());
+    }
+
+    PipelineBuilder computeBuilder;
+    computeBuilder.init(PipelineType::COMPUTE).addShader(shaderModule, "computeMain");
+
+    RenderCommands computeCommands = [&lightBuffer, &gBuffers, &window](RenderContext& renderContext) {
+        renderContext.bindBuffer(lightBuffer, "lightBuffer");
+        renderContext.bindTexture(gBuffers[0]->getColorTexture(), "gBuffers.position");
+        renderContext.bindTexture(gBuffers[1]->getColorTexture(), "gBuffers.normal");
+        renderContext.bindTexture(gBuffers[2]->getColorTexture(), "gBuffers.albedo");
+        renderContext.bindTexture(window->getRenderTarget()->getColorTexture(), "outputTexture");
+        renderContext.dispatch(window->getRenderTarget()->getWidth(), window->getRenderTarget()->getHeight(), 1);
+    };
+
     vec3 eye(0.0f, 0.0f, 12.0f);
     vec3 rot(0.0f);
+    uvec2 windowRenderTargetSize{window->getRenderTarget()->getSize()};
     while (global::windowManager.update())
     {
         global::timer.update();
@@ -181,14 +217,43 @@ int main()
         RenderGraphBuilder renderGraph;
         if (window.valid() && window->getRenderTarget()->isAvailable())
         {
-            RenderPassBuilder renderPass =
-                RenderPassBuilder()
-                    .init(RenderPassType::GRAPHICS, builder)
-                    .addResource(ResourceAccessType::READ, viewProjBuffer, ShaderStage::VERTEX)
-                    .addResource(ResourceAccessType::READ, texture, ShaderStage::FRAGMENT)
-                    .addRenderTarget(window->getRenderTarget())
-                    .setCommands(commands);
-            renderGraph.addPass("Render Pass", renderPass);
+            // Window resized, need to recreate gBuffers
+            if (windowRenderTargetSize != window->getRenderTarget()->getSize())
+            {
+                for (auto& gBuffer : gBuffers)
+                {
+                    global::graphicsManager.removeRenderTarget(gBuffer);
+                    gBuffer = global::graphicsManager.createRenderTarget(
+                        RenderTargetType::COLOR_AND_DEPTH, window->getRenderTarget()->getFormat(),
+                        window->getRenderTarget()->getWidth(), window->getRenderTarget()->getHeight());
+                }
+                windowRenderTargetSize = window->getRenderTarget()->getSize();
+            }
+
+            RenderPassBuilder renderPass;
+            renderPass.init(RenderPassType::GRAPHICS, builder)
+                .addResource(ResourceAccessType::READ, viewProjBuffer, ShaderStage::VERTEX)
+                .addResource(ResourceAccessType::READ, texture, ShaderStage::FRAGMENT)
+                .setCommands(commands);
+            for (auto& gBuffer : gBuffers)
+            {
+                renderPass.addRenderTarget(gBuffer);
+            }
+
+            renderGraph.addPass("GBuffer Pass", renderPass);
+
+            renderPass.init(RenderPassType::COMPUTE, computeBuilder)
+                .addResource(ResourceAccessType::READ, lightBuffer, ShaderStage::COMPUTE)
+                .addResource(ResourceAccessType::WRITE, window->getRenderTarget()->getColorTexture(),
+                             ShaderStage::COMPUTE)
+                .setCommands(computeCommands);
+
+            for (auto& gBuffer : gBuffers)
+            {
+                renderPass.addResource(ResourceAccessType::READ, gBuffer->getColorTexture(), ShaderStage::COMPUTE);
+            }
+
+            renderGraph.addPass("Deffered pass", renderPass);
         }
 
         rect = window->getRect();
@@ -196,7 +261,6 @@ int main()
                                      static_cast<float>(rect.screenWidth) / static_cast<float>(rect.screenHeight),
                                      vec2(0.1f, 100.0f)) *
                    math::lookTo(eye, -forward, up);
-
         viewProjBuffer->write(&viewProj, sizeof(viewProj));
 
         global::graphicsManager.render(renderGraph);

@@ -21,7 +21,7 @@ public:
     void cleanup();
 
     ShaderModule createModule(const std::string& name, const std::string& source);
-    CompiledShaderModule compileAndLinkModules(const std::vector<ShaderModule>& modules);
+    CompiledShaderModule compileAndLinkModules(const std::map<ShaderStage, ShaderInput>& inputs);
 
 private:
     Slang::ComPtr<slang::IGlobalSession> m_globalSession;

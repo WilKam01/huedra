@@ -35,7 +35,7 @@ public:
     Ref<RenderTarget> createRenderTarget(RenderTargetType type, GraphicsDataFormat format, u32 width, u32 height);
     ShaderModule createShaderModule(const std::string& name, const u8* sourceCode, u64 sourceCodeLength);
     ShaderModule createShaderModule(const std::string& name, std::string& sourceString);
-    CompiledShaderModule compileAndLinkShaderModules(const std::vector<ShaderModule>& shaderModules);
+    CompiledShaderModule compileAndLinkShaderModules(const std::map<ShaderStage, ShaderInput>& inputs);
 
     void removeBuffer(Ref<Buffer> buffer);
     void removeTexture(Ref<Texture> texture);

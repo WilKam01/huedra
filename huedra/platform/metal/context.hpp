@@ -10,6 +10,7 @@
 #include "platform/metal/texture.hpp"
 
 #include <array>
+#include <atomic>
 #include <deque>
 #include <dispatch/dispatch.h>
 
@@ -17,7 +18,6 @@ namespace huedra {
 
 class MetalContext : public GraphicalContext
 {
-
 public:
     MetalContext() = default;
     virtual ~MetalContext() = default;
@@ -52,10 +52,12 @@ private:
 
     id<MTLDevice> m_device;
     id<MTLCommandQueue> m_commandQueue;
-    std::deque<MetalSwapchain> m_swapchains;
     std::deque<MetalBuffer> m_buffers;
     std::deque<MetalTexture> m_textures;
     std::deque<MetalRenderTarget> m_renderTargets;
+
+    std::deque<MetalSwapchain> m_swapchains;
+    std::set<MetalSwapchain*> m_activeSwapchains; // In render graph
 
     struct SamplerInfo
     {
@@ -64,11 +66,26 @@ private:
     };
     std::vector<SamplerInfo> m_samplers;
 
-    std::vector<dispatch_semaphore_t> m_inFlightSemaphores;
-
     RenderGraphBuilder m_curGraph;
+    struct PassInfo
+    {
+        MetalPipeline pipeline;
+        RenderCommands commands{nullptr};
+        std::vector<MetalRenderTarget*> renderTargets;
+        std::vector<vec3> clearColors;
+        bool clearTargets{true};
+    };
+    struct PassBatch
+    {
+        std::vector<PassInfo> passes;
+        std::vector<std::atomic_uint> cmdsLeft;
 
-    MetalPipeline m_pipeline;
+        explicit PassBatch(u32 num) : passes(0), cmdsLeft(num) {}
+    };
+    std::vector<PassBatch> m_passBatches;
+
+    std::vector<dispatch_semaphore_t> m_inFlightSemaphores;
+    std::vector<id<MTLSharedEvent>> m_batchSharedEvents;
 };
 
 } // namespace huedra

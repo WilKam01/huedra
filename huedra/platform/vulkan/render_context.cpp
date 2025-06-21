@@ -196,7 +196,20 @@ void VulkanRenderContext::drawIndexed(u32 indexCount, u32 instanceCount, u32 ind
     m_descriptorHandler->updateSetInstance();
 }
 
-void VulkanRenderContext::dispatch(u32 groupX, u32 groupY, u32 groupZ)
+void VulkanRenderContext::dispatchGroups(u32 groupX, u32 groupY, u32 groupZ)
+{
+    if (m_renderPass->getPipelineType() != PipelineType::COMPUTE)
+    {
+        log(LogLevel::WARNING, "Could not execute dispatchGroups call, not using a compute pipeline");
+        return;
+    }
+
+    m_descriptorHandler->bindSets(m_commandBuffer);
+    vkCmdDispatch(m_commandBuffer, groupX, groupY, groupZ);
+    m_descriptorHandler->updateSetInstance();
+}
+
+void VulkanRenderContext::dispatch(u32 x, u32 y, u32 z)
 {
     if (m_renderPass->getPipelineType() != PipelineType::COMPUTE)
     {
@@ -205,7 +218,10 @@ void VulkanRenderContext::dispatch(u32 groupX, u32 groupY, u32 groupZ)
     }
 
     m_descriptorHandler->bindSets(m_commandBuffer);
-    vkCmdDispatch(m_commandBuffer, groupX, groupY, groupZ);
+    uvec3 computeThreadsPerGroup = m_renderPass->getPipeline().getShaderModule().getComputeThreadsPerGroup();
+    vkCmdDispatch(m_commandBuffer, (x + computeThreadsPerGroup.x - 1) / computeThreadsPerGroup.x,
+                  (y + computeThreadsPerGroup.y - 1) / computeThreadsPerGroup.y,
+                  (z + computeThreadsPerGroup.z - 1) / computeThreadsPerGroup.z);
     m_descriptorHandler->updateSetInstance();
 }
 

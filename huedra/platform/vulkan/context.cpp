@@ -2,6 +2,7 @@
 #include "core/global.hpp"
 #include "core/log.hpp"
 #include "core/string/utils.hpp"
+#include "graphics/render_pass_builder.hpp"
 #include "platform/vulkan/config.hpp"
 #include "platform/vulkan/os_manager.hpp"
 #include "platform/vulkan/type_converter.hpp"
@@ -359,8 +360,10 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
     std::map<void*, VersionData> resourceVersions; // Keeping track on resource iterations
 
     m_passBatches.emplace_back(); // At least one batch
-    for (auto& [key, info] : builder.getRenderPasses())
+    for (const auto& key : m_curGraph.getRenderPassNames())
     {
+        const RenderPassBuilder& info = m_curGraph.getRenderPass(key);
+
         PassInfo passInfo;
         passInfo.pass = new VulkanRenderPass();
         passInfo.pass->init(m_device, info);
