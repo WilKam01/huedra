@@ -15,4 +15,10 @@ MTLVertexFormat convertDataFormat(GraphicsDataFormat format);
 // HU -> MTL
 MTLVertexStepFunction convertVertexInputRate(VertexInputRate inputRate);
 
+// HU -> MTL
+MTLPrimitiveType convertPrimitiveType(PrimitiveType type, PrimitiveLayout layout);
+
+// HU -> MTL
+MTLTriangleFillMode convertTriangleFillMode(PrimitiveType type);
+
 } // namespace huedra::converter

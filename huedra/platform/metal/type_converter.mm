@@ -1,5 +1,4 @@
 #include "type_converter.hpp"
-#include <Metal/Metal.h>
 
 namespace huedra::converter {
 
@@ -249,6 +248,40 @@ MTLVertexStepFunction convertVertexInputRate(VertexInputRate inputRate)
         return MTLVertexStepFunctionPerVertex;
     case VertexInputRate::INSTANCE:
         return MTLVertexStepFunctionPerInstance;
+    }
+}
+
+MTLPrimitiveType convertPrimitiveType(PrimitiveType type, PrimitiveLayout layout)
+{
+    if (type == PrimitiveType::POINT)
+    {
+        return MTLPrimitiveTypePoint;
+    }
+
+    switch (layout)
+    {
+    case PrimitiveLayout::POINT_LIST:
+        return MTLPrimitiveTypePoint;
+    case PrimitiveLayout::LINE_LIST:
+        return MTLPrimitiveTypeLine;
+    case PrimitiveLayout::LINE_STRIP:
+        return MTLPrimitiveTypeLineStrip;
+    case PrimitiveLayout::TRIANGLE_LIST:
+        return MTLPrimitiveTypeTriangle;
+    case PrimitiveLayout::TRIANGLE_STRIP:
+        return MTLPrimitiveTypeTriangleStrip;
+    }
+}
+
+MTLTriangleFillMode convertTriangleFillMode(PrimitiveType type)
+{
+    switch (type)
+    {
+    case PrimitiveType::POINT:
+    case PrimitiveType::LINE:
+        return MTLTriangleFillModeLines;
+    case PrimitiveType::TRIANGLE:
+        return MTLTriangleFillModeFill;
     }
 }
 

@@ -5,6 +5,7 @@
 #include "platform/metal/buffer.hpp"
 #include "platform/metal/render_target.hpp"
 #include "platform/metal/texture.hpp"
+#include "platform/metal/type_converter.hpp"
 #include <Foundation/Foundation.h>
 #include <Metal/MTLRenderCommandEncoder.h>
 #include <Metal/Metal.h>
@@ -34,6 +35,8 @@ void MetalRenderContext::init(id<MTLDevice> device, id<MTLRenderCommandEncoder> 
 
         id<MTLDepthStencilState> depthState = [device newDepthStencilStateWithDescriptor:depthDesc];
         [encoder setDepthStencilState:depthState];
+
+        [encoder setTriangleFillMode:converter::convertTriangleFillMode(m_pipeline->getBuilder().getPrimitiveType())];
     }
 }
 
@@ -353,7 +356,8 @@ void MetalRenderContext::draw(u32 vertexCount, u32 instanceCount, u32 vertexOffs
     }
 
     m_parameterHandler->bindBuffers(m_encoder);
-    [m_encoder drawPrimitives:MTLPrimitiveTypeTriangle
+    [m_encoder drawPrimitives:converter::convertPrimitiveType(m_pipeline->getBuilder().getPrimitiveType(),
+                                                              m_pipeline->getBuilder().getPrimitiveLayout())
                   vertexStart:vertexOffset
                   vertexCount:vertexCount
                 instanceCount:instanceCount
@@ -376,7 +380,8 @@ void MetalRenderContext::drawIndexed(u32 indexCount, u32 instanceCount, u32 inde
     }
 
     m_parameterHandler->bindBuffers(m_encoder);
-    [m_encoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+    [m_encoder drawIndexedPrimitives:converter::convertPrimitiveType(m_pipeline->getBuilder().getPrimitiveType(),
+                                                                     m_pipeline->getBuilder().getPrimitiveLayout())
                           indexCount:indexCount
                            indexType:MTLIndexTypeUInt32
                          indexBuffer:m_boundIndexBuffer

@@ -74,12 +74,6 @@ struct ParameterBinding
     u32 size;
 };
 
-enum class VertexInputRate
-{
-    VERTEX,
-    INSTANCE
-};
-
 // TODO: Add all combinations of values, make it less Vulkan dependant, add checks for availability based on API,
 // platform etc.
 enum class GraphicsDataFormat
@@ -185,8 +179,7 @@ enum class PrimitiveLayout
     LINE_LIST,
     LINE_STRIP,
     TRIANGLE_LIST,
-    TRIANGLE_STRIP,
-    TRIANGLE_FAN
+    TRIANGLE_STRIP
 };
 
 enum class SamplerFilter

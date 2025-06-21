@@ -328,8 +328,6 @@ VkPrimitiveTopology VulkanPipeline::convertPrimitiveTopology(PrimitiveLayout lay
         return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     case PrimitiveLayout::TRIANGLE_STRIP:
         return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-    case PrimitiveLayout::TRIANGLE_FAN:
-        return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
     defualt:
         return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     }
