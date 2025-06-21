@@ -166,6 +166,14 @@ VkFormat convertDataFormat(GraphicsDataFormat format)
         return VK_FORMAT_R8G8B8_SNORM;
     case GraphicsDataFormat::RGB_8_UNORM:
         return VK_FORMAT_R8G8B8_UNORM;
+    case GraphicsDataFormat::BGR_8_INT:
+        return VK_FORMAT_B8G8R8_SINT;
+    case GraphicsDataFormat::BGR_8_UINT:
+        return VK_FORMAT_B8G8R8_UINT;
+    case GraphicsDataFormat::BGR_8_NORM:
+        return VK_FORMAT_B8G8R8_SNORM;
+    case GraphicsDataFormat::BGR_8_UNORM:
+        return VK_FORMAT_B8G8R8_UNORM;
     case GraphicsDataFormat::RGB_16_INT:
         return VK_FORMAT_R16G16B16_SINT;
     case GraphicsDataFormat::RGB_16_UINT:
@@ -197,6 +205,14 @@ VkFormat convertDataFormat(GraphicsDataFormat format)
         return VK_FORMAT_R8G8B8A8_SNORM;
     case GraphicsDataFormat::RGBA_8_UNORM:
         return VK_FORMAT_R8G8B8A8_UNORM;
+    case GraphicsDataFormat::BGRA_8_INT:
+        return VK_FORMAT_B8G8R8A8_SINT;
+    case GraphicsDataFormat::BGRA_8_UINT:
+        return VK_FORMAT_B8G8R8A8_UINT;
+    case GraphicsDataFormat::BGRA_8_NORM:
+        return VK_FORMAT_B8G8R8A8_SNORM;
+    case GraphicsDataFormat::BGRA_8_UNORM:
+        return VK_FORMAT_B8G8R8A8_UNORM;
     case GraphicsDataFormat::RGBA_16_INT:
         return VK_FORMAT_R16G16B16A16_SINT;
     case GraphicsDataFormat::RGBA_16_UINT:
@@ -337,6 +353,14 @@ GraphicsDataFormat convertVkFormat(VkFormat format)
         return GraphicsDataFormat::RGB_8_NORM;
     case VK_FORMAT_R8G8B8_UNORM:
         return GraphicsDataFormat::RGB_8_UNORM;
+    case VK_FORMAT_B8G8R8_SINT:
+        return GraphicsDataFormat::BGR_8_INT;
+    case VK_FORMAT_B8G8R8_UINT:
+        return GraphicsDataFormat::BGR_8_UINT;
+    case VK_FORMAT_B8G8R8_SNORM:
+        return GraphicsDataFormat::BGR_8_NORM;
+    case VK_FORMAT_B8G8R8_UNORM:
+        return GraphicsDataFormat::BGR_8_UNORM;
     case VK_FORMAT_R16G16B16_SINT:
         return GraphicsDataFormat::RGB_16_INT;
     case VK_FORMAT_R16G16B16_UINT:
@@ -368,6 +392,14 @@ GraphicsDataFormat convertVkFormat(VkFormat format)
         return GraphicsDataFormat::RGBA_8_NORM;
     case VK_FORMAT_R8G8B8A8_UNORM:
         return GraphicsDataFormat::RGBA_8_UNORM;
+    case VK_FORMAT_B8G8R8A8_SINT:
+        return GraphicsDataFormat::BGRA_8_INT;
+    case VK_FORMAT_B8G8R8A8_UINT:
+        return GraphicsDataFormat::BGRA_8_UINT;
+    case VK_FORMAT_B8G8R8A8_SNORM:
+        return GraphicsDataFormat::BGRA_8_NORM;
+    case VK_FORMAT_B8G8R8A8_UNORM:
+        return GraphicsDataFormat::BGRA_8_UNORM;
     case VK_FORMAT_R16G16B16A16_SINT:
         return GraphicsDataFormat::RGBA_16_INT;
     case VK_FORMAT_R16G16B16A16_UINT:

@@ -1,6 +1,7 @@
 #include "context.hpp"
 #include "core/file/utils.hpp"
 #include "core/log.hpp"
+#include "graphics/shader_module.hpp"
 
 namespace huedra {
 
@@ -28,6 +29,9 @@ void SlangContext::init()
 
     optionEntries.push_back({.name = slang::CompilerOptionName::VulkanUseEntryPointName, .value = {.intValue0 = 1}});
     optionEntries.push_back({.name = slang::CompilerOptionName::VulkanInvertY, .value = {.intValue0 = 1}});
+#elif defined(METAL)
+    targetDesc.format = SLANG_METAL;
+    targetDesc.profile = m_globalSession->findProfile("metal_2_1");
 #endif
 
     sessionDesc.targets = &targetDesc;
@@ -95,18 +99,20 @@ ShaderModule SlangContext::createModule(const std::string& name, const std::stri
     return shader;
 }
 
-CompiledShaderModule SlangContext::compileAndLinkModules(const std::vector<ShaderModule>& modules)
+CompiledShaderModule SlangContext::compileAndLinkModules(const std::map<ShaderStage, ShaderInput>& inputs)
 {
     Slang::ComPtr<slang::IBlob> diagnositicBlob;
+    std::set<ShaderModule*> shaderModules; // Keep track of which module have already been added
     std::vector<slang::IComponentType*> componentTypes;
-    for (auto& shaderModule : modules)
+
+    for (const auto& [stage, input] : inputs)
     {
-        componentTypes.push_back(shaderModule.getSlangModule());
-        std::vector<Slang::ComPtr<slang::IEntryPoint>> entryPoints = shaderModule.getSlangEntryPoints();
-        for (auto& entryPoint : entryPoints)
+        if (!shaderModules.contains(input.shaderModule))
         {
-            componentTypes.push_back(entryPoint);
+            componentTypes.push_back(input.shaderModule->getSlangModule());
+            shaderModules.insert(input.shaderModule);
         }
+        componentTypes.push_back(input.shaderModule->getSlangEntryPoint(input.entryPointName));
     }
 
     Slang::ComPtr<slang::IComponentType> composedProgram;

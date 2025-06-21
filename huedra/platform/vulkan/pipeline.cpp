@@ -17,18 +17,7 @@ void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device
     shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 
     std::map<ShaderStage, ShaderInput> shaders = pipelineBuilder.getShaderStages();
-    std::vector<ShaderModule> shaderModules{};
-    for (auto& [stage, input] : shaders)
-    {
-        if (std::ranges::find_if(shaderModules, [&input](ShaderModule& shaderModule) {
-                return input.shaderModule->getSlangModule() == shaderModule.getSlangModule();
-            }) == shaderModules.end())
-        {
-            shaderModules.push_back(*input.shaderModule);
-        }
-    }
-
-    m_shaderModule = global::graphicsManager.compileAndLinkShaderModules(shaderModules);
+    m_shaderModule = global::graphicsManager.compileAndLinkShaderModules(shaders);
 
     initLayout();
 
@@ -194,11 +183,11 @@ void VulkanPipeline::initCompute(const PipelineBuilder& pipelineBuilder, Device&
 {
     m_device = &device;
     m_builder = pipelineBuilder;
-    initLayout();
 
     std::map<ShaderStage, ShaderInput> shaders = pipelineBuilder.getShaderStages();
+    m_shaderModule = global::graphicsManager.compileAndLinkShaderModules(shaders);
 
-    m_shaderModule = global::graphicsManager.compileAndLinkShaderModules({*shaders[ShaderStage::COMPUTE].shaderModule});
+    initLayout();
 
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -338,8 +327,6 @@ VkPrimitiveTopology VulkanPipeline::convertPrimitiveTopology(PrimitiveLayout lay
         return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     case PrimitiveLayout::TRIANGLE_STRIP:
         return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-    case PrimitiveLayout::TRIANGLE_FAN:
-        return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
     defualt:
         return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     }

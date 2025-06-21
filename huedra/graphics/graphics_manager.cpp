@@ -3,6 +3,8 @@
 
 #ifdef VULKAN
 #include "platform/vulkan/context.hpp"
+#elif defined(METAL)
+#include "platform/metal/context.hpp"
 #endif
 
 namespace huedra {
@@ -11,6 +13,8 @@ void GraphicsManager::init()
 {
 #ifdef VULKAN
     m_context = new VulkanContext();
+#elif defined(METAL)
+    m_context = new MetalContext();
 #endif
 
     m_context->init();
@@ -19,7 +23,7 @@ void GraphicsManager::init()
 
 void GraphicsManager::cleanup()
 {
-    m_slangContext.cleanup();
+    // m_slangContext.cleanup();
     m_context->cleanup();
     delete m_context;
 }
@@ -105,9 +109,9 @@ ShaderModule GraphicsManager::createShaderModule(const std::string& name, std::s
     return m_slangContext.createModule(name, sourceString);
 }
 
-CompiledShaderModule GraphicsManager::compileAndLinkShaderModules(const std::vector<ShaderModule>& shaderModules)
+CompiledShaderModule GraphicsManager::compileAndLinkShaderModules(const std::map<ShaderStage, ShaderInput>& inputs)
 {
-    return m_slangContext.compileAndLinkModules(shaderModules);
+    return m_slangContext.compileAndLinkModules(inputs);
 }
 
 void GraphicsManager::removeBuffer(Ref<Buffer> buffer)
@@ -149,5 +153,4 @@ void GraphicsManager::createSwapchain(Window* window, bool renderDepth)
 }
 
 void GraphicsManager::removeSwapchain(u64 index) { m_context->removeSwapchain(index); }
-
 }; // namespace huedra

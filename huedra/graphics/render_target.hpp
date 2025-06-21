@@ -4,6 +4,7 @@
 #include "core/types.hpp"
 #include "graphics/pipeline_data.hpp"
 #include "graphics/texture.hpp"
+#include "math/vec2.hpp"
 
 namespace huedra {
 
@@ -33,6 +34,7 @@ public:
     GraphicsDataFormat getFormat() const { return m_format; }
     u32 getWidth() const { return m_width; }
     u32 getHeight() const { return m_height; }
+    uvec2 getSize() const { return {m_width, m_height}; }
     bool usesColor() const { return m_type == RenderTargetType::COLOR || m_type == RenderTargetType::COLOR_AND_DEPTH; }
     bool usesDepth() const { return m_type == RenderTargetType::DEPTH || m_type == RenderTargetType::COLOR_AND_DEPTH; }
 

@@ -11,7 +11,7 @@ void Input::update()
     m_prevMouseButtonDown = m_mouseButtonDown;
     m_mouseButtonDoubleClicked = 0;
     m_mouseDelta = ivec2(0);
-    m_mouseScroll = ivec2(0);
+    m_mouseScroll = vec2(0.0f);
 }
 
 bool Input::isKeyDown(Keys key) const
@@ -95,27 +95,13 @@ bool Input::isMouseButtonDoubleClicked(MouseButton button) const
     return (m_mouseButtonDoubleClicked & bit) != 0u;
 }
 
-ivec2 Input::getAbsoluteMousePos() const
+ivec2 Input::getMousePosition() const
 {
     if (m_mouseMode == MouseMode::DISABLED)
     {
         return {};
     }
     return m_mousePos;
-}
-
-ivec2 Input::getRelativeMousePos(Ref<Window> window) const
-{
-    if (m_mouseMode == MouseMode::DISABLED)
-    {
-        return {};
-    }
-    if (!window.valid())
-    {
-        log(LogLevel::WARNING, "getRelativeMousePos(): invalid window");
-        return m_mousePos;
-    }
-    return m_mousePos - ivec2(window->getRect().xScreenPos, window->getRect().yScreenPos);
 }
 
 ivec2 Input::getMouseDelta() const
@@ -127,7 +113,7 @@ ivec2 Input::getMouseDelta() const
     return m_mouseDelta;
 }
 
-ivec2 Input::getMouseScroll() const
+vec2 Input::getMouseScroll() const
 {
     if (m_mouseMode == MouseMode::DISABLED)
     {
@@ -136,14 +122,32 @@ ivec2 Input::getMouseScroll() const
     return m_mouseScroll;
 }
 
-void Input::setMousePos(ivec2 pos)
+float Input::getMouseScrollVertical() const
+{
+    if (m_mouseMode == MouseMode::DISABLED)
+    {
+        return 0.0f;
+    }
+    return m_mouseScroll.y;
+}
+
+float Input::getMouseScrollHorizontal() const
+{
+    if (m_mouseMode == MouseMode::DISABLED)
+    {
+        return 0.0f;
+    }
+    return m_mouseScroll.x;
+}
+
+void Input::setMousePosition(ivec2 pos)
 {
     if (m_mouseMode == MouseMode::DISABLED)
     {
         return;
     }
     m_mousePos = pos;
-    global::windowManager.setMousePos(pos);
+    global::windowManager.setMousePosition(pos);
 }
 
 void Input::setMouseMode(MouseMode mode)
@@ -228,12 +232,12 @@ void Input::setMouseButtonDoubleClick(MouseButton button)
     m_mouseButtonDoubleClicked |= bit;
 }
 
-void Input::setMousePosition(ivec2 pos) { m_mousePos = pos; }
+void Input::setMousePos(ivec2 pos) { m_mousePos = pos; }
 
 void Input::setMouseDelta(ivec2 pos) { m_mouseDelta = pos; }
 
-void Input::setMouseScrollVertical(i32 vertical) { m_mouseScroll.y = vertical; }
+void Input::setMouseScrollVertical(float vertical) { m_mouseScroll.y = vertical; }
 
-void Input::setMouseScrollHorizontal(i32 horizontal) { m_mouseScroll.x = horizontal; }
+void Input::setMouseScrollHorizontal(float horizontal) { m_mouseScroll.x = horizontal; }
 
 } // namespace huedra

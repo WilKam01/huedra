@@ -12,7 +12,9 @@ class Input
 {
     friend class WindowManager;
 #ifdef WIN32
-    friend class Win32Window;
+    friend class WindowWin32;
+#elif defined(MACOS)
+    friend class WindowCocoa;
 #endif
 public:
     Input() = default;
@@ -35,16 +37,18 @@ public:
     bool isMouseButtonReleased(MouseButton button) const;
     bool isMouseButtonDoubleClicked(MouseButton button) const;
 
-    ivec2 getAbsoluteMousePos() const;
-    ivec2 getRelativeMousePos(Ref<Window> window) const;
+    ivec2 getMousePosition() const;
     ivec2 getMouseDelta() const;
-    ivec2 getMouseScroll() const; // x = horizontal, y = vertical
+
+    vec2 getMouseScroll() const; // x = horizontal, y = vertical
+    float getMouseScrollVertical() const;
+    float getMouseScrollHorizontal() const;
 
     MouseMode getMouseMode() const { return m_mouseMode; }
     CursorType getCursor() const { return m_cursor; }
     bool isMouseHidden() const { return m_mouseHidden; }
 
-    void setMousePos(ivec2 pos);
+    void setMousePosition(ivec2 pos);
     void setMouseMode(MouseMode mode);
     void setCursor(CursorType cursor);
     void setMouseHidden(bool hidden);
@@ -56,10 +60,10 @@ private:
 
     void setMouseButton(MouseButton button, bool isDown);
     void setMouseButtonDoubleClick(MouseButton button);
-    void setMousePosition(ivec2 pos);
+    void setMousePos(ivec2 pos);
     void setMouseDelta(ivec2 pos);
-    void setMouseScrollVertical(i32 vertical);
-    void setMouseScrollHorizontal(i32 horizontal);
+    void setMouseScrollVertical(float vertical);
+    void setMouseScrollHorizontal(float horizontal);
 
     std::array<u64, 2> m_keyDown{0};
     std::array<u64, 2> m_prevKeyDown{0};
@@ -71,7 +75,7 @@ private:
 
     ivec2 m_mousePos{0};
     ivec2 m_mouseDelta{0};
-    ivec2 m_mouseScroll{0};
+    vec2 m_mouseScroll{0.0f};
 
     MouseMode m_mouseMode{MouseMode::NORMAL};
     CursorType m_cursor{CursorType::DEFAULT};

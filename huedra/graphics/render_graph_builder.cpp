@@ -8,6 +8,7 @@ namespace huedra {
 RenderGraphBuilder& RenderGraphBuilder::init()
 {
     m_passes.clear();
+    m_passKeys.clear();
     return *this;
 }
 
@@ -38,6 +39,7 @@ RenderGraphBuilder& RenderGraphBuilder::addPass(const std::string& name, const R
     }
 
     m_passes.insert(std::pair<std::string, RenderPassBuilder>(name, pass));
+    m_passKeys.push_back(name);
     return *this;
 }
 

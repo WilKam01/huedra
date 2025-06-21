@@ -56,13 +56,14 @@ struct ResourceBinding
     std::string name;
     ShaderStage shaderStage;
     ResourceType type;
+    bool partOfArgBuffer{false}; // Only for Metal
 };
 
 struct ResourcePosition
 {
     ResourceBinding info;
-    u32 set;
-    u32 binding;
+    u32 set{0};
+    u32 binding{0};
 };
 
 struct ParameterBinding
@@ -73,6 +74,8 @@ struct ParameterBinding
     u32 size;
 };
 
+// TODO: Add all combinations of values, make it less Vulkan dependant, add checks for availability based on API,
+// platform etc.
 enum class GraphicsDataFormat
 {
     UNDEFINED,
@@ -113,6 +116,10 @@ enum class GraphicsDataFormat
     RGB_8_UINT,
     RGB_8_NORM,
     RGB_8_UNORM,
+    BGR_8_INT,
+    BGR_8_UINT,
+    BGR_8_NORM,
+    BGR_8_UNORM,
     RGB_16_INT,
     RGB_16_UINT,
     RGB_16_FLOAT,
@@ -129,6 +136,10 @@ enum class GraphicsDataFormat
     RGBA_8_UINT,
     RGBA_8_NORM,
     RGBA_8_UNORM,
+    BGRA_8_INT,
+    BGRA_8_UINT,
+    BGRA_8_NORM,
+    BGRA_8_UNORM,
     RGBA_16_INT,
     RGBA_16_UINT,
     RGBA_16_FLOAT,
@@ -176,8 +187,7 @@ enum class PrimitiveLayout
     LINE_LIST,
     LINE_STRIP,
     TRIANGLE_LIST,
-    TRIANGLE_STRIP,
-    TRIANGLE_FAN
+    TRIANGLE_STRIP
 };
 
 enum class SamplerFilter

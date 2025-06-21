@@ -7,16 +7,16 @@
 
 namespace huedra {
 
-class Win32Window : public Window
+class WindowWin32 : public Window
 {
 public:
-    Win32Window() = default;
-    ~Win32Window() override = default;
+    WindowWin32() = default;
+    ~WindowWin32() override = default;
 
-    Win32Window(const Win32Window& rhs) = default;
-    Win32Window& operator=(const Win32Window& rhs) = default;
-    Win32Window(Win32Window&& rhs) = default;
-    Win32Window& operator=(Win32Window&& rhs) = default;
+    WindowWin32(const WindowWin32& rhs) = default;
+    WindowWin32& operator=(const WindowWin32& rhs) = default;
+    WindowWin32(WindowWin32&& rhs) = default;
+    WindowWin32& operator=(WindowWin32&& rhs) = default;
 
     bool init(const std::string& title, const WindowInput& input, HINSTANCE instance);
     void cleanup() override;
@@ -24,7 +24,7 @@ public:
 
     void setTitle(const std::string& title) override;
     void setResolution(u32 width, u32 height) override;
-    void setPos(i32 x, i32 y) override;
+    void setPosition(i32 x, i32 y) override;
 
     HWND getHandle() { return m_handle; }
 

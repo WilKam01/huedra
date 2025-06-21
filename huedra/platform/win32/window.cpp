@@ -7,24 +7,32 @@ namespace huedra {
 // Win32 is notorious for converting actual bytes to other types
 // Therefore, it's permissable to use reinterpret_cast and other pointer arithmetic
 // NOLINTBEGIN(performance-no-int-to-ptr, performance-no-int-to-ptr)
-LRESULT CALLBACK Win32Window::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK WindowWin32::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    Win32Window* self = nullptr;
+    WindowWin32* self = nullptr;
     if (uMsg == WM_NCCREATE)
     {
         auto* lpcs = reinterpret_cast<LPCREATESTRUCT>(lParam);
-        self = static_cast<Win32Window*>(lpcs->lpCreateParams);
+        self = static_cast<WindowWin32*>(lpcs->lpCreateParams);
         SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
     }
     else
     {
-        self = reinterpret_cast<Win32Window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+        self = reinterpret_cast<WindowWin32*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
     }
 
     if (self != nullptr)
     {
-        WindowRect rect = self->getRect();
+        i32 positionX{0};
+        i32 positionY{0};
+        i32 screenPositionX{0};
+        i32 screenPositionY{0};
+        u32 width{0};
+        u32 height{0};
+        u32 screenWidth{0};
+        u32 screenHeight{0};
         MouseButton button = MouseButton::NONE;
+
         RECT winRect{};
         POINT point{};
 
@@ -34,35 +42,38 @@ LRESULT CALLBACK Win32Window::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
             PostQuitMessage(0);
             return 0;
         case WM_SIZE:
-            rect.screenWidth = LOWORD(lParam);
-            rect.screenHeight = HIWORD(lParam);
+            screenWidth = LOWORD(lParam);
+            screenHeight = HIWORD(lParam);
 
             if (GetWindowRect(self->m_handle, &winRect) != 0)
             {
-                rect.width = winRect.right - winRect.left;
-                rect.height = winRect.bottom - winRect.top;
+                width = winRect.right - winRect.left;
+                height = winRect.bottom - winRect.top;
             }
+            self->updateResolution(width, height, screenWidth, screenHeight);
             break;
         case WM_MOVE:
-            rect.xScreenPos = static_cast<i32>(static_cast<i16>(LOWORD(lParam)));
-            rect.yScreenPos = static_cast<i32>(static_cast<i16>(HIWORD(lParam)));
+            screenPositionX = static_cast<i32>(static_cast<i16>(LOWORD(lParam)));
+            screenPositionY = static_cast<i32>(static_cast<i16>(HIWORD(lParam)));
 
             if (GetWindowRect(self->m_handle, &winRect) != 0)
             {
-                rect.xPos = winRect.left;
-                rect.yPos = winRect.top;
+                positionX = winRect.left;
+                positionY = winRect.top;
             }
+            self->updatePosition(positionX, positionY, screenPositionX, screenPositionY);
             break;
         case WM_MOVING:
             winRect = *reinterpret_cast<RECT*>(lParam);
-            rect.xScreenPos = winRect.left;
-            rect.yScreenPos = winRect.top;
+            screenPositionX = winRect.left;
+            screenPositionY = winRect.top;
 
             if (GetWindowRect(self->m_handle, &winRect) != 0)
             {
-                rect.xPos = winRect.left;
-                rect.yPos = winRect.top;
+                positionX = winRect.left;
+                positionY = winRect.top;
             }
+            self->updatePosition(positionX, positionY, screenPositionX, screenPositionY);
             break;
         case WM_INPUT: {
             RAWINPUT raw;
@@ -77,13 +88,15 @@ LRESULT CALLBACK Win32Window::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
         }
         case WM_MOUSEMOVE:
             GetCursorPos(&point);
-            global::input.setMousePosition(ivec2(point.x, point.y));
+            global::input.setMousePos(ivec2(point.x, point.y));
             break;
         case WM_MOUSEWHEEL:
-            global::input.setMouseScrollVertical(GET_WHEEL_DELTA_WPARAM(wParam));
+            global::input.setMouseScrollVertical(static_cast<float>(GET_WHEEL_DELTA_WPARAM(wParam)) /
+                                                 120.0f); // Normalize to 1.0f
             break;
         case WM_MOUSEHWHEEL:
-            global::input.setMouseScrollHorizontal(GET_WHEEL_DELTA_WPARAM(wParam));
+            global::input.setMouseScrollHorizontal(static_cast<float>(GET_WHEEL_DELTA_WPARAM(wParam)) /
+                                                   120.0f); // Normalize to 1.0f
             break;
         case WM_ACTIVATE:
             if (wParam == WA_ACTIVE || wParam == WA_CLICKACTIVE)
@@ -152,31 +165,27 @@ LRESULT CALLBACK Win32Window::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
         case WM_PAINT: {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
-            FillRect(hdc, &ps.rcPaint, reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1));
+            FillRect(hdc, &ps.rcPaint, CreateSolidBrush(RGB(0, 0, 0)));
             EndPaint(hwnd, &ps);
             break;
         }
         default:
             break;
         }
-        self->updateRect(rect);
-        rect = self->getRect();
     }
     return DefWindowProc(hwnd, uMsg, wParam, lParam);
 }
 // NOLINTEND(performance-no-int-to-ptr, performance-no-int-to-ptr)
 
-bool Win32Window::init(const std::string& title, const WindowInput& input, HINSTANCE instance)
+bool WindowWin32::init(const std::string& title, const WindowInput& input, HINSTANCE instance)
 {
-    Window::init(title, {});
+    RECT winRect;
+    winRect.left = 0;
+    winRect.top = 0;
+    winRect.right = static_cast<i32>(input.width);
+    winRect.bottom = static_cast<i32>(input.height);
 
-    RECT rect;
-    rect.left = 0;
-    rect.top = 0;
-    rect.right = static_cast<i32>(input.width);
-    rect.bottom = static_cast<i32>(input.height);
-
-    AdjustWindowRectEx(&rect, WS_OVERLAPPEDWINDOW, 0, 0);
+    AdjustWindowRectEx(&winRect, WS_OVERLAPPEDWINDOW, 0, 0);
 
     // clang-format off
     m_handle = CreateWindowEx(
@@ -184,10 +193,10 @@ bool Win32Window::init(const std::string& title, const WindowInput& input, HINST
         "Window Class",
         title.c_str(),
         WS_OVERLAPPEDWINDOW,
-        input.xPos.value_or(CW_USEDEFAULT),
-        input.yPos.value_or(CW_USEDEFAULT),
-        rect.right - rect.left,
-        rect.bottom - rect.top,
+        input.positionX.value_or(CW_USEDEFAULT),
+        input.positionY.value_or(CW_USEDEFAULT),
+        winRect.right - winRect.left,
+        winRect.bottom - winRect.top,
         nullptr,
         nullptr,
         instance,
@@ -203,10 +212,28 @@ bool Win32Window::init(const std::string& title, const WindowInput& input, HINST
 
     ShowWindow(m_handle, 1);
 
+    // Init base window class with position and resolution
+    WindowRect rect{};
+    if (GetWindowRect(m_handle, &winRect) != 0)
+    {
+        rect.positionX = winRect.left;
+        rect.positionY = winRect.top;
+        rect.width = winRect.right - winRect.left;
+        rect.height = winRect.bottom - winRect.top;
+    }
+    if (GetClientRect(m_handle, &winRect) != 0)
+    {
+        rect.screenPositionX = winRect.left;
+        rect.screenPositionY = winRect.top;
+        rect.screenWidth = winRect.right - winRect.left;
+        rect.screenHeight = winRect.bottom - winRect.top;
+    }
+    Window::init(title, rect);
+
     return true;
 }
 
-void Win32Window::cleanup()
+void WindowWin32::cleanup()
 {
     Window::cleanup();
     if (IsWindow(m_handle) != 0)
@@ -216,7 +243,7 @@ void Win32Window::cleanup()
 }
 
 // TODO: Run on another thread since resizing and moving window will halt execution in DispatchMessage
-bool Win32Window::update()
+bool WindowWin32::update()
 {
     global::input.setKeyToggle(KeyToggles::CAPS_LOCK, (GetKeyState(VK_CAPITAL) & 1) != 0);
     global::input.setKeyToggle(KeyToggles::NUM_LOCK, (GetKeyState(VK_NUMLOCK) & 1) != 0);
@@ -229,10 +256,11 @@ bool Win32Window::update()
         DispatchMessage(&msg);
     }
 
+    updateMinimized(IsIconic(m_handle));
     return IsWindow(m_handle) != 0;
 }
 
-void Win32Window::setTitle(const std::string& title)
+void WindowWin32::setTitle(const std::string& title)
 {
     if (SetWindowTextA(m_handle, title.c_str()) != 0)
     {
@@ -240,14 +268,14 @@ void Win32Window::setTitle(const std::string& title)
     }
 }
 
-void Win32Window::setResolution(u32 width, u32 height)
+void WindowWin32::setResolution(u32 width, u32 height)
 {
     SetWindowPos(m_handle, nullptr, 0, 0, static_cast<i32>(width), static_cast<i32>(height), SWP_NOMOVE);
 }
 
-void Win32Window::setPos(i32 x, i32 y) { SetWindowPos(m_handle, nullptr, x, y, 0, 0, SWP_NOSIZE); }
+void WindowWin32::setPosition(i32 x, i32 y) { SetWindowPos(m_handle, nullptr, x, y, 0, 0, SWP_NOSIZE); }
 
-Keys Win32Window::convertKey(u32 code)
+Keys WindowWin32::convertKey(u32 code)
 {
     char letter = static_cast<char>(code);
     if (letter >= 'A' && letter <= 'Z')

@@ -1,6 +1,9 @@
 #include "buffer.hpp"
 #include "core/global.hpp"
 #include "core/log.hpp"
+#include "graphics/pipeline_data.hpp"
+
+#include <cstring>
 
 namespace huedra {
 
@@ -111,50 +114,36 @@ void VulkanBuffer::cleanup()
     }
 }
 
-void VulkanBuffer::write(u64 size, void* data)
+void VulkanBuffer::write(void* data, u64 size)
 {
-    bool isStatic = getType() == BufferType::STATIC;
-    u32 index = isStatic ? 1 : global::graphicsManager.getCurrentFrame();
-
-    if (isStatic)
+    if (getType() == BufferType::STATIC)
     {
-        map(index);
+        log(LogLevel::WARNING, "VulkanBuffer::write(): Could not write to buffer, buffer is static");
+        return;
     }
 
-    if (m_mapped[index] == nullptr)
+    if (m_mapped[global::graphicsManager.getCurrentFrame()] == nullptr)
     {
         log(LogLevel::WARNING, "Could not write to buffer, memory is not mapped, therefore unaccessible");
         return;
     }
-    memcpy(m_mapped[index], data, size);
-
-    if (isStatic)
-    {
-        unmap(index);
-    }
+    std::memcpy(m_mapped[global::graphicsManager.getCurrentFrame()], data, size);
 }
 
-void VulkanBuffer::read(u64 size, void* data)
+void VulkanBuffer::read(void* data, u64 size)
 {
-    bool isStatic = getType() == BufferType::STATIC;
-    u32 index = isStatic ? 1 : global::graphicsManager.getCurrentFrame();
-
-    if (isStatic)
+    if (getType() == BufferType::STATIC)
     {
-        map(index);
+        log(LogLevel::WARNING, "VulkanBuffer::read(): Could not read buffer data, buffer is static");
+        return;
     }
 
-    if (m_mapped[index] == nullptr)
+    if (m_mapped[global::graphicsManager.getCurrentFrame()] == nullptr)
     {
         log(LogLevel::WARNING, "Could not read from buffer, memory is not mapped, therefore unaccessible");
         return;
     }
-    memcpy(data, m_mapped[index], size);
-
-    if (isStatic)
-    {
-        unmap(index);
-    }
+    std::memcpy(data, m_mapped[global::graphicsManager.getCurrentFrame()], size);
 }
 
 VkBuffer VulkanBuffer::get()

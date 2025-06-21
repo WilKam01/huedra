@@ -20,8 +20,8 @@ public:
               VkMemoryPropertyFlags memoryPropertyFlags, const void* data = nullptr);
     void cleanup();
 
-    void write(u64 size, void* data) override;
-    void read(u64 size, void* data) override;
+    void write(void* data, u64 size) override;
+    void read(void* data, u64 size) override;
 
     VkBuffer get();
 

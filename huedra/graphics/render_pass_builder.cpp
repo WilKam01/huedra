@@ -1,11 +1,12 @@
 #include "render_pass_builder.hpp"
 #include "core/log.hpp"
+#include "graphics/pipeline_data.hpp"
 
 namespace huedra {
 
 RenderPassBuilder& RenderPassBuilder::init(RenderPassType type, const PipelineBuilder& pipeline)
 {
-    m_initialized = true;
+    m_initialized = false;
     m_type = type;
     m_pipeline = pipeline;
 
@@ -32,6 +33,13 @@ RenderPassBuilder& RenderPassBuilder::init(RenderPassType type, const PipelineBu
         return *this;
     }
 
+    if (type == RenderPassType::GRAPHICS && !pipeline.getShaderStages().contains(ShaderStage::VERTEX))
+    {
+        log(LogLevel::WARNING, "RenderPassBuilder: graphics pipeline invalid, no vertex shader present");
+        return *this;
+    }
+
+    m_initialized = true;
     return *this;
 }
 

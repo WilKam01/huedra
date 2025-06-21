@@ -9,19 +9,17 @@ struct Vec2
 {
 public:
     Vec2() = default;
-    explicit Vec2(T val)
-    {
-        x = val;
-        y = val;
-    }
-    Vec2(T x, T y)
-    {
-        this->x = x;
-        this->y = y;
-    }
+    explicit Vec2(T val) : x(val), y(val) {}
+    Vec2(T x, T y) : x(x), y(y) {}
 
-    template <u64 L>
-    explicit Vec2(Vec<T, L> vec) : data(vec)
+    template <typename T2, u64 L>
+        requires(std::is_convertible_v<T, T2>)
+    explicit Vec2(const Vec<T2, L>& vec) : data(vec)
+    {}
+
+    template <typename T2>
+        requires(std::is_convertible_v<T, T2>)
+    explicit Vec2(const Vec2<T2>& vec) : x(static_cast<T>(vec.x)), y(static_cast<T>(vec.y))
     {}
 
     union

@@ -62,17 +62,22 @@ VulkanSurfaceSupport Device::querySurfaceSupport(VkPhysicalDevice device, VkSurf
 
 VkSurfaceFormatKHR Device::chooseSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
 {
+    VkSurfaceFormatKHR secondaryFormatChoice = availableFormats[0];
     for (const auto& availableFormat : availableFormats)
     {
-        if ((availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM ||
-             availableFormat.format == VK_FORMAT_R8G8B8A8_UNORM) &&
+        if (availableFormat.format == VK_FORMAT_R8G8B8A8_UNORM &&
             availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
         {
             return availableFormat;
         }
+        else if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM &&
+                 availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+        {
+            secondaryFormatChoice = availableFormat;
+        }
     }
 
-    return availableFormats[0];
+    return secondaryFormatChoice;
 }
 
 VkFormat Device::findDepthFormat()
