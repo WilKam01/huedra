@@ -103,7 +103,8 @@ int main()
                                .attributes{{.format = GraphicsDataFormat::RG_32_FLOAT, .offset = 0}}})
         .addVertexInputStream({.size = sizeof(vec3),
                                .inputRate = VertexInputRate::VERTEX,
-                               .attributes{{.format = GraphicsDataFormat::RGB_32_FLOAT, .offset = 0}}});
+                               .attributes{{.format = GraphicsDataFormat::RGB_32_FLOAT, .offset = 0}}})
+        .setPrimitive(PrimitiveType::TRIANGLE, PrimitiveLayout::TRIANGLE_LIST);
 
     RenderCommands commands = [&meshes, positionsBuffer, uvsBuffer, normalsBuffer, indexBuffer, viewProjBuffer, texture,
                                numEnities](RenderContext& renderContext) {

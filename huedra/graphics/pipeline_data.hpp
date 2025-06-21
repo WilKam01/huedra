@@ -151,6 +151,12 @@ enum class GraphicsDataFormat
     RGBA_64_FLOAT,
 };
 
+enum class VertexInputRate
+{
+    VERTEX,
+    INSTANCE
+};
+
 struct VertexInputAttribute
 {
     GraphicsDataFormat format;
@@ -162,6 +168,25 @@ struct VertexInputStream
     u32 size;
     VertexInputRate inputRate;
     std::vector<VertexInputAttribute> attributes;
+};
+
+// Primitive to render
+enum class PrimitiveType
+{
+    POINT,
+    LINE,
+    TRIANGLE
+};
+
+// Vertex data structure
+enum class PrimitiveLayout
+{
+    POINT_LIST,
+    LINE_LIST,
+    LINE_STRIP,
+    TRIANGLE_LIST,
+    TRIANGLE_STRIP,
+    TRIANGLE_FAN
 };
 
 enum class SamplerFilter

@@ -79,7 +79,7 @@ void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    inputAssembly.topology = convertPrimitiveTopology(m_builder.getPrimitiveLayout());
     inputAssembly.primitiveRestartEnable = VK_FALSE;
 
     VkPipelineViewportStateCreateInfo viewportState{};
@@ -91,10 +91,10 @@ void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device
     rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     rasterizer.depthClampEnable = VK_FALSE;
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
-    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+    rasterizer.polygonMode = convertPolygonMode(m_builder.getPrimitiveType());
     rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    rasterizer.cullMode = VK_CULL_MODE_FRONT_BIT;
+    rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
     rasterizer.depthBiasEnable = VK_FALSE;
     rasterizer.depthBiasConstantFactor = 0.0f;
     rasterizer.depthBiasClamp = 0.0f;
@@ -187,7 +187,20 @@ void VulkanPipeline::initCompute(const PipelineBuilder& pipelineBuilder, Device&
 
     // TODO: This needs fixing, should not work currently
     std::map<ShaderStage, ShaderInput> shaders = pipelineBuilder.getShaderStages();
-    VkShaderModule shaderModule{loadShader(shaders[ShaderStage::COMPUTE].shaderModule)};
+
+    m_shaderModule = global::graphicsManager.compileAndLinkShaderModules({*shaders[ShaderStage::COMPUTE].shaderModule});
+
+    VkShaderModuleCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    createInfo.codeSize = static_cast<u32>(m_shaderModule.getCode().size());
+    createInfo.pCode = reinterpret_cast<const u32*>(m_shaderModule.getCode().data());
+
+    VkShaderModule shaderModule{nullptr};
+    if (vkCreateShaderModule(m_device->getLogical(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+    {
+        log(LogLevel::ERR, "Failed to create shader module!");
+    }
+
     VkPipelineShaderStageCreateInfo shaderStageInfo{};
     shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     shaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -285,20 +298,43 @@ void VulkanPipeline::initLayout()
     }
 }
 
-VkShaderModule VulkanPipeline::loadShader(ShaderModule* shader)
+VkPolygonMode VulkanPipeline::convertPolygonMode(PrimitiveType type)
 {
-    VkShaderModuleCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    // createInfo.codeSize = static_cast<u32>(shader->getCode().size());
-    // createInfo.pCode = reinterpret_cast<const u32*>(shader->getCode().data());
-
-    VkShaderModule shaderModule{nullptr};
-    if (vkCreateShaderModule(m_device->getLogical(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+    switch (type)
     {
-        log(LogLevel::ERR, "Failed to create shader module!");
+    case PrimitiveType::POINT:
+        return VK_POLYGON_MODE_POINT;
+    case PrimitiveType::LINE:
+        return VK_POLYGON_MODE_LINE;
+    case PrimitiveType::TRIANGLE:
+        return VK_POLYGON_MODE_FILL;
+    defualt:
+        return VK_POLYGON_MODE_FILL;
+    }
+    return VK_POLYGON_MODE_FILL;
+}
+
+VkPrimitiveTopology VulkanPipeline::convertPrimitiveTopology(PrimitiveLayout layout)
+{
+    switch (layout)
+    {
+    case PrimitiveLayout::POINT_LIST:
+        return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+    case PrimitiveLayout::LINE_LIST:
+        return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+    case PrimitiveLayout::LINE_STRIP:
+        return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+    case PrimitiveLayout::TRIANGLE_LIST:
+        return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    case PrimitiveLayout::TRIANGLE_STRIP:
+        return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+    case PrimitiveLayout::TRIANGLE_FAN:
+        return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
+    defualt:
+        return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     }
 
-    return shaderModule;
+    return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 }
 
 } // namespace huedra
