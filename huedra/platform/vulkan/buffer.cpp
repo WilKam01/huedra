@@ -3,6 +3,8 @@
 #include "core/log.hpp"
 #include "graphics/pipeline_data.hpp"
 
+#include <cstring>
+
 namespace huedra {
 
 void VulkanBuffer::init(Device& device, BufferType type, u64 size, BufferUsageFlags usage,
@@ -136,12 +138,12 @@ void VulkanBuffer::read(void* data, u64 size)
         return;
     }
 
-    if (m_mapped[global::graphicsManager.getCurrentFrame(] == nullptr)
+    if (m_mapped[global::graphicsManager.getCurrentFrame()] == nullptr)
     {
         log(LogLevel::WARNING, "Could not read from buffer, memory is not mapped, therefore unaccessible");
         return;
     }
-    std::memcpy(data, m_mapped[global::graphicsManager.getCurrentFrame(], size);
+    std::memcpy(data, m_mapped[global::graphicsManager.getCurrentFrame()], size);
 }
 
 VkBuffer VulkanBuffer::get()

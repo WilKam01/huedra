@@ -183,12 +183,11 @@ void VulkanPipeline::initCompute(const PipelineBuilder& pipelineBuilder, Device&
 {
     m_device = &device;
     m_builder = pipelineBuilder;
-    initLayout();
 
-    // TODO: This needs fixing, should not work currently
     std::map<ShaderStage, ShaderInput> shaders = pipelineBuilder.getShaderStages();
+    m_shaderModule = global::graphicsManager.compileAndLinkShaderModules(shaders);
 
-    m_shaderModule = global::graphicsManager.compileAndLinkShaderModules({*shaders[ShaderStage::COMPUTE].shaderModule});
+    initLayout();
 
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;

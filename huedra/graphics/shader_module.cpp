@@ -299,14 +299,6 @@ void CompiledShaderModule::addParameterBlockRangesVulkan(ShaderStage stage, slan
 
     u32 rangeCount = typeLayout->getDescriptorSetDescriptorRangeCount(0);
     u32 nameIndex = 0;
-    if (descriptorNames.size() != rangeCount)
-    {
-        log(LogLevel::D_INFO,
-            "addParameterBlockRangesVulkan(): Descriptor names and rangeCount are different sizes ({} != {})",
-            descriptorNames.size(), rangeCount);
-        return;
-    }
-
     for (u32 i = 0; i < rangeCount; ++i)
     {
         slang::BindingType bindingType = typeLayout->getDescriptorSetDescriptorRangeType(0, i);
@@ -317,6 +309,13 @@ void CompiledShaderModule::addParameterBlockRangesVulkan(ShaderStage stage, slan
             continue;
         }
 
+        if (nameIndex >= descriptorNames.size())
+        {
+            log(LogLevel::D_INFO,
+                "addParameterBlockRangesVulkan(): Current name index is outside of descriptor names range ({} >= {})",
+                nameIndex, descriptorNames.size());
+            return;
+        }
         ResourceBinding resource;
         resource.name = namePrefix + std::string(descriptorNames[nameIndex++]);
         resource.shaderStage = stage;
@@ -326,14 +325,6 @@ void CompiledShaderModule::addParameterBlockRangesVulkan(ShaderStage stage, slan
 
     rangeCount = typeLayout->getSubObjectRangeCount();
     nameIndex = 0;
-    if (subObjectNames.size() != rangeCount)
-    {
-        log(LogLevel::D_INFO,
-            "addParameterBlockRangesVulkan(): Subobject names and rangeCount are different sizes ({} != {})",
-            subObjectNames.size(), rangeCount);
-        return;
-    }
-
     for (u32 i = 0; i < rangeCount; ++i)
     {
         u32 bindingRangeIndex = typeLayout->getSubObjectRangeBindingRangeIndex(i);
@@ -357,12 +348,19 @@ void CompiledShaderModule::addParameterBlockRangesVulkan(ShaderStage stage, slan
             if (fieldCount == 0)
             {
                 log(LogLevel::WARNING,
-                    "CompiledShaderModule::addParameterBlockRangesVulkan(): Parameter block \"{}\" is not a "
-                    "struct and will be ignored",
+                    "addParameterBlockRangesVulkan(): Parameter block \"{}\" is not a struct and will be ignored",
                     subObjectNames[nameIndex++]);
                 continue;
             }
 
+            if (nameIndex >= subObjectNames.size())
+            {
+                log(LogLevel::D_INFO,
+                    "addParameterBlockRangesVulkan(): Current name index is outside of subobject names names range ({} "
+                    ">= {})",
+                    nameIndex, subObjectNames.size());
+                return;
+            }
             m_resources.emplace_back();
             std::string prefix = namePrefix + std::string(subObjectNames[nameIndex++]) + ".";
             addParameterBlockRangesVulkan(stage, elementLayout, prefix, descNames, subObjNames, m_resources.size() - 1);

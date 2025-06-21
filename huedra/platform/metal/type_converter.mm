@@ -71,6 +71,10 @@ MTLPixelFormat convertPixelDataFormat(GraphicsDataFormat format)
     case GraphicsDataFormat::RGB_8_UINT:
     case GraphicsDataFormat::RGB_8_NORM:
     case GraphicsDataFormat::RGB_8_UNORM:
+    case GraphicsDataFormat::BGR_8_INT:
+    case GraphicsDataFormat::BGR_8_UINT:
+    case GraphicsDataFormat::BGR_8_NORM:
+    case GraphicsDataFormat::BGR_8_UNORM:
     case GraphicsDataFormat::RGB_16_INT:
     case GraphicsDataFormat::RGB_16_UINT:
     case GraphicsDataFormat::RGB_16_FLOAT:
@@ -92,6 +96,14 @@ MTLPixelFormat convertPixelDataFormat(GraphicsDataFormat format)
         return MTLPixelFormatRGBA8Snorm;
     case GraphicsDataFormat::RGBA_8_UNORM:
         return MTLPixelFormatRGBA8Unorm;
+    case GraphicsDataFormat::BGRA_8_INT:
+        return MTLPixelFormatBGRA8Sint;
+    case GraphicsDataFormat::BGRA_8_UINT:
+        return MTLPixelFormatBGRA8Uint;
+    case GraphicsDataFormat::BGRA_8_NORM:
+        return MTLPixelFormatBGRA8Snorm;
+    case GraphicsDataFormat::BGRA_8_UNORM:
+        return MTLPixelFormatBGRA8Unorm;
     case GraphicsDataFormat::RGBA_16_INT:
         return MTLPixelFormatRGBA16Sint;
     case GraphicsDataFormat::RGBA_16_UINT:
@@ -181,12 +193,16 @@ MTLVertexFormat convertDataFormat(GraphicsDataFormat format)
         return MTLVertexFormatInvalid;
 
     case GraphicsDataFormat::RGB_8_INT:
+    case GraphicsDataFormat::BGR_8_INT:
         return MTLVertexFormatChar3;
     case GraphicsDataFormat::RGB_8_UINT:
+    case GraphicsDataFormat::BGR_8_UINT:
         return MTLVertexFormatUChar3;
     case GraphicsDataFormat::RGB_8_NORM:
+    case GraphicsDataFormat::BGR_8_NORM:
         return MTLVertexFormatChar3Normalized;
     case GraphicsDataFormat::RGB_8_UNORM:
+    case GraphicsDataFormat::BGR_8_UNORM:
         return MTLVertexFormatUChar3Normalized;
     case GraphicsDataFormat::RGB_16_INT:
         return MTLVertexFormatShort3;
@@ -210,12 +226,16 @@ MTLVertexFormat convertDataFormat(GraphicsDataFormat format)
         return MTLVertexFormatInvalid;
 
     case GraphicsDataFormat::RGBA_8_INT:
+    case GraphicsDataFormat::BGRA_8_INT:
         return MTLVertexFormatChar4;
     case GraphicsDataFormat::RGBA_8_UINT:
+    case GraphicsDataFormat::BGRA_8_UINT:
         return MTLVertexFormatUChar4;
     case GraphicsDataFormat::RGBA_8_NORM:
+    case GraphicsDataFormat::BGRA_8_NORM:
         return MTLVertexFormatChar4Normalized;
     case GraphicsDataFormat::RGBA_8_UNORM:
+    case GraphicsDataFormat::BGRA_8_UNORM:
         return MTLVertexFormatUChar4Normalized;
     case GraphicsDataFormat::RGBA_16_INT:
         return MTLVertexFormatShort4;
