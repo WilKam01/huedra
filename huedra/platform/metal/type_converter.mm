@@ -1,4 +1,5 @@
 #include "type_converter.hpp"
+#include <Metal/Metal.h>
 
 namespace huedra::converter {
 
@@ -97,11 +98,9 @@ MTLPixelFormat convertPixelDataFormat(GraphicsDataFormat format)
     case GraphicsDataFormat::RGBA_8_UNORM:
         return MTLPixelFormatRGBA8Unorm;
     case GraphicsDataFormat::BGRA_8_INT:
-        return MTLPixelFormatBGRA8Sint;
     case GraphicsDataFormat::BGRA_8_UINT:
-        return MTLPixelFormatBGRA8Uint;
     case GraphicsDataFormat::BGRA_8_NORM:
-        return MTLPixelFormatBGRA8Snorm;
+        return MTLPixelFormatInvalid;
     case GraphicsDataFormat::BGRA_8_UNORM:
         return MTLPixelFormatBGRA8Unorm;
     case GraphicsDataFormat::RGBA_16_INT:
