@@ -1,6 +1,7 @@
 #pragma once
 
 #include "graphics/render_context.hpp"
+#include "graphics/render_target.hpp"
 #include "platform/metal/config.hpp"
 #include "platform/metal/context.hpp"
 #include "platform/metal/parameter_handler.hpp"
@@ -20,8 +21,8 @@ public:
     MetalRenderContext(MetalRenderContext&& rhs) = delete;
     MetalRenderContext& operator=(MetalRenderContext&& rhs) = delete;
 
-    void init(id<MTLDevice> device, id<MTLRenderCommandEncoder> encoder, MetalContext& context,
-              MetalPipeline& pipeline);
+    void init(id<MTLDevice> device, id<MTLRenderCommandEncoder> encoder, MetalContext& context, MetalPipeline& pipeline,
+              RenderTargetType renderTargetUse);
     void init(id<MTLComputeCommandEncoder> encoder, MetalContext& context, MetalPipeline& pipeline);
 
     void bindVertexBuffers(std::vector<Ref<Buffer>> buffers) override;

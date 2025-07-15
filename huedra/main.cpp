@@ -3,20 +3,23 @@
 #include "core/log.hpp"
 #include "core/serialization/json.hpp"
 #include "core/string/utils.hpp"
+#include "core/types.hpp"
 #include "graphics/pipeline_builder.hpp"
 #include "graphics/pipeline_data.hpp"
 #include "graphics/render_context.hpp"
 #include "graphics/render_pass_builder.hpp"
 #include "graphics/render_target.hpp"
 #include "math/conversions.hpp"
+#include "math/matrix.hpp"
 #include "math/matrix_projection.hpp"
 #include "math/matrix_transform.hpp"
 #include "math/vec2.hpp"
 #include "math/vec3.hpp"
+#include "resources/font/data.hpp"
+#include "resources/font/loader.hpp"
 #include "resources/mesh/loader.hpp"
 #include "resources/texture/loader.hpp"
 #include "scene/components/transform.hpp"
-#include <array>
 
 using namespace huedra;
 
@@ -26,6 +29,8 @@ int main()
     global::windowManager.init();
     global::graphicsManager.init();
     global::resourceManager.init();
+
+    FontData font = loadTtf("assets/fonts/Roboto_Condensed-Regular.ttf");
 
     Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720));
 
@@ -152,6 +157,71 @@ int main()
         renderContext.dispatch(window->getRenderTarget()->getWidth(), window->getRenderTarget()->getHeight(), 1);
     };
 
+    ShaderModule& fontShaderModule = global::resourceManager.loadShaderModule("assets/shaders/font.slang");
+    PipelineBuilder fontPipeline;
+    fontPipeline.init(PipelineType::GRAPHICS)
+        .addShader(fontShaderModule, "vertMain")
+        .addShader(fontShaderModule, "fragMain")
+        .addVertexInputStream(
+            {.size = sizeof(matrix3),
+             .inputRate = VertexInputRate::INSTANCE,
+             .attributes = {{.format = GraphicsDataFormat::RGB_32_FLOAT, .offset = 0},
+                            {.format = GraphicsDataFormat::RGB_32_FLOAT, .offset = sizeof(vec3)},
+                            {.format = GraphicsDataFormat::RGB_32_FLOAT, .offset = sizeof(vec3) * 2}}});
+
+    vec2 aspectScale(1.0f);
+    if (window.valid())
+    {
+        float aspectRatio =
+            static_cast<float>(window->getScreenSize().x) / static_cast<float>(window->getScreenSize().y);
+        if (aspectRatio > 1.0f)
+        {
+            aspectScale.x = 1.0f / aspectRatio;
+        }
+        else
+        {
+            aspectScale.y = aspectRatio;
+        }
+    }
+
+    struct alignas(16)
+    {
+        vec2 position;
+        vec2 size;
+        matrix4 projection;
+    } fontInfo{.position = vec2(100.0f, static_cast<float>(window->getScreenSize().y) / 2.0f),
+               .size = vec2(96.0f),
+               .projection = math::ortho(vec2(0, static_cast<float>(window->getScreenSize().x)),
+                                         vec2(0, static_cast<float>(window->getScreenSize().y)), vec2(0.0f, 1.0f))};
+    Ref<Buffer> fontInfoBuffer = global::graphicsManager.createBuffer(
+        BufferType::DYNAMIC, HU_BUFFER_USAGE_CONSTANT_BUFFER, sizeof(fontInfo), &fontInfo);
+
+    std::string renderText{"AbCdEfl"};
+    std::vector<matrix3> fontMatrices(renderText.length());
+    float curX{0.0f};
+    for (u32 i = 0; i < renderText.length(); ++i)
+    {
+        Glyph& glyph = font.glyphs[static_cast<u32>(renderText[i])];
+        vec2 size = static_cast<vec2>(glyph.maxSize - glyph.minSize) / static_cast<float>(font.unitsPerEm);
+        fontMatrices[i] = math::translate(matrix3(1.0f), vec2(curX, 0.0f)) * math::scale(matrix3(1.0f), size);
+        curX += static_cast<float>(glyph.advanceWidth) / static_cast<float>(font.unitsPerEm);
+    }
+
+    Ref<Buffer> fontBuffer = global::graphicsManager.createBuffer(
+        BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER, sizeof(matrix3) * fontMatrices.size(), fontMatrices.data());
+
+    std::array<u32, 6> quadInstanceValues{0, 1, 2, 1, 3, 2};
+    Ref<Buffer> fontIndexBuffer = global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_INDEX_BUFFER,
+                                                                       sizeof(u32) * 6, quadInstanceValues.data());
+
+    RenderCommands fontRenderCommands = [&fontInfoBuffer, &fontIndexBuffer, &fontBuffer,
+                                         &renderText](RenderContext& renderContext) {
+        renderContext.bindVertexBuffers({fontBuffer});
+        renderContext.bindIndexBuffer(fontIndexBuffer);
+        renderContext.bindBuffer(fontInfoBuffer, "info");
+        renderContext.drawIndexed(6, renderText.length(), 0, 0);
+    };
+
     vec3 eye(0.0f, 0.0f, 12.0f);
     vec3 rot(0.0f);
     uvec2 windowRenderTargetSize{window->getRenderTarget()->getSize()};
@@ -229,6 +299,11 @@ int main()
                         window->getRenderTarget()->getWidth(), window->getRenderTarget()->getHeight());
                 }
                 windowRenderTargetSize = window->getRenderTarget()->getSize();
+
+                fontInfo.position.y = static_cast<float>(window->getScreenSize().y) / 2.0f;
+                fontInfo.projection =
+                    math::ortho(vec2(0, static_cast<float>(window->getScreenSize().x)),
+                                vec2(0, static_cast<float>(window->getScreenSize().y)), vec2(0.0f, 1.0f));
             }
 
             RenderPassBuilder renderPass;
@@ -240,7 +315,6 @@ int main()
             {
                 renderPass.addRenderTarget(gBuffer);
             }
-
             renderGraph.addPass("GBuffer Pass", renderPass);
 
             renderPass.init(RenderPassType::COMPUTE, computeBuilder)
@@ -253,9 +327,17 @@ int main()
             {
                 renderPass.addResource(ResourceAccessType::READ, gBuffer->getColorTexture(), ShaderStage::COMPUTE);
             }
-
             renderGraph.addPass("Deffered pass", renderPass);
+
+            renderGraph.addPass("Fonts", RenderPassBuilder()
+                                             .init(RenderPassType::GRAPHICS, fontPipeline)
+                                             .addRenderTarget(window->getRenderTarget())
+                                             .setClearRenderTargets(false)
+                                             .setRenderTargetUse(RenderTargetType::COLOR)
+                                             .setCommands(fontRenderCommands));
         }
+
+        fontInfoBuffer->write(&fontInfo, sizeof(fontInfo));
 
         rect = window->getRect();
         viewProj = math::perspective(math::radians(90.0f),

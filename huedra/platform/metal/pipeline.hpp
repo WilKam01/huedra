@@ -3,6 +3,7 @@
 #include "graphics/pipeline_builder.hpp"
 #include "graphics/pipeline_data.hpp"
 #include "graphics/render_pass_builder.hpp"
+#include "graphics/render_target.hpp"
 #include "graphics/shader_module.hpp"
 #include "platform/metal/config.hpp"
 #include "platform/metal/parameter_handler.hpp"
@@ -21,7 +22,7 @@ public:
     MetalPipeline& operator=(MetalPipeline&& rhs) = default;
 
     void initGraphics(id<MTLDevice> device, const PipelineBuilder& pipelineBuilder,
-                      std::vector<RenderTargetInfo> renderTargets);
+                      std::vector<RenderTargetInfo> renderTargets, RenderTargetType renderTargetUse);
     void initCompute(id<MTLDevice> device, const PipelineBuilder& pipelineBuilder);
     void cleanup();
 

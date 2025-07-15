@@ -112,4 +112,13 @@ using uvec3 = Vec3<u32>;
 using bvec3 = Vec3<bool>;
 using dvec3 = Vec3<double>;
 
+using i8vec3 = Vec3<i8>;
+using u8vec3 = Vec3<u8>;
+using i16vec3 = Vec3<i16>;
+using u16vec3 = Vec3<u16>;
+using i32vec3 = Vec3<i32>;
+using u32vec3 = Vec3<u32>;
+using i64vec3 = Vec3<i64>;
+using u64vec3 = Vec3<u64>;
+
 } // namespace huedra

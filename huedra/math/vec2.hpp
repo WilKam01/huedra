@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/types.hpp"
 #include "math/vec.hpp"
 
 namespace huedra {
@@ -107,5 +108,14 @@ using ivec2 = Vec2<i32>;
 using uvec2 = Vec2<u32>;
 using bvec2 = Vec2<bool>;
 using dvec2 = Vec2<double>;
+
+using i8vec2 = Vec2<i8>;
+using u8vec2 = Vec2<u8>;
+using i16vec2 = Vec2<i16>;
+using u16vec2 = Vec2<u16>;
+using i32vec2 = Vec2<i32>;
+using u32vec2 = Vec2<u32>;
+using i64vec2 = Vec2<i64>;
+using u64vec2 = Vec2<u64>;
 
 } // namespace huedra

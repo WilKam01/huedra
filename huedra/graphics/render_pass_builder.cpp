@@ -1,6 +1,7 @@
 #include "render_pass_builder.hpp"
 #include "core/log.hpp"
 #include "graphics/pipeline_data.hpp"
+#include "graphics/render_target.hpp"
 
 namespace huedra {
 
@@ -111,6 +112,12 @@ RenderPassBuilder& RenderPassBuilder::setClearRenderTargets(bool clearRenderTarg
     return *this;
 }
 
+RenderPassBuilder& RenderPassBuilder::setRenderTargetUse(RenderTargetType renderTargetUse)
+{
+    m_renderTargetUse = renderTargetUse;
+    return *this;
+}
+
 RenderPassBuilder& RenderPassBuilder::addRenderTarget(Ref<RenderTarget> renderTarget, vec3 clearColor)
 {
     if (!renderTarget.valid() || !renderTarget->isAvailable())
@@ -125,10 +132,19 @@ RenderPassBuilder& RenderPassBuilder::addRenderTarget(Ref<RenderTarget> renderTa
         return *this;
     }
 
-    if (!m_renderTargets.empty() && renderTarget->getType() != m_renderTargets.back().target->getType())
+    // May not be valid depending on render target use
+    if (renderTarget->getType() != RenderTargetType::COLOR_AND_DEPTH)
     {
-        log(LogLevel::WARNING, "RenderPassBuilder: could not add render target to render pass. Type mismatch");
-        return *this;
+        if (m_renderTargetUse == RenderTargetType::COLOR && !renderTarget->usesColor() ||
+            m_renderTargetUse == RenderTargetType::DEPTH && !renderTarget->usesDepth() ||
+            m_renderTargetUse == RenderTargetType::COLOR_AND_DEPTH)
+        {
+            log(LogLevel::WARNING,
+                R"(RenderPassBuilder: could not add render target to render pass. Type "{}" is not supported for target use "{}")",
+                RenderTargetTypeNames[static_cast<u32>(renderTarget->getType())],
+                RenderTargetTypeNames[static_cast<u32>(m_renderTargetUse)]);
+            return *this;
+        }
     }
 
     m_renderTargets.push_back({.target = renderTarget, .clearColor = clearColor});

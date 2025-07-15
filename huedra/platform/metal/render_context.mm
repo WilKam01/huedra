@@ -1,6 +1,7 @@
 #include "render_context.hpp"
 #include "core/log.hpp"
 #include "graphics/pipeline_data.hpp"
+#include "graphics/render_target.hpp"
 #include "graphics/texture.hpp"
 #include "platform/metal/buffer.hpp"
 #include "platform/metal/render_target.hpp"
@@ -14,7 +15,7 @@
 namespace huedra {
 
 void MetalRenderContext::init(id<MTLDevice> device, id<MTLRenderCommandEncoder> encoder, MetalContext& context,
-                              MetalPipeline& pipeline)
+                              MetalPipeline& pipeline, RenderTargetType renderTargetUse)
 {
     m_encoder = encoder;
     m_computeEncoder = nil;
@@ -29,12 +30,15 @@ void MetalRenderContext::init(id<MTLDevice> device, id<MTLRenderCommandEncoder> 
         [encoder setFrontFacingWinding:MTLWindingCounterClockwise];
         [encoder setCullMode:MTLCullModeBack];
 
-        MTLDepthStencilDescriptor* depthDesc = [[MTLDepthStencilDescriptor alloc] init];
-        depthDesc.depthCompareFunction = MTLCompareFunctionLess;
-        depthDesc.depthWriteEnabled = YES;
+        if (renderTargetUse == RenderTargetType::COLOR_AND_DEPTH || renderTargetUse == RenderTargetType::DEPTH)
+        {
+            MTLDepthStencilDescriptor* depthDesc = [[MTLDepthStencilDescriptor alloc] init];
+            depthDesc.depthCompareFunction = MTLCompareFunctionLess;
+            depthDesc.depthWriteEnabled = YES;
 
-        id<MTLDepthStencilState> depthState = [device newDepthStencilStateWithDescriptor:depthDesc];
-        [encoder setDepthStencilState:depthState];
+            id<MTLDepthStencilState> depthState = [device newDepthStencilStateWithDescriptor:depthDesc];
+            [encoder setDepthStencilState:depthState];
+        }
 
         [encoder setTriangleFillMode:converter::convertTriangleFillMode(m_pipeline->getBuilder().getPrimitiveType())];
     }

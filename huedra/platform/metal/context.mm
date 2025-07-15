@@ -226,7 +226,8 @@ void MetalContext::setRenderGraph(RenderGraphBuilder& builder)
         PassInfo passInfo;
         if (info.getType() == RenderPassType::GRAPHICS)
         {
-            passInfo.pipeline.initGraphics(m_device, info.getPipeline(), info.getRenderTargets());
+            passInfo.pipeline.initGraphics(m_device, info.getPipeline(), info.getRenderTargets(),
+                                           info.getRenderTargetUse());
         }
         else if (info.getType() == RenderPassType::COMPUTE)
         {
@@ -234,6 +235,7 @@ void MetalContext::setRenderGraph(RenderGraphBuilder& builder)
         }
         passInfo.commands = info.getCommands();
         passInfo.clearTargets = info.getClearRenderTargets();
+        passInfo.renderTargetUse = info.getRenderTargetUse();
 
         std::vector<MetalSwapchain*> swapchains;
         u32 latestVersion = 0; // Checking the latest iteration of an input resource
@@ -260,6 +262,51 @@ void MetalContext::setRenderGraph(RenderGraphBuilder& builder)
             }
         }
 
+        // Render target (outputs for textures (color or depth or both))
+        // Also input for textures if not clearing contents
+        for (auto& targetInfo : info.getRenderTargets())
+        {
+            auto* renderTarget = static_cast<MetalRenderTarget*>(targetInfo.target.get());
+            if (renderTarget->usesColor() && (info.getRenderTargetUse() == RenderTargetType::COLOR_AND_DEPTH ||
+                                              info.getRenderTargetUse() == RenderTargetType::COLOR))
+            {
+                void* ptr = static_cast<void*>(renderTarget->getColorTexture().get());
+                if (!resourceVersions.contains(ptr))
+                {
+                    resourceVersions.insert(std::pair<void*, u32>(ptr, {}));
+                }
+                if (!passInfo.clearTargets)
+                {
+                    latestVersion = std::max(latestVersion, resourceVersions[ptr].version);
+                }
+                resourceVersions[ptr].version = latestVersion + 1;
+            }
+
+            if (renderTarget->usesDepth() && (info.getRenderTargetUse() == RenderTargetType::COLOR_AND_DEPTH ||
+                                              info.getRenderTargetUse() == RenderTargetType::DEPTH))
+            {
+                void* ptr = static_cast<void*>(renderTarget->getDepthTexture().get());
+                if (!resourceVersions.contains(ptr))
+                {
+                    resourceVersions.insert(std::pair<void*, u32>(ptr, {}));
+                }
+                if (!passInfo.clearTargets)
+                {
+                    latestVersion = std::max(latestVersion, resourceVersions[ptr].version);
+                }
+                resourceVersions[ptr].version = latestVersion + 1;
+            }
+
+            if (renderTarget->getSwapchain() != nullptr)
+            {
+                swapchains.push_back(renderTarget->getSwapchain());
+                m_activeSwapchains.insert(renderTarget->getSwapchain());
+            }
+
+            passInfo.renderTargets.push_back(renderTarget);
+            passInfo.clearColors.push_back(targetInfo.clearColor);
+        }
+
         // Outputs
         for (auto& output : info.getOutputs())
         {
@@ -280,40 +327,6 @@ void MetalContext::setRenderGraph(RenderGraphBuilder& builder)
                     m_activeSwapchains.insert(texture->getRenderTarget()->getSwapchain());
                 }
             }
-        }
-
-        // Render target (outputs for textures (color or depth or both))
-        for (auto& info : info.getRenderTargets())
-        {
-            auto* renderTarget = static_cast<MetalRenderTarget*>(info.target.get());
-            if (renderTarget->usesColor())
-            {
-                void* ptr = static_cast<void*>(renderTarget->getColorTexture().get());
-                if (!resourceVersions.contains(ptr))
-                {
-                    resourceVersions.insert(std::pair<void*, u32>(ptr, {}));
-                }
-                resourceVersions[ptr].version = latestVersion + 1;
-            }
-
-            if (renderTarget->usesDepth())
-            {
-                void* ptr = static_cast<void*>(renderTarget->getDepthTexture().get());
-                if (!resourceVersions.contains(ptr))
-                {
-                    resourceVersions.insert(std::pair<void*, u32>(ptr, {}));
-                }
-                resourceVersions[ptr].version = latestVersion + 1;
-            }
-
-            if (renderTarget->getSwapchain() != nullptr)
-            {
-                swapchains.push_back(renderTarget->getSwapchain());
-                m_activeSwapchains.insert(renderTarget->getSwapchain());
-            }
-
-            passInfo.renderTargets.push_back(renderTarget);
-            passInfo.clearColors.push_back(info.clearColor);
         }
 
         if (m_passBatches.size() <= latestVersion)
@@ -352,21 +365,26 @@ void MetalContext::render()
                 if (pass.pipeline.getBuilder().getType() == PipelineType::GRAPHICS)
                 {
                     MTLRenderPassDescriptor* renderPassDesc = [MTLRenderPassDescriptor renderPassDescriptor];
-                    for (u32 i = 0; i < pass.renderTargets.size(); ++i)
+                    if (pass.renderTargetUse == RenderTargetType::COLOR_AND_DEPTH ||
+                        pass.renderTargetUse == RenderTargetType::COLOR)
                     {
-                        renderPassDesc.colorAttachments[i].texture =
-                            pass.renderTargets[i]->getMetalColorTexture().get();
-                        renderPassDesc.colorAttachments[i].loadAction =
-                            pass.clearTargets ? MTLLoadActionClear : MTLLoadActionLoad;
-                        renderPassDesc.colorAttachments[i].storeAction = MTLStoreActionStore;
 
-                        vec3 clearColor = pass.clearColors[i];
-                        renderPassDesc.colorAttachments[0].clearColor =
-                            MTLClearColorMake(clearColor.r, clearColor.g, clearColor.b, 1.0);
+                        for (u32 i = 0; i < pass.renderTargets.size(); ++i)
+                        {
+                            renderPassDesc.colorAttachments[i].texture =
+                                pass.renderTargets[i]->getMetalColorTexture().get();
+                            renderPassDesc.colorAttachments[i].loadAction =
+                                pass.clearTargets ? MTLLoadActionClear : MTLLoadActionLoad;
+                            renderPassDesc.colorAttachments[i].storeAction = MTLStoreActionStore;
+
+                            vec3 clearColor = pass.clearColors[i];
+                            renderPassDesc.colorAttachments[0].clearColor =
+                                MTLClearColorMake(clearColor.r, clearColor.g, clearColor.b, 1.0);
+                        }
                     }
 
-                    // Assumes all are using depth when first is
-                    if (pass.renderTargets.front()->usesDepth())
+                    if (pass.renderTargetUse == RenderTargetType::COLOR_AND_DEPTH ||
+                        pass.renderTargetUse == RenderTargetType::DEPTH)
                     {
                         renderPassDesc.depthAttachment.texture =
                             pass.renderTargets.front()->getMetalDepthTexture().get();
@@ -379,7 +397,7 @@ void MetalContext::render()
                     [encoder setRenderPipelineState:pass.pipeline.getGraphicsPipeline()];
 
                     MetalRenderContext renderContext;
-                    renderContext.init(m_device, encoder, *this, pass.pipeline);
+                    renderContext.init(m_device, encoder, *this, pass.pipeline, pass.renderTargetUse);
                     pass.commands(renderContext);
 
                     [encoder endEncoding];

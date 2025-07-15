@@ -172,7 +172,6 @@ void CompiledShaderModule::init(Slang::ComPtr<slang::IComponentType> program, co
             m_computeThreadsPerGroup.z = threadValues[2];
         }
     }
-
 #endif
 }
 
@@ -512,7 +511,7 @@ void CompiledShaderModule::addParametersMetal(ShaderStage stage, const std::stri
             m_nextParameterOffset += parameter.size;
         }
         // Add automatically created constant buffer
-        else if (!getResource(namePrefix + "<misc>").has_value() &&
+        else if (!getResource(namePrefix + "<misc>").has_value() && varLayout->getSemanticName() != nullptr &&
                  std::string(varLayout->getSemanticName()).substr(0, 3) != "SV_")
         {
             addResourcesMetal(stage, namePrefix + "<misc>", ResourceType::CONSTANT_BUFFER, varLayout->getCategory());

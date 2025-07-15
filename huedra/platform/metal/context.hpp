@@ -2,6 +2,7 @@
 
 #include "graphics/context.hpp"
 #include "graphics/render_graph_builder.hpp"
+#include "graphics/render_target.hpp"
 #include "platform/metal/buffer.hpp"
 #include "platform/metal/config.hpp"
 #include "platform/metal/pipeline.hpp"
@@ -74,6 +75,7 @@ private:
         std::vector<MetalRenderTarget*> renderTargets;
         std::vector<vec3> clearColors;
         bool clearTargets{true};
+        RenderTargetType renderTargetUse{RenderTargetType::COLOR_AND_DEPTH};
     };
     struct PassBatch
     {

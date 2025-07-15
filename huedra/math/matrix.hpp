@@ -4,6 +4,7 @@
 #include "math/vec2.hpp"
 #include "math/vec3.hpp"
 #include "math/vec4.hpp"
+#include <array>
 
 namespace huedra {
 
@@ -20,8 +21,8 @@ public:
             m_elements[i][i] = scalar;
         }
     }
-    explicit Matrix(std::array<std::array<T, R>, C> values) : m_elements(values) {}
-    explicit Matrix(std::array<T, R * C> values)
+    explicit Matrix(const std::array<std::array<T, R>, C>& values) : m_elements(values) {}
+    explicit Matrix(const std::array<T, R * C>& values)
     {
         for (u64 i = 0; i < C; ++i)
         {
@@ -30,6 +31,49 @@ public:
                 m_elements[i][j] = values[(i * R) + j];
             }
         }
+    }
+    template <u64 R2, u64 C2>
+    explicit Matrix(const std::array<std::array<T, R2>, C2>& values)
+    {
+        const u64 minR = std::min(R, R2);
+        const u64 minC = std::min(C, C2);
+        for (u64 i = 0; i < minC; ++i)
+        {
+            for (u64 j = 0; j < minR; ++j)
+            {
+                m_elements[i][j] = values[i][j];
+            }
+        }
+    }
+
+    template <u64 R2, u64 C2>
+    Matrix& operator=(const Matrix<T, R2, C2>& rhs)
+    {
+        const u64 minR = std::min(R, R2);
+        const u64 minC = std::min(C, C2);
+        for (u64 i = 0; i < minC; ++i)
+        {
+            for (u64 j = 0; j < minR; ++j)
+            {
+                m_elements[i][j] = rhs(j, i);
+            }
+        }
+        return *this;
+    }
+
+    template <u64 R2, u64 C2>
+    Matrix& operator=(const Matrix<T, R2, C2>&& rhs)
+    {
+        const u64 minR = std::min(R, R2);
+        const u64 minC = std::min(C, C2);
+        for (u64 i = 0; i < minC; ++i)
+        {
+            for (u64 j = 0; j < minR; ++j)
+            {
+                m_elements[i][j] = rhs(j, i);
+            }
+        }
+        return *this;
     }
 
     T operator[](u64 index) const { return m_elements[index / C][index % C]; }

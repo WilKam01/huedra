@@ -3,6 +3,7 @@
 #include "core/global.hpp"
 #include "core/log.hpp"
 #include "graphics/pipeline_data.hpp"
+#include "graphics/render_target.hpp"
 #include "platform/metal/type_converter.hpp"
 #include <Metal/Metal.h>
 #include <optional>
@@ -10,7 +11,7 @@
 namespace huedra {
 
 void MetalPipeline::initGraphics(id<MTLDevice> device, const PipelineBuilder& pipelineBuilder,
-                                 std::vector<RenderTargetInfo> renderTargets)
+                                 std::vector<RenderTargetInfo> renderTargets, RenderTargetType renderTargetUse)
 {
     @autoreleasepool
     {
@@ -68,13 +69,19 @@ void MetalPipeline::initGraphics(id<MTLDevice> device, const PipelineBuilder& pi
             m_functions.insert(std::pair<ShaderStage, id<MTLFunction>>(ShaderStage::FRAGMENT, desc.fragmentFunction));
         }
 
-        for (u32 i = 0; i < renderTargets.size(); ++i)
+        if (renderTargetUse == RenderTargetType::COLOR_AND_DEPTH || renderTargetUse == RenderTargetType::COLOR)
         {
-            desc.colorAttachments[i].pixelFormat =
-                converter::convertPixelDataFormat(renderTargets[i].target->getFormat());
+            for (u32 i = 0; i < renderTargets.size(); ++i)
+            {
+                desc.colorAttachments[i].pixelFormat =
+                    converter::convertPixelDataFormat(renderTargets[i].target->getFormat());
+            }
         }
 
-        desc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
+        if (renderTargetUse == RenderTargetType::COLOR_AND_DEPTH || renderTargetUse == RenderTargetType::DEPTH)
+        {
+            desc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
+        }
 
         m_renderPipeline = [m_device newRenderPipelineStateWithDescriptor:desc error:&error];
         if (m_renderPipeline == nullptr && [[error localizedDescription] UTF8String] != nullptr)

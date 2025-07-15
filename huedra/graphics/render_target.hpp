@@ -5,6 +5,8 @@
 #include "graphics/pipeline_data.hpp"
 #include "graphics/texture.hpp"
 #include "math/vec2.hpp"
+#include <array>
+#include <string_view>
 
 namespace huedra {
 
@@ -14,6 +16,8 @@ enum class RenderTargetType
     DEPTH,
     COLOR_AND_DEPTH
 };
+// TODO: Create this automatically? Macro?
+constexpr std::array<std::string_view, 3> RenderTargetTypeNames{"Color", "Depth", "Color and Depth"};
 
 class RenderTarget
 {
