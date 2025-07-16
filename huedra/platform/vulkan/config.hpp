@@ -33,6 +33,7 @@ const static std::vector<const char*> INSTANCE_EXTENSIONS = {
 
 const static std::vector<const char*> DEVICE_EXTENSIONS = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME,
 };
 
 const static std::map<VkImageLayout, VkAccessFlagBits> LAYOUT_TO_ACCESS = {

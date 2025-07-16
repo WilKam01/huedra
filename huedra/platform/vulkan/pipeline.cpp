@@ -60,8 +60,8 @@ void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device
         for (u32 j = 0; j < static_cast<u32>(inputStreams[i].attributes.size()); ++j)
         {
             VkVertexInputAttributeDescription attributeDescription;
-            attributeDescription.location = i;
-            attributeDescription.binding = locationOffset + j;
+            attributeDescription.binding = i;
+            attributeDescription.location = locationOffset + j;
             attributeDescription.format = converter::convertDataFormat(inputStreams[i].attributes[j].format);
             attributeDescription.offset = inputStreams[i].attributes[j].offset;
             vertexInputAttributeDescs.push_back(attributeDescription);

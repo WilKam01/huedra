@@ -98,6 +98,8 @@ void VulkanContext::cleanup()
     m_activeSwapchains.clear();
     m_usingGraphicsQueue = false;
     m_usingComputeQueue = false;
+    m_lastGraphicsBatch = 0;
+    m_lastComputeBatch = 0;
 
     for (auto& info : m_samplers)
     {
@@ -341,6 +343,8 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
     m_activeSwapchains.clear();
     m_usingGraphicsQueue = false;
     m_usingComputeQueue = false;
+    m_lastGraphicsBatch = 0;
+    m_lastComputeBatch = 0;
 
     for (auto& info : m_samplers)
     {
@@ -415,6 +419,88 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
             }
         }
 
+        for (u32 i = 0; i < info.getRenderTargets().size(); ++i)
+        {
+            VulkanRenderTarget* target = static_cast<VulkanRenderTarget*>(info.getRenderTargets()[i].target.get());
+            if (target->usesColor() && (info.getRenderTargetUse() == RenderTargetType::COLOR_AND_DEPTH ||
+                                        info.getRenderTargetUse() == RenderTargetType::COLOR))
+            {
+                void* ptr = &target->getVkColorTexture();
+                if (!resourceVersions.contains(ptr))
+                {
+                    resourceVersions.insert(std::pair<void*, u32>(ptr, {}));
+                    resourceVersions[ptr].curLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                }
+                else if (resourceVersions[ptr].curLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+                {
+                    resourceVersions[ptr].curLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                    resourceVersions[ptr].curRenderPass->setFinalColorLayout(resourceVersions[ptr].curRenderTargetIndex,
+                                                                             resourceVersions[ptr].curLayout);
+                }
+
+                if (!info.getClearRenderTargets())
+                {
+                    latestVersion = std::max(latestVersion, resourceVersions[ptr].version);
+                }
+
+                resourceVersions[ptr].version = latestVersion + 1;
+                resourceVersions[ptr].curRenderPass = passInfo.pass;
+                if (resourceVersions[ptr].firstRenderPass == nullptr)
+                {
+                    resourceVersions[ptr].firstRenderPass = resourceVersions[ptr].curRenderPass;
+                }
+                resourceVersions[ptr].curRenderTargetIndex = i;
+                resourceVersions[ptr].textureType = TextureType::COLOR;
+
+                if (!resourceVersions[ptr].curRenderPass->getBuilder().getClearRenderTargets())
+                {
+                    resourceVersions[ptr].curRenderPass->setInitialColorLayout(
+                        resourceVersions[ptr].curRenderTargetIndex, resourceVersions[ptr].curLayout);
+                }
+            }
+
+            if (target->usesDepth() && (info.getRenderTargetUse() == RenderTargetType::COLOR_AND_DEPTH ||
+                                        info.getRenderTargetUse() == RenderTargetType::DEPTH))
+            {
+                void* ptr = &target->getVkDepthTexture();
+                if (!resourceVersions.contains(ptr))
+                {
+                    resourceVersions.insert(std::pair<void*, u32>(ptr, {}));
+                }
+                else if (resourceVersions[ptr].curLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+                {
+                    resourceVersions[ptr].curLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                    resourceVersions[ptr].curRenderPass->setFinalDepthLayout(resourceVersions[ptr].curRenderTargetIndex,
+                                                                             resourceVersions[ptr].curLayout);
+                }
+
+                if (!info.getClearRenderTargets())
+                {
+                    latestVersion = std::max(latestVersion, resourceVersions[ptr].version);
+                }
+
+                resourceVersions[ptr].version = latestVersion + 1;
+                resourceVersions[ptr].curRenderPass = passInfo.pass;
+                resourceVersions[ptr].curRenderTargetIndex = i;
+                resourceVersions[ptr].textureType = TextureType::DEPTH;
+                if (resourceVersions[ptr].firstRenderPass == nullptr)
+                {
+                    resourceVersions[ptr].firstRenderPass = resourceVersions[ptr].curRenderPass;
+                }
+                if (!resourceVersions[ptr].curRenderPass->getBuilder().getClearRenderTargets())
+                {
+                    resourceVersions[ptr].curRenderPass->setInitialDepthLayout(
+                        resourceVersions[ptr].curRenderTargetIndex, resourceVersions[ptr].curLayout);
+                }
+            }
+
+            if (target->getSwapchain() != nullptr)
+            {
+                swapchains.push_back(target->getSwapchain());
+                m_activeSwapchains.insert(target->getSwapchain());
+            }
+        }
+
         for (auto& output : info.getOutputs())
         {
             void* ptr = output.type == RenderPassReference::Type::BUFFER ? static_cast<void*>(output.buffer)
@@ -458,74 +544,6 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
             }
         }
 
-        for (u32 i = 0; i < info.getRenderTargets().size(); ++i)
-        {
-            VulkanRenderTarget* target = static_cast<VulkanRenderTarget*>(info.getRenderTargets()[i].target.get());
-            if (target->usesColor())
-            {
-                void* ptr = &target->getVkColorTexture();
-                if (!resourceVersions.contains(ptr))
-                {
-                    resourceVersions.insert(std::pair<void*, u32>(ptr, {}));
-                    resourceVersions[ptr].curLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                }
-                else if (resourceVersions[ptr].curLayout == VK_IMAGE_LAYOUT_UNDEFINED)
-                {
-                    resourceVersions[ptr].curLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-                    resourceVersions[ptr].curRenderPass->setFinalColorLayout(resourceVersions[ptr].curRenderTargetIndex,
-                                                                             resourceVersions[ptr].curLayout);
-                }
-                resourceVersions[ptr].version = latestVersion + 1;
-                resourceVersions[ptr].curRenderPass = passInfo.pass;
-                if (resourceVersions[ptr].firstRenderPass == nullptr)
-                {
-                    resourceVersions[ptr].firstRenderPass = resourceVersions[ptr].curRenderPass;
-                }
-                resourceVersions[ptr].curRenderTargetIndex = i;
-                resourceVersions[ptr].textureType = TextureType::COLOR;
-
-                if (!resourceVersions[ptr].curRenderPass->getBuilder().getClearRenderTargets())
-                {
-                    resourceVersions[ptr].curRenderPass->setInitialColorLayout(
-                        resourceVersions[ptr].curRenderTargetIndex, resourceVersions[ptr].curLayout);
-                }
-            }
-
-            if (target->usesDepth())
-            {
-                void* ptr = &target->getVkDepthTexture();
-                if (!resourceVersions.contains(ptr))
-                {
-                    resourceVersions.insert(std::pair<void*, u32>(ptr, {}));
-                }
-                else if (resourceVersions[ptr].curLayout == VK_IMAGE_LAYOUT_UNDEFINED)
-                {
-                    resourceVersions[ptr].curLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-                    resourceVersions[ptr].curRenderPass->setFinalDepthLayout(resourceVersions[ptr].curRenderTargetIndex,
-                                                                             resourceVersions[ptr].curLayout);
-                }
-                resourceVersions[ptr].version = latestVersion + 1;
-                resourceVersions[ptr].curRenderPass = passInfo.pass;
-                resourceVersions[ptr].curRenderTargetIndex = i;
-                resourceVersions[ptr].textureType = TextureType::DEPTH;
-                if (resourceVersions[ptr].firstRenderPass == nullptr)
-                {
-                    resourceVersions[ptr].firstRenderPass = resourceVersions[ptr].curRenderPass;
-                }
-                if (!resourceVersions[ptr].curRenderPass->getBuilder().getClearRenderTargets())
-                {
-                    resourceVersions[ptr].curRenderPass->setInitialDepthLayout(
-                        resourceVersions[ptr].curRenderTargetIndex, resourceVersions[ptr].curLayout);
-                }
-            }
-
-            if (target->getSwapchain() != nullptr)
-            {
-                swapchains.push_back(target->getSwapchain());
-                m_activeSwapchains.insert(target->getSwapchain());
-            }
-        }
-
         if (m_passBatches.size() <= latestVersion)
         {
             m_passBatches.resize(latestVersion + 1);
@@ -537,10 +555,12 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
         case RenderPassType::GRAPHICS:
             m_passBatches[latestVersion].useGraphicsQueue = true;
             m_usingGraphicsQueue = true;
+            m_lastGraphicsBatch = std::max(m_lastGraphicsBatch, latestVersion);
             break;
         case RenderPassType::COMPUTE:
             m_passBatches[latestVersion].useComputeQueue = true;
             m_usingComputeQueue = true;
+            m_lastComputeBatch = std::max(m_lastComputeBatch, latestVersion);
             break;
         }
 
@@ -900,7 +920,12 @@ void VulkanContext::submitGraphicsQueue(u32 batchIndex)
             &m_graphicsSyncSemaphores[m_curGraphicsSemphoreIndex][global::graphicsManager.getCurrentFrame()];
     }
 
-    VkFence fence = m_graphicsFrameInFlightFences[global::graphicsManager.getCurrentFrame()];
+    VkFence fence = VK_NULL_HANDLE;
+    if (m_lastGraphicsBatch == batchIndex)
+    {
+        fence = m_graphicsFrameInFlightFences[global::graphicsManager.getCurrentFrame()];
+    }
+
     if (vkQueueSubmit(m_device.getGraphicsQueue(), 1, &submitInfo, fence) != VK_SUCCESS)
     {
         log(LogLevel::ERR, "Failed to submit graphics queue!");
@@ -956,7 +981,12 @@ void VulkanContext::submitComputeQueue(u32 batchIndex)
             &m_computeSyncSemaphores[m_curComputeSemphoreIndex][global::graphicsManager.getCurrentFrame()];
     }
 
-    VkFence fence = m_computeFrameInFlightFences[global::graphicsManager.getCurrentFrame()];
+    VkFence fence = VK_NULL_HANDLE;
+    if (m_lastComputeBatch == batchIndex)
+    {
+        fence = m_computeFrameInFlightFences[global::graphicsManager.getCurrentFrame()];
+    }
+
     if (vkQueueSubmit(m_device.getComputeQueue(), 1, &submitInfo, fence) != VK_SUCCESS)
     {
         log(LogLevel::ERR, "Failed to submit compute queue!");

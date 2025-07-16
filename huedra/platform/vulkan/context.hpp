@@ -94,6 +94,8 @@ private:
     std::vector<PassBatch> m_passBatches;
     bool m_usingGraphicsQueue{false};
     bool m_usingComputeQueue{false};
+    u32 m_lastGraphicsBatch{0};
+    u32 m_lastComputeBatch{0};
 
     struct SamplerInfo
     {
