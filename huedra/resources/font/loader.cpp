@@ -7,6 +7,7 @@
 
 #include <array>
 #include <bit>
+#include <cstring>
 #include <string_view>
 #include <utility>
 
@@ -62,13 +63,6 @@ CommonFontHeader loadCommonFontHeader(const std::vector<u8>& bytes)
         header.type = CommonFontHeader::Type::OPEN_TYPE;
     }
 
-    log(LogLevel::D_INFO, "loadTtf(): Header");
-    log(LogLevel::D_INFO, "    Scaler Type: {} (0x{:x})", header.scalerTypeString.c_str(), header.scalerType);
-    log(LogLevel::D_INFO, "    Number of Tables: {}", header.numTables);
-    log(LogLevel::D_INFO, "    Search Range: {}", header.searchRange);
-    log(LogLevel::D_INFO, "    Entry Selector: {}", header.entrySelector);
-    log(LogLevel::D_INFO, "    Range Shift: {}", header.rangeShift);
-
     return header;
 }
 
@@ -87,7 +81,6 @@ FontData loadTtf(const std::string& path)
         return {};
     }
 
-    log(LogLevel::D_INFO, "loadTtf(): Tables");
     struct Table
     {
         u32 checkSum{0};
@@ -107,12 +100,6 @@ FontData loadTtf(const std::string& path)
         // Check checksums?
 
         tables.insert(std::pair<std::string, Table>(tag, {.checkSum = checkSum, .offset = offset, .length = length}));
-
-        log(LogLevel::D_INFO, "    Table {}", i);
-        log(LogLevel::D_INFO, "        Tag: \"{}\"", tag.c_str());
-        log(LogLevel::D_INFO, "        Check Sum: {}", checkSum);
-        log(LogLevel::D_INFO, "        Offset: {}", offset);
-        log(LogLevel::D_INFO, "        Length: {}", length);
     }
 
     // TODO: Only check tables that are used by application?
@@ -135,7 +122,7 @@ FontData loadTtf(const std::string& path)
     u32 bytesPerLocLookUp = indexToLocFormat == 0 ? 2 : 4;
     u16 numGlyphs = parseFromBytes<u16>(&bytes[tables["maxp"].offset + 4], std::endian::big);
 
-    std::vector<u32> glyphLocations(numGlyphs, 0);
+    std::vector<u32> glyphLocations(numGlyphs, tables["glyf"].offset);
     for (u32 i = 0; i < numGlyphs; ++i)
     {
         u32 readIndex = tables["loca"].offset + (i * bytesPerLocLookUp);
@@ -148,7 +135,7 @@ FontData loadTtf(const std::string& path)
         {
             glyphOffset = parseFromBytes<u32>(&bytes[readIndex], std::endian::big);
         }
-        glyphLocations[i] = tables["glyf"].offset + glyphOffset;
+        glyphLocations[i] += glyphOffset;
     }
 
     u16 numLongHorMetrics = parseFromBytes<u16>(&bytes[tables["hhea"].offset + 34], std::endian::big);
@@ -162,10 +149,8 @@ FontData loadTtf(const std::string& path)
     u16 hmtxOffset = tables["hmtx"].offset;
     for (u16 i = 0; i < numLongHorMetrics; ++i)
     {
-        longHorMetrics[i].advanceWidth =
-            parseFromBytes<u16>(&bytes[hmtxOffset + (i * sizeof(LongHorMetric))], std::endian::big);
-        longHorMetrics[i].leftSideBearing =
-            parseFromBytes<i16>(&bytes[hmtxOffset + (i * sizeof(LongHorMetric)) + 2], std::endian::big);
+        longHorMetrics[i].advanceWidth = parseFromBytes<u16>(&bytes[hmtxOffset + (i * 4)], std::endian::big);
+        longHorMetrics[i].leftSideBearing = parseFromBytes<i16>(&bytes[hmtxOffset + (i * 4) + 2], std::endian::big);
     }
 
     // Remaining glyphs are monospace and are using the same advance width as the last in the hMetrics array
@@ -174,7 +159,7 @@ FontData loadTtf(const std::string& path)
     {
         longHorMetrics[i].advanceWidth = longHorMetrics[numLongHorMetrics - 1].advanceWidth;
         longHorMetrics[i].leftSideBearing =
-            parseFromBytes<i16>(&bytes[hmtxOffset + ((i - numLongHorMetrics) * sizeof(i16))], std::endian::big);
+            parseFromBytes<i16>(&bytes[hmtxOffset + ((i - numLongHorMetrics) * 2)], std::endian::big);
     }
 
     u16 numSubtables = parseFromBytes<u16>(&bytes[tables["cmap"].offset + 2], std::endian::big);
@@ -207,11 +192,6 @@ FontData loadTtf(const std::string& path)
                 selectedSubtableOffset = offset;
             }
         }
-
-        log(LogLevel::D_INFO, "loadTtf(): Subtable {}", i);
-        log(LogLevel::D_INFO, "    Platform Id {}", platformId);
-        log(LogLevel::D_INFO, "    Platform Specific Id {}", platformSpecificId);
-        log(LogLevel::D_INFO, "    Offset {}", offset);
     }
 
     if (selectedSubtableOffset == 0)
@@ -228,7 +208,6 @@ FontData loadTtf(const std::string& path)
     }
 
     u32 curOffset = tables["cmap"].offset + selectedSubtableOffset;
-    std::map<u16, u16> glyphIndices;
     if (format == 4)
     {
         u16 segCount = parseFromBytes<u16>(&bytes[curOffset + 6], std::endian::big) / 2;
@@ -243,7 +222,6 @@ FontData loadTtf(const std::string& path)
         std::vector<Segment> segments(segCount);
         curOffset += 14;
 
-        log(LogLevel::D_INFO, "loadTtf(): Segments");
         // Last segment should be 0xffff on start code and end code, ignore it
         for (u16 i = 0; i < segCount - 1; ++i)
         {
@@ -256,19 +234,13 @@ FontData loadTtf(const std::string& path)
             offset += segCount * 2;
             u16 idRangeOffset = parseFromBytes<u16>(&bytes[offset], std::endian::big);
 
-            log(LogLevel::D_INFO, "    Segment {}", i);
-            log(LogLevel::D_INFO, "        End Code: {}", endCode);
-            log(LogLevel::D_INFO, "        Start Code: {}", startCode);
-            log(LogLevel::D_INFO, "        Id Delta: {}", idDelta);
-            log(LogLevel::D_INFO, "        Id Range Offset: {}", idRangeOffset);
-
             // Calculate code directly
             if (idRangeOffset == 0)
             {
                 // Go through all characters in the range
                 for (u16 i = startCode; i <= endCode; ++i)
                 {
-                    glyphIndices[i] = (i + idDelta) % 65536;
+                    fontData.characterMappings[i] = (i + idDelta) % 65536;
                 }
             }
             // Look up in glyph index array
@@ -283,7 +255,7 @@ FontData loadTtf(const std::string& path)
                     u16 index = parseFromBytes<u16>(&bytes[glyphIndexOffset], std::endian::big);
                     if (index != 0)
                     {
-                        glyphIndices[i] = (index + idDelta) % 65536;
+                        fontData.characterMappings[i] = (index + idDelta) % 65536;
                     }
                 }
             }
@@ -296,7 +268,8 @@ FontData loadTtf(const std::string& path)
         curOffset += 8;
         for (u16 i = 0; i < entryCount; ++i)
         {
-            glyphIndices[firstCode + i] = parseFromBytes<u16>(&bytes[curOffset + (i * 2)], std::endian::big);
+            fontData.characterMappings[firstCode + i] =
+                parseFromBytes<u16>(&bytes[curOffset + (i * 2)], std::endian::big);
         }
     }
     else if (format == 12)
@@ -311,7 +284,7 @@ FontData loadTtf(const std::string& path)
 
             for (u32 i = startCharCode; i <= endCharCode; ++i)
             {
-                glyphIndices[i] = startGlyphCode + (i - startCharCode);
+                fontData.characterMappings[i] = startGlyphCode + (i - startCharCode);
             }
         }
     }
@@ -327,24 +300,131 @@ FontData loadTtf(const std::string& path)
 
             for (u32 i = startCharCode; i <= endCharCode; ++i)
             {
-                glyphIndices[i] = startGlyphCode;
+                fontData.characterMappings[i] = startGlyphCode;
             }
         }
     }
 
-    for (auto& [charCode, index] : glyphIndices)
+    fontData.glyphs.resize(numGlyphs);
+    for (u32 i = 0; i < numGlyphs; ++i)
     {
-        u32 glyphLocation = glyphLocations[index];
-        i16 numberOfContours = parseFromBytes<i16>(&bytes[glyphLocation], std::endian::big);
+        u32 curByteIndex = glyphLocations[i];
+        i16 numberOfContours = parseFromBytes<i16>(&bytes[curByteIndex], std::endian::big);
         Glyph glyph;
-        glyph.minSize.x = parseFromBytes<i16>(&bytes[glyphLocation + 2], std::endian::big);
-        glyph.minSize.y = parseFromBytes<i16>(&bytes[glyphLocation + 4], std::endian::big);
-        glyph.maxSize.x = parseFromBytes<i16>(&bytes[glyphLocation + 6], std::endian::big);
-        glyph.maxSize.y = parseFromBytes<i16>(&bytes[glyphLocation + 8], std::endian::big);
-        glyph.isCompound = numberOfContours < 0;
-        glyph.advanceWidth = longHorMetrics[index].advanceWidth;
-        glyph.leftSideBearing = longHorMetrics[index].leftSideBearing;
-        fontData.glyphs[charCode] = glyph;
+        glyph.minSize.x = parseFromBytes<i16>(&bytes[curByteIndex + 2], std::endian::big);
+        glyph.minSize.y = parseFromBytes<i16>(&bytes[curByteIndex + 4], std::endian::big);
+        glyph.maxSize.x = parseFromBytes<i16>(&bytes[curByteIndex + 6], std::endian::big);
+        glyph.maxSize.y = parseFromBytes<i16>(&bytes[curByteIndex + 8], std::endian::big);
+        glyph.isSimple = numberOfContours >= 0;
+        glyph.advanceWidth = longHorMetrics[i].advanceWidth;
+        glyph.leftSideBearing = longHorMetrics[i].leftSideBearing;
+
+        curByteIndex += 10;
+        // Simple glyphs
+        if (glyph.isSimple)
+        {
+            glyph.contourEndPointIndices.resize(static_cast<u64>(numberOfContours));
+            for (u32 j = 0; j < static_cast<u32>(numberOfContours); ++j)
+            {
+                glyph.contourEndPointIndices[j] = parseFromBytes<u16>(&bytes[curByteIndex + (j * 2)], std::endian::big);
+            }
+
+            u16 numPoints =
+                parseFromBytes<u16>(&bytes[curByteIndex + ((numberOfContours - 1) * 2)], std::endian::big) + 1;
+            glyph.points.resize(numPoints);
+
+            // Skip instructionLength and instructions
+            u16 instructionLength =
+                parseFromBytes<u16>(&bytes[curByteIndex + (numberOfContours * 2)], std::endian::big);
+            curByteIndex += (numberOfContours * 2) + 2 + instructionLength;
+
+            std::vector<u8> flags(numPoints, 0);
+            enum FlagBits
+            {
+                FLAG_ON_CURVE,
+                FLAG_X_SHORT_VECTOR,
+                FLAG_Y_SHORT_VECTOR,
+                FLAG_REPEAT,
+                FLAG_X_SPECIAL,
+                FLAG_Y_SPECIAL
+            };
+            for (u32 j = 0; j < numPoints; ++j)
+            {
+                u8 flag = bytes[curByteIndex++];
+                flags[j] = flag;
+
+                bool repeat = static_cast<bool>(readBits(&flag, FLAG_REPEAT, 1));
+                if (repeat)
+                {
+                    u8 numRepeats = bytes[curByteIndex++];
+                    std::memset(&flags[j + 1], flag, numRepeats);
+                    j += numRepeats;
+                }
+            }
+
+            // xCoordinates
+            i32 prevCoord = 0;
+            for (u32 j = 0; j < numPoints; ++j)
+            {
+                glyph.points[j].onCurve = static_cast<bool>(readBits(&flags[j], FLAG_ON_CURVE, 1));
+
+                bool is8Bit = static_cast<bool>(readBits(&flags[j], FLAG_X_SHORT_VECTOR, 1));
+                bool specialBit = static_cast<bool>(readBits(&flags[j], FLAG_X_SPECIAL, 1));
+
+                if (is8Bit)
+                {
+                    u8 coord = bytes[curByteIndex++];
+                    i32 actualCoord = static_cast<i32>(coord) * (specialBit ? 1 : -1);
+                    glyph.points[j].position.x = prevCoord + actualCoord;
+                    prevCoord += actualCoord;
+                }
+                else if (specialBit) // Same coordinate as previous
+                {
+                    glyph.points[j].position.x = prevCoord;
+                }
+                else
+                {
+                    i16 coord = parseFromBytes<i16>(&bytes[curByteIndex], std::endian::big);
+                    curByteIndex += 2;
+                    glyph.points[j].position.x = prevCoord + coord;
+                    prevCoord += coord;
+                }
+            }
+
+            // yCoordinates
+            prevCoord = 0;
+            for (u32 j = 0; j < numPoints; ++j)
+            {
+                bool is8Bit = static_cast<bool>(readBits(&flags[j], FLAG_Y_SHORT_VECTOR, 1));
+                bool specialBit = static_cast<bool>(readBits(&flags[j], FLAG_Y_SPECIAL, 1));
+
+                if (is8Bit)
+                {
+                    u8 coord = bytes[curByteIndex++];
+                    i32 actualCoord = static_cast<i32>(coord) * (specialBit ? 1 : -1);
+                    glyph.points[j].position.y = prevCoord + actualCoord;
+                    prevCoord += actualCoord;
+                }
+                else if (specialBit) // Same coordinate as previous
+                {
+                    glyph.points[j].position.y = prevCoord;
+                }
+                else
+                {
+                    i16 coord = parseFromBytes<i16>(&bytes[curByteIndex], std::endian::big);
+                    curByteIndex += 2;
+                    glyph.points[j].position.y = prevCoord + coord;
+                    prevCoord += coord;
+                }
+            }
+        }
+        // Compound glyphs
+        else
+        {
+            // TODO: Parse
+        }
+
+        fontData.glyphs[i] = glyph;
     }
 
     return fontData;

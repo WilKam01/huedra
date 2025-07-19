@@ -1,12 +1,11 @@
 struct VSInput
 {
-    float3 mat0 : MATRIX0;
-    float3 mat1 : MATRIX1;
-    float3 mat2 : MATRIX2;
+    float2 position;
 };
 
 struct VSOutput
 {
+    float pointSize : SV_PointSize;
     float4 position : SV_Position;
 };
 
@@ -18,14 +17,12 @@ struct Info
 };
 
 [shader("vertex")]
-VSOutput vertMain(VSInput input, ConstantBuffer<Info> info, uint vertexID: SV_VertexID, uint instanceID: SV_InstanceID)
+VSOutput vertMain(VSInput input, ConstantBuffer<Info> info, uint vertexID: SV_VertexID, uniform float offset)
 {
     VSOutput output;
-    float2 positions[4] = { float2(0.0f, 0.0f), float2(1.0f, 0.0f), float2(0.0f, 1.0f), float2(1.0f, 1.0f) };
-    float3x3 model =
-        float3x3(input.mat0, input.mat1, (input.mat2 * float3(info.size, 1.0f)) + float3(info.position, 0.0f));
     output.position =
-        mul(info.projection, float4(mul(float3(positions[vertexID] * info.size, 1.0f), model).xy, 0.0f, 1.0f));
+        mul(info.projection, float4(input.position * info.size + info.position + float2(offset, 0.0f), 0.0f, 1.0f));
+    output.pointSize = 2.0f;
     return output;
 }
 
