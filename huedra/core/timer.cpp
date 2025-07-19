@@ -31,4 +31,6 @@ bool Timer::passedInterval(u64 fixedInterval, bool reset)
     return passed;
 }
 
+void Timer::resetInterval() { m_fixedIntervalTime = m_currentTime; }
+
 } // namespace huedra

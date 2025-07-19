@@ -173,10 +173,17 @@ bool WindowCocoa::update()
             switch (event.type)
             {
             case NSEventTypeKeyDown:
-                global::input.setKey(convertKey(event.keyCode, [event.characters characterAtIndex:0]), true);
+                if ([[event characters] length] > 0) 
+                {
+                    global::input.setKey(convertKey(event.keyCode, [event.characters characterAtIndex:0]), true);
+                    global::input.setCharacter([event.characters characterAtIndex:0]);
+                }
                 break;
             case NSEventTypeKeyUp:
-                global::input.setKey(convertKey(event.keyCode, [event.characters characterAtIndex:0]), false);
+                if ([[event characters] length] > 0) 
+                {
+                    global::input.setKey(convertKey(event.keyCode, [event.characters characterAtIndex:0]), false);
+                }
                 break;
             case NSEventTypeFlagsChanged: {
                 u32 flags = event.modifierFlags;

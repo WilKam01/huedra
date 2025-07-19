@@ -32,6 +32,8 @@ public:
     bool isKeyReleased(Keys key) const;
     bool isKeyActive(KeyToggles keyToggle) const;
 
+    char getCharacter() const;
+
     bool isMouseButtonDown(MouseButton button) const;
     bool isMouseButtonPressed(MouseButton button) const;
     bool isMouseButtonReleased(MouseButton button) const;
@@ -57,6 +59,7 @@ public:
 private:
     void setKey(Keys key, bool isDown);
     void setKeyToggle(KeyToggles keyToggle, bool isActive);
+    void setCharacter(char character);
 
     void setMouseButton(MouseButton button, bool isDown);
     void setMouseButtonDoubleClick(MouseButton button);
@@ -68,6 +71,7 @@ private:
     std::array<u64, 2> m_keyDown{0};
     std::array<u64, 2> m_prevKeyDown{0};
     u8 m_keyToggle{0};
+    char m_character{0};
 
     u8 m_mouseButtonDown{0};
     u8 m_prevMouseButtonDown{0};

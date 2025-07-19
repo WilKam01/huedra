@@ -12,6 +12,7 @@ void Input::update()
     m_mouseButtonDoubleClicked = 0;
     m_mouseDelta = ivec2(0);
     m_mouseScroll = vec2(0.0f);
+    m_character = 0;
 }
 
 bool Input::isKeyDown(Keys key) const
@@ -52,6 +53,8 @@ bool Input::isKeyActive(KeyToggles keyToggle) const
     u64 bit = 1ULL << (static_cast<u64>(keyToggle));
     return (m_keyToggle & bit) != 0u;
 }
+
+char Input::getCharacter() const { return m_character; }
 
 bool Input::isMouseButtonDown(MouseButton button) const
 {
@@ -212,6 +215,8 @@ void Input::setKeyToggle(KeyToggles keyToggle, bool isActive)
         m_keyToggle &= ~bit;
     }
 }
+
+void Input::setCharacter(char character) { m_character = character; }
 
 void Input::setMouseButton(MouseButton button, bool isDown)
 {

@@ -23,6 +23,7 @@ public:
 
     // Fixed interval in nanoseconds
     bool passedInterval(u64 fixedInterval, bool reset = true);
+    void resetInterval();
 
     // In nanoseconds
     i64 currentTime() const { return m_currentTime; }

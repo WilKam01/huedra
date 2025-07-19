@@ -20,6 +20,7 @@
 #include "resources/mesh/loader.hpp"
 #include "resources/texture/loader.hpp"
 #include "scene/components/transform.hpp"
+#include <cctype>
 
 using namespace huedra;
 
@@ -211,16 +212,41 @@ int main()
         glyphIndexCounts[i] = indices.size();
     }
 
+    std::array<vec2, 2> cursorVertexValues{vec2(0.0f, 0.0f), vec2(0.0f, static_cast<float>(font.unitsPerEm))};
+    Ref<Buffer> cursorVertexBuffer =
+        global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER,
+                                             sizeof(vec2) * cursorVertexValues.size(), cursorVertexValues.data());
+
+    std::array<u32, 2> cursorIndexValues{0, 1};
+    Ref<Buffer> cursorIndexBuffer =
+        global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_INDEX_BUFFER,
+                                             sizeof(u32) * cursorIndexValues.size(), cursorIndexValues.data());
+
     std::string renderText{"hello world!"};
+    bool renderCursor{true};
+    u32 cursorIndex{static_cast<u32>(renderText.length())};
+    Timer cursorBlinkTimer;
+    cursorBlinkTimer.init();
+
     RenderCommands fontRenderCommands = [&fontInfoBuffer, &fontInfo, &glyphVertexBuffers, &glyphIndexBuffers,
-                                         &glyphIndexCounts, &font, &renderText](RenderContext& renderContext) {
+                                         &glyphIndexCounts, &font, &renderText, &cursorVertexBuffer, &cursorIndexBuffer,
+                                         &cursorIndexValues, &renderCursor,
+                                         &cursorIndex](RenderContext& renderContext) {
         renderContext.bindBuffer(fontInfoBuffer, "info");
         float cursor{0.0f};
-        for (auto& character : renderText)
+        float renderCursorOffset{0.0f};
+        for (u32 i = 0; i < renderText.length(); ++i)
         {
-            u32 index = static_cast<u32>(static_cast<unsigned char>(character));
+            u32 index = static_cast<u32>(static_cast<unsigned char>(renderText[i]));
             u32 glyphIndex = font.characterMappings[index];
-            if (character != ' ')
+
+            // Render cursor
+            if (i == cursorIndex && renderCursor)
+            {
+                renderCursorOffset = cursor + static_cast<float>(font.glyphs[glyphIndex].leftSideBearing);
+            }
+
+            if (renderText[i] != ' ')
             {
                 // Render character
                 float actualOffset = cursor * fontInfo.size.x;
@@ -235,6 +261,20 @@ int main()
                 cursor += 0.33f * static_cast<float>(font.unitsPerEm);
             }
         }
+
+        // Render cursor
+        if (renderCursor)
+        {
+            if (cursorIndex == renderText.length())
+            {
+                renderCursorOffset = cursor;
+            }
+            float actualOffset = (renderCursorOffset - 75.0f) * fontInfo.size.x;
+            renderContext.bindVertexBuffers({cursorVertexBuffer});
+            renderContext.bindIndexBuffer(cursorIndexBuffer);
+            renderContext.setParameter(&actualOffset, sizeof(float), "offset");
+            renderContext.drawIndexed(cursorIndexValues.size(), 1, 0, 0);
+        }
     };
 
     vec3 eye(0.0f, 0.0f, 12.0f);
@@ -244,6 +284,31 @@ int main()
     {
         global::timer.update();
         global::graphicsManager.update();
+
+        cursorBlinkTimer.update();
+        if (cursorBlinkTimer.passedInterval(static_cast<u64>(0.5f * static_cast<float>(Timer::SECONDS_TO_NANO))))
+        {
+            renderCursor = !renderCursor;
+        }
+
+        if (global::input.isKeyPressed(Keys::BACKSPACE) && cursorIndex != 0)
+        {
+            renderText.erase(--cursorIndex, 1);
+        }
+        else if (global::input.isKeyPressed(Keys::ARR_LEFT) && cursorIndex > 0)
+        {
+            --cursorIndex;
+            renderCursor = true;
+        }
+        else if (global::input.isKeyPressed(Keys::ARR_RIGHT) && cursorIndex < renderText.length())
+        {
+            ++cursorIndex;
+            renderCursor = true;
+        }
+        else if (static_cast<bool>(std::isprint(global::input.getCharacter())))
+        {
+            renderText.insert(cursorIndex++, 1, global::input.getCharacter());
+        }
 
         static bool lock = false;
         if (global::input.isKeyPressed(Keys::ESCAPE))

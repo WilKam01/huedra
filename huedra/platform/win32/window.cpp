@@ -162,6 +162,9 @@ LRESULT CALLBACK WindowWin32::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
             button = GET_XBUTTON_WPARAM(wParam) == XBUTTON1 ? MouseButton::EXTRA1 : MouseButton::EXTRA2;
             global::input.setMouseButtonDoubleClick(button);
             break;
+        case WM_CHAR:
+            global::input.setCharacter(static_cast<char>(wParam));
+            break;
         case WM_PAINT: {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hwnd, &ps);
