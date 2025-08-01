@@ -196,14 +196,19 @@ int main()
 
     std::vector<vec2> glyphPoints;
 
-    std::vector<GlyphContourRange> contourPointRanges;
-    std::vector<GlyphContourRange> glyphContourRanges(font.glyphs.size());
+    struct ContourRange
+    {
+        u32 start{0};
+        u32 end{0};
+    };
+    std::vector<ContourRange> contourPointRanges;
+    std::vector<ContourRange> glyphContourRanges(font.glyphs.size());
     for (u32 i = 0; i < font.glyphs.size(); ++i)
     {
         glyphContourRanges[i].start = contourPointRanges.size();
         glyphContourRanges[i].end = contourPointRanges.size() + font.glyphs[i].contourRanges.size() - 1;
 
-        GlyphContourRange contourRange;
+        ContourRange contourRange;
         for (auto& range : font.glyphs[i].contourRanges)
         {
             contourRange.start = range.start + glyphPoints.size();
@@ -222,7 +227,7 @@ int main()
     Ref<Buffer> fontPointDataBuffer = global::graphicsManager.createBuffer(
         BufferType::STATIC, HU_BUFFER_USAGE_STRUCTURED_BUFFER, sizeof(vec2) * glyphPoints.size(), glyphPoints.data());
     Ref<Buffer> fontContourPointRangesBuffer = global::graphicsManager.createBuffer(
-        BufferType::STATIC, HU_BUFFER_USAGE_STRUCTURED_BUFFER, sizeof(GlyphContourRange) * contourPointRanges.size(),
+        BufferType::STATIC, HU_BUFFER_USAGE_STRUCTURED_BUFFER, sizeof(ContourRange) * contourPointRanges.size(),
         contourPointRanges.data());
 
     std::string renderText{"ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz"};
