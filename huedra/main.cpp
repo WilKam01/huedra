@@ -31,7 +31,7 @@ int main()
     global::graphicsManager.init();
     global::resourceManager.init();
 
-    FontData font = loadTtf("assets/fonts/OpenSans-Regular.ttf");
+    FontData font = loadTtf("assets/fonts/PlaywritePL-Regular.ttf");
 
     Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720));
 
@@ -158,15 +158,29 @@ int main()
         renderContext.dispatch(window->getRenderTarget()->getWidth(), window->getRenderTarget()->getHeight(), 1);
     };
 
+    struct alignas(16) TextData
+    {
+        vec2 position;
+        vec2 size;
+        uvec2 contourRange;
+    };
+
     ShaderModule& fontShaderModule = global::resourceManager.loadShaderModule("assets/shaders/font.slang");
     PipelineBuilder fontPipeline;
     fontPipeline.init(PipelineType::GRAPHICS)
         .addShader(fontShaderModule, "vertMain")
         .addShader(fontShaderModule, "fragMain")
-        .addVertexInputStream({.size = sizeof(vec2),
-                               .inputRate = huedra::VertexInputRate::VERTEX,
-                               .attributes = {{.format = GraphicsDataFormat::RG_32_FLOAT, .offset = 0}}})
-        .setPrimitive(PrimitiveType::LINE, PrimitiveLayout::LINE_LIST);
+        .addVertexInputStream(
+            {.size = sizeof(TextData),
+             .inputRate = huedra::VertexInputRate::INSTANCE,
+             .attributes = {{.format = GraphicsDataFormat::RG_32_FLOAT, .offset = 0},
+                            {.format = GraphicsDataFormat::RG_32_FLOAT, .offset = sizeof(vec2)},
+                            {.format = GraphicsDataFormat::R_32_UINT, .offset = sizeof(vec2) * 2},
+                            {.format = GraphicsDataFormat::R_32_UINT, .offset = (sizeof(vec2) * 2) + sizeof(u32)}}});
+
+    std::array<u32, 6> quadIndexValues{0, 1, 2, 1, 3, 2};
+    Ref<Buffer> quadIndexBuffer = global::graphicsManager.createBuffer(
+        BufferType::STATIC, HU_BUFFER_USAGE_INDEX_BUFFER, sizeof(u32) * quadIndexValues.size(), quadIndexValues.data());
 
     struct alignas(16)
     {
@@ -174,107 +188,89 @@ int main()
         vec2 size;
         matrix4 projection;
     } fontInfo{.position = vec2(100.0f, static_cast<float>(window->getScreenSize().y) / 2.0f),
-               .size = vec2((64.0f * 72.0f) / (72.0f * static_cast<float>(font.unitsPerEm))),
+               .size = vec2(64.0f),
                .projection = math::ortho(vec2(0, static_cast<float>(window->getScreenSize().x)),
                                          vec2(0, static_cast<float>(window->getScreenSize().y)), vec2(0.0f, 1.0f))};
     Ref<Buffer> fontInfoBuffer = global::graphicsManager.createBuffer(
         BufferType::DYNAMIC, HU_BUFFER_USAGE_CONSTANT_BUFFER, sizeof(fontInfo), &fontInfo);
 
-    // Only supporting ASCII for now
-    std::array<Ref<Buffer>, 127> glyphVertexBuffers;
-    std::array<Ref<Buffer>, 127> glyphIndexBuffers;
-    std::array<u32, 127> glyphIndexCounts{{}};
-    for (u32 i = 0; i < glyphVertexBuffers.size(); ++i)
+    std::vector<vec2> glyphPoints;
+
+    std::vector<GlyphContourRange> contourPointRanges;
+    std::vector<GlyphContourRange> glyphContourRanges(font.glyphs.size());
+    for (u32 i = 0; i < font.glyphs.size(); ++i)
     {
-        Glyph& glyph = font.glyphs[font.characterMappings[i]];
-        std::vector<vec2> points(glyph.points.size());
-        for (u32 j = 0; j < points.size(); ++j)
+        glyphContourRanges[i].start = contourPointRanges.size();
+        glyphContourRanges[i].end = contourPointRanges.size() + font.glyphs[i].contourRanges.size() - 1;
+
+        GlyphContourRange contourRange;
+        for (auto& range : font.glyphs[i].contourRanges)
         {
-            points[j] = static_cast<vec2>(glyph.points[j].position);
+            contourRange.start = range.start + glyphPoints.size();
+            contourRange.end = range.end + glyphPoints.size();
+            contourPointRanges.push_back(contourRange);
         }
-        glyphVertexBuffers[i] = global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER,
-                                                                     sizeof(vec2) * points.size(), points.data());
-        std::vector<u32> indices(points.size() * 2, 0);
-        u32 curIndicesIndex{0};
-        u16 startOfCountour{0};
-        for (auto& endIndex : glyph.contourEndPointIndices)
+
+        auto min = static_cast<ivec2>(font.glyphs[i].min);
+        ivec2 dim = static_cast<ivec2>(font.glyphs[i].max) - min;
+        for (auto& point : font.glyphs[i].points)
         {
-            for (u16 j = startOfCountour; j <= endIndex; ++j)
-            {
-                indices[curIndicesIndex++] = j;
-                indices[curIndicesIndex++] = j + 1;
-            }
-            indices[curIndicesIndex - 1] = startOfCountour; // Correct it to go back to start of contour
-            startOfCountour = endIndex + 1;
+            glyphPoints.push_back(static_cast<vec2>((point.position - min)) / static_cast<vec2>(dim));
         }
-        glyphIndexBuffers[i] = global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_INDEX_BUFFER,
-                                                                    sizeof(u32) * indices.size(), indices.data());
-        glyphIndexCounts[i] = indices.size();
     }
 
-    std::array<vec2, 2> cursorVertexValues{vec2(0.0f, 0.0f), vec2(0.0f, static_cast<float>(font.unitsPerEm))};
-    Ref<Buffer> cursorVertexBuffer =
-        global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER,
-                                             sizeof(vec2) * cursorVertexValues.size(), cursorVertexValues.data());
+    Ref<Buffer> fontPointDataBuffer = global::graphicsManager.createBuffer(
+        BufferType::STATIC, HU_BUFFER_USAGE_STRUCTURED_BUFFER, sizeof(vec2) * glyphPoints.size(), glyphPoints.data());
+    Ref<Buffer> fontContourPointRangesBuffer = global::graphicsManager.createBuffer(
+        BufferType::STATIC, HU_BUFFER_USAGE_STRUCTURED_BUFFER, sizeof(GlyphContourRange) * contourPointRanges.size(),
+        contourPointRanges.data());
 
-    std::array<u32, 2> cursorIndexValues{0, 1};
-    Ref<Buffer> cursorIndexBuffer =
-        global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_INDEX_BUFFER,
-                                             sizeof(u32) * cursorIndexValues.size(), cursorIndexValues.data());
+    std::string renderText{"ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz"};
+    vec2 cursor{0.0f};
+    std::vector<TextData> textData;
+    Ref<Buffer> textBuffer;
+    for (u32 i = 0; i < renderText.length(); ++i)
+    {
+        u32 glyphIndex = font.characterMappings[static_cast<u32>(static_cast<unsigned char>(renderText[i]))];
+        if (renderText[i] == ' ')
+        {
+            cursor.x += 0.33f * static_cast<float>(font.unitsPerEm);
+        }
+        else if (renderText[i] == '\n')
+        {
+            cursor.y -= 1.0f * static_cast<float>(font.unitsPerEm);
+            cursor.x = 0.0f;
+        }
+        else
+        {
+            TextData text;
+            text.position =
+                (static_cast<vec2>(font.glyphs[glyphIndex].min) + cursor) / static_cast<float>(font.unitsPerEm);
+            text.size = static_cast<vec2>(font.glyphs[glyphIndex].max - font.glyphs[glyphIndex].min) /
+                        static_cast<float>(font.unitsPerEm);
+            text.contourRange.x = glyphContourRanges[glyphIndex].start;
+            text.contourRange.y = glyphContourRanges[glyphIndex].end;
+            textData.push_back(text);
+            cursor.x += static_cast<float>(font.glyphs[glyphIndex].advanceWidth);
+        }
+    }
+    textBuffer = global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER,
+                                                      sizeof(TextData) * textData.size(), textData.data());
 
-    std::string renderText{"hello world!"};
     bool renderCursor{true};
     u32 cursorIndex{static_cast<u32>(renderText.length())};
     Timer cursorBlinkTimer;
     cursorBlinkTimer.init();
 
-    RenderCommands fontRenderCommands = [&fontInfoBuffer, &fontInfo, &glyphVertexBuffers, &glyphIndexBuffers,
-                                         &glyphIndexCounts, &font, &renderText, &cursorVertexBuffer, &cursorIndexBuffer,
-                                         &cursorIndexValues, &renderCursor,
-                                         &cursorIndex](RenderContext& renderContext) {
+    RenderCommands fontRenderCommands = [&fontInfoBuffer, &fontInfo, &quadIndexBuffer, &cursorIndex, &textData,
+                                         &textBuffer, &fontPointDataBuffer,
+                                         &fontContourPointRangesBuffer](RenderContext& renderContext) {
+        renderContext.bindVertexBuffers({textBuffer});
+        renderContext.bindIndexBuffer(quadIndexBuffer);
         renderContext.bindBuffer(fontInfoBuffer, "info");
-        float cursor{0.0f};
-        float renderCursorOffset{0.0f};
-        for (u32 i = 0; i < renderText.length(); ++i)
-        {
-            u32 index = static_cast<u32>(static_cast<unsigned char>(renderText[i]));
-            u32 glyphIndex = font.characterMappings[index];
-
-            // Render cursor
-            if (i == cursorIndex && renderCursor)
-            {
-                renderCursorOffset = cursor + static_cast<float>(font.glyphs[glyphIndex].leftSideBearing);
-            }
-
-            if (renderText[i] != ' ')
-            {
-                // Render character
-                float actualOffset = cursor * fontInfo.size.x;
-                renderContext.bindVertexBuffers({glyphVertexBuffers[index]});
-                renderContext.bindIndexBuffer(glyphIndexBuffers[index]);
-                renderContext.setParameter(&actualOffset, sizeof(float), "offset");
-                renderContext.drawIndexed(glyphIndexCounts[index], 1, 0, 0);
-                cursor += static_cast<float>(font.glyphs[glyphIndex].advanceWidth);
-            }
-            else
-            {
-                cursor += 0.33f * static_cast<float>(font.unitsPerEm);
-            }
-        }
-
-        // Render cursor
-        if (renderCursor)
-        {
-            if (cursorIndex == renderText.length())
-            {
-                renderCursorOffset = cursor;
-            }
-            float actualOffset = (renderCursorOffset - 75.0f) * fontInfo.size.x;
-            renderContext.bindVertexBuffers({cursorVertexBuffer});
-            renderContext.bindIndexBuffer(cursorIndexBuffer);
-            renderContext.setParameter(&actualOffset, sizeof(float), "offset");
-            renderContext.drawIndexed(cursorIndexValues.size(), 1, 0, 0);
-        }
+        renderContext.bindBuffer(fontPointDataBuffer, "fontData.points");
+        renderContext.bindBuffer(fontContourPointRangesBuffer, "fontData.contourIndexRanges");
+        renderContext.drawIndexed(6, textData.size(), 0, 0);
     };
 
     vec3 eye(0.0f, 0.0f, 12.0f);
@@ -337,13 +333,13 @@ int main()
         }
         else
         {
-            rot += vec3(static_cast<float>(global::input.isKeyDown(Keys::I)) -
+            /*rot += vec3(static_cast<float>(global::input.isKeyDown(Keys::I)) -
                             static_cast<float>(global::input.isKeyDown(Keys::K)),
                         static_cast<float>(global::input.isKeyDown(Keys::J)) -
                             static_cast<float>(global::input.isKeyDown(Keys::L)),
                         static_cast<float>(global::input.isKeyDown(Keys::O)) -
                             static_cast<float>(global::input.isKeyDown(Keys::U))) *
-                   1.0f * global::timer.dt();
+                   1.0f * global::timer.dt();*/
         }
 
         matrix3 rMat = math::rotateZ(matrix3(1.0f), rot.z) * math::rotateY(matrix3(1.0f), rot.y) *
@@ -353,7 +349,7 @@ int main()
         vec3 up = vec3(rMat(0, 1), rMat(1, 1), rMat(2, 1));
         vec3 forward = vec3(rMat(0, 2), rMat(1, 2), rMat(2, 2));
 
-        float eyeSpeed = 5.0f + (10.0f * static_cast<float>(global::input.isKeyDown(Keys::SHIFT)));
+        /*float eyeSpeed = 5.0f + (10.0f * static_cast<float>(global::input.isKeyDown(Keys::SHIFT)));
         eye += ((static_cast<float>(global::input.isKeyDown(Keys::D)) -
                  static_cast<float>(global::input.isKeyDown(Keys::A))) *
                     right +
@@ -363,7 +359,14 @@ int main()
                 (static_cast<float>(global::input.isKeyDown(Keys::S)) -
                  static_cast<float>(global::input.isKeyDown(Keys::W))) *
                     forward) *
-               eyeSpeed * global::timer.dt();
+               eyeSpeed * global::timer.dt();*/
+
+        if (global::input.getMouseScroll() != vec2(0.0f) && global::input.isKeyDown(Keys::OPTION))
+        {
+            fontInfo.size += vec2(std::ceil(global::input.getMouseScroll().y));
+            fontInfo.position.x += std::ceil(global::input.getMouseScroll().x);
+            fontInfoBuffer->write(&fontInfo, sizeof(fontInfo));
+        }
 
         RenderGraphBuilder renderGraph;
         if (window.valid() && window->getRenderTarget()->isAvailable())

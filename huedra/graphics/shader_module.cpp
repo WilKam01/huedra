@@ -416,7 +416,9 @@ void CompiledShaderModule::addParametersMetal(ShaderStage stage, const std::stri
 {
     switch (varLayout->getTypeLayout()->getBindingRangeType(0))
     {
-    case slang::BindingType::ConstantBuffer: {
+    case slang::BindingType::ConstantBuffer:
+    case slang::BindingType::RawBuffer:
+    case slang::BindingType::MutableRawBuffer: {
         u32 fieldCount = varLayout->getTypeLayout()->getFieldCount();
         // Type is a struct
         if (fieldCount != 0)

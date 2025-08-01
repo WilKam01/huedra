@@ -311,27 +311,29 @@ FontData loadTtf(const std::string& path)
         u32 curByteIndex = glyphLocations[i];
         i16 numberOfContours = parseFromBytes<i16>(&bytes[curByteIndex], std::endian::big);
         Glyph glyph;
-        glyph.minSize.x = parseFromBytes<i16>(&bytes[curByteIndex + 2], std::endian::big);
-        glyph.minSize.y = parseFromBytes<i16>(&bytes[curByteIndex + 4], std::endian::big);
-        glyph.maxSize.x = parseFromBytes<i16>(&bytes[curByteIndex + 6], std::endian::big);
-        glyph.maxSize.y = parseFromBytes<i16>(&bytes[curByteIndex + 8], std::endian::big);
+        glyph.min.x = parseFromBytes<i16>(&bytes[curByteIndex + 2], std::endian::big);
+        glyph.min.y = parseFromBytes<i16>(&bytes[curByteIndex + 4], std::endian::big);
+        glyph.max.x = parseFromBytes<i16>(&bytes[curByteIndex + 6], std::endian::big);
+        glyph.max.y = parseFromBytes<i16>(&bytes[curByteIndex + 8], std::endian::big);
         glyph.isSimple = numberOfContours >= 0;
         glyph.advanceWidth = longHorMetrics[i].advanceWidth;
         glyph.leftSideBearing = longHorMetrics[i].leftSideBearing;
 
         curByteIndex += 10;
+        std::vector<u16> contourEndPointIndices;
+        std::vector<GlyphPoint> points;
         // Simple glyphs
         if (glyph.isSimple)
         {
-            glyph.contourEndPointIndices.resize(static_cast<u64>(numberOfContours));
+            contourEndPointIndices.resize(static_cast<u64>(numberOfContours));
             for (u32 j = 0; j < static_cast<u32>(numberOfContours); ++j)
             {
-                glyph.contourEndPointIndices[j] = parseFromBytes<u16>(&bytes[curByteIndex + (j * 2)], std::endian::big);
+                contourEndPointIndices[j] = parseFromBytes<u16>(&bytes[curByteIndex + (j * 2)], std::endian::big);
             }
 
             u16 numPoints =
                 parseFromBytes<u16>(&bytes[curByteIndex + ((numberOfContours - 1) * 2)], std::endian::big) + 1;
-            glyph.points.resize(numPoints);
+            points.resize(numPoints);
 
             // Skip instructionLength and instructions
             u16 instructionLength =
@@ -366,7 +368,7 @@ FontData loadTtf(const std::string& path)
             i32 prevCoord = 0;
             for (u32 j = 0; j < numPoints; ++j)
             {
-                glyph.points[j].onCurve = static_cast<bool>(readBits(&flags[j], FLAG_ON_CURVE, 1));
+                points[j].onCurve = static_cast<bool>(readBits(&flags[j], FLAG_ON_CURVE, 1));
 
                 bool is8Bit = static_cast<bool>(readBits(&flags[j], FLAG_X_SHORT_VECTOR, 1));
                 bool specialBit = static_cast<bool>(readBits(&flags[j], FLAG_X_SPECIAL, 1));
@@ -375,18 +377,18 @@ FontData loadTtf(const std::string& path)
                 {
                     u8 coord = bytes[curByteIndex++];
                     i32 actualCoord = static_cast<i32>(coord) * (specialBit ? 1 : -1);
-                    glyph.points[j].position.x = prevCoord + actualCoord;
+                    points[j].position.x = prevCoord + actualCoord;
                     prevCoord += actualCoord;
                 }
                 else if (specialBit) // Same coordinate as previous
                 {
-                    glyph.points[j].position.x = prevCoord;
+                    points[j].position.x = prevCoord;
                 }
                 else
                 {
                     i16 coord = parseFromBytes<i16>(&bytes[curByteIndex], std::endian::big);
                     curByteIndex += 2;
-                    glyph.points[j].position.x = prevCoord + coord;
+                    points[j].position.x = prevCoord + coord;
                     prevCoord += coord;
                 }
             }
@@ -402,18 +404,18 @@ FontData loadTtf(const std::string& path)
                 {
                     u8 coord = bytes[curByteIndex++];
                     i32 actualCoord = static_cast<i32>(coord) * (specialBit ? 1 : -1);
-                    glyph.points[j].position.y = prevCoord + actualCoord;
+                    points[j].position.y = prevCoord + actualCoord;
                     prevCoord += actualCoord;
                 }
                 else if (specialBit) // Same coordinate as previous
                 {
-                    glyph.points[j].position.y = prevCoord;
+                    points[j].position.y = prevCoord;
                 }
                 else
                 {
                     i16 coord = parseFromBytes<i16>(&bytes[curByteIndex], std::endian::big);
                     curByteIndex += 2;
-                    glyph.points[j].position.y = prevCoord + coord;
+                    points[j].position.y = prevCoord + coord;
                     prevCoord += coord;
                 }
             }
@@ -422,6 +424,50 @@ FontData loadTtf(const std::string& path)
         else
         {
             // TODO: Parse
+        }
+
+        glyph.contourRanges.resize(contourEndPointIndices.size());
+        u16 curStart{0};
+        for (u32 j = 0; j < contourEndPointIndices.size(); ++j)
+        {
+            glyph.contourRanges[j].start = curStart;
+            glyph.contourRanges[j].end = contourEndPointIndices[j];
+            curStart = contourEndPointIndices[j] + 1;
+        }
+
+        // Add implied points between onCurve/offCurve points
+        u32 curContourIndex{0};
+        u32 contourRangeOffset{0}; // When points are added, later ranges are offset by points added in previous ranges
+        std::vector<GlyphContourRange> origContourRanges{glyph.contourRanges};
+        for (u32 j = 0; j < points.size() && !points.empty(); ++j)
+        {
+            glyph.points.push_back(points[j]);
+
+            if (j == origContourRanges[curContourIndex].end)
+            {
+                const GlyphPoint& startPoint = points[origContourRanges[curContourIndex].start];
+                const GlyphPoint& endPoint = points[origContourRanges[curContourIndex].end];
+                // On curve status is the same between the start and end point in range, add implied point in between
+                if (startPoint.onCurve == endPoint.onCurve)
+                {
+                    GlyphPoint point{.position = (startPoint.position + endPoint.position) / 2,
+                                     .onCurve = !startPoint.onCurve};
+                    glyph.points.push_back(point);
+                    ++glyph.contourRanges[curContourIndex].end;
+                    ++contourRangeOffset;
+                }
+                glyph.contourRanges[++curContourIndex].start += contourRangeOffset;
+                glyph.contourRanges[curContourIndex].end += contourRangeOffset;
+            }
+            // On curve status is the same between the points, add implied point in between
+            else if (points[j].onCurve == points[j + 1].onCurve)
+            {
+                GlyphPoint point{.position = (points[j].position + points[j + 1].position) / 2,
+                                 .onCurve = !points[j].onCurve};
+                glyph.points.push_back(point);
+                ++glyph.contourRanges[curContourIndex].end;
+                ++contourRangeOffset;
+            }
         }
 
         fontData.glyphs[i] = glyph;
