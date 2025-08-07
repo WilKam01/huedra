@@ -64,13 +64,18 @@ float2 bezier(float2 p0, float2 p1, float2 p2, float t)
     return u * u * p0 + 2.0f * u * t * p1 + t * t * p2;
 }
 
+float2 bezierTangent(float2 p0, float2 p1, float2 p2, float t)
+{
+    return normalize(2.0f * (1.0f - t) * (p1 - p0) + 2.0f * t * (p2 - p1));
+}
+
 bool checkHeightRange(float2 point, float2 p0, float2 p1, float2 p2)
 {
     float t = (p0.y - p1.y) / (p0.y - 2.0f * p1.y + p2.y);
     float2 b = bezier(p0, p1, p2, t);
-    float minY = min(p0.y, p2.y);
-    float maxY = max(p0.y, p2.y);
-    if (t >= 1e-6f && t <= 1.0f - 1e-6f)
+    float minY = min(p1.y, min(p0.y, p2.y));
+    float maxY = max(p1.y, max(p0.y, p2.y));
+    if (t >= -1e-6f && t <= 1.0f + 1e-6f)
     {
         minY = min(minY, b.y);
         maxY = max(maxY, b.y);
@@ -78,9 +83,21 @@ bool checkHeightRange(float2 point, float2 p0, float2 p1, float2 p2)
     return point.y >= minY && point.y <= maxY;
 }
 
-float getHorizontalDistance(float2 point, float2 p0, float2 p1, float2 p2)
+struct HorizontalDistanceInfo
 {
-    float dist = 1e6f;
+    float leftDist;
+    float rightDist;
+    float2 leftTangent;
+    float2 rightTangent;
+}
+
+HorizontalDistanceInfo getHorizontalDistance(float2 point, float2 p0, float2 p1, float2 p2)
+{
+    HorizontalDistanceInfo info;
+    info.leftDist = -1e6f;
+    info.rightDist = 1e6f;
+    info.leftTangent = float2(0.0f);
+    info.rightTangent = float2(0.0f);
 
     // Solve for t where y(t) = point.y
     float ay = p0.y - 2.0f * p1.y + p2.y;
@@ -94,7 +111,17 @@ float getHorizontalDistance(float2 point, float2 p0, float2 p1, float2 p2)
         if (t >= -1e-6f && t <= 1.0f + 1e-6f)
         {
             float2 b = bezier(p0, p1, p2, t);
-            dist = b.x - point.x;
+            float dist = b.x - point.x;
+            if (dist < 0.0f)
+            {
+                info.leftDist = dist;
+                info.leftTangent = bezierTangent(p0, p1, p2, t);
+            }
+            else if (dist > 0.0f)
+            {
+                info.rightDist = dist;
+                info.rightTangent = bezierTangent(p0, p1, p2, t);
+            }
         }
     }
     // Quadratic case
@@ -109,21 +136,37 @@ float getHorizontalDistance(float2 point, float2 p0, float2 p1, float2 p2)
             if (t0 >= -1e-6f && t0 <= 1.0f + 1e-6f)
             {
                 float2 b = bezier(p0, p1, p2, t0);
-                dist = b.x - point.x;
+                float dist = b.x - point.x;
+                if (dist < 0.0f)
+                {
+                    info.leftDist = dist;
+                    info.leftTangent = bezierTangent(p0, p1, p2, t0);
+                }
+                else if (dist > 0.0f)
+                {
+                    info.rightDist = dist;
+                    info.rightTangent = bezierTangent(p0, p1, p2, t0);
+                }
             }
             if (t1 >= -1e-6f && t1 <= 1.0f + 1e-6f)
             {
                 float2 b = bezier(p0, p1, p2, t1);
-                float dx = b.x - point.x;
-                if (abs(dx) < abs(dist))
+                float dist = b.x - point.x;
+                if (dist < 0.0f && dist > info.leftDist)
                 {
-                    dist = dx;
+                    info.leftDist = dist;
+                    info.leftTangent = bezierTangent(p0, p1, p2, t1);
+                }
+                else if (dist > 0.0f && dist < info.rightDist)
+                {
+                    info.rightDist = dist;
+                    info.rightTangent = bezierTangent(p0, p1, p2, t1);
                 }
             }
         }
     }
 
-    return dist;
+    return info;
 }
 
 [shader("fragment")]
@@ -135,14 +178,10 @@ FSOutput fragMain(FSInput input, ParameterBlock<FontData> fontData)
     float closestLeftContourDist = -1e6;
     bool closestLeftContourYDir = false;
     bool closestLeftContourIsFilling = false;
-    uint closestLeftContourIndex = 0;
-    bool closestLeftContourValid = false;
 
     float closestRightContourDist = 1e6;
     bool closestRightContourYDir = false;
     bool closestRightContourIsFilling = false;
-    uint closestRightContourIndex = 0;
-    bool closestRightContourValid = false;
 
     for (int i = input.startContour; i <= input.endContour; ++i)
     {
@@ -151,12 +190,10 @@ FSOutput fragMain(FSInput input, ParameterBlock<FontData> fontData)
 
         float leftDist = -1e6;
         bool leftYDir = false;
-        uint leftIndex = 0;
         bool leftValid = false;
 
         float rightDist = 1e6;
         bool rightYDir = false;
-        uint rightIndex = 0;
         bool rightValid = false;
 
         int numIterations = contour.end - contour.start;
@@ -167,19 +204,17 @@ FSOutput fragMain(FSInput input, ParameterBlock<FontData> fontData)
             float2 p2 = fontData.points[(j + 2) % (numIterations + 1) + contour.start];
             if (checkHeightRange(input.uv, p0, p1, p2))
             {
-                float dist = getHorizontalDistance(input.uv, p0, p1, p2);
-                if (dist < -1e-6f && dist > leftDist)
+                HorizontalDistanceInfo info = getHorizontalDistance(input.uv, p0, p1, p2);
+                if (info.leftDist < 0.0f && info.leftDist > leftDist)
                 {
-                    leftDist = dist;
-                    leftYDir = abs(p2.y - p0.y) < 1e-6f ? p2.x - p0.x > -1e-6f : p2.y - p0.y > -1e-6f;
-                    leftIndex = j;
+                    leftDist = info.leftDist;
+                    leftYDir = info.leftTangent.y > 0.0f;
                     leftValid = true;
                 }
-                else if (dist > 1e-6f && dist < rightDist)
+                else if (info.rightDist > 0.0f && info.rightDist < rightDist)
                 {
-                    rightDist = dist;
-                    rightYDir = abs(p2.y - p0.y) < 1e-6f ? p2.x - p0.x > -1e-6f : p2.y - p0.y > -1e-6f;
-                    rightIndex = j;
+                    rightDist = info.rightDist;
+                    rightYDir = info.rightTangent.y > 0.0f;
                     rightValid = true;
                 }
             }
@@ -199,21 +234,17 @@ FSOutput fragMain(FSInput input, ParameterBlock<FontData> fontData)
             closestLeftContourDist = leftDist;
             closestLeftContourYDir = leftYDir;
             closestLeftContourIsFilling = goingClockWise;
-            closestLeftContourIndex = leftIndex;
-            closestLeftContourValid = true;
         }
         if (rightValid && rightDist < closestRightContourDist)
         {
             closestRightContourDist = rightDist;
             closestRightContourYDir = rightYDir;
             closestRightContourIsFilling = goingClockWise;
-            closestRightContourIndex = rightIndex;
-            closestRightContourValid = true;
         }
     }
 
-    if (!valid || ((!closestLeftContourYDir || closestRightContourYDir) &&
-                   (!closestLeftContourIsFilling || !closestRightContourIsFilling)))
+    if (!valid || !(closestLeftContourYDir || (closestLeftContourIsFilling && closestRightContourIsFilling) ||
+                    (!closestRightContourYDir && (closestLeftContourIsFilling || closestRightContourIsFilling))))
     {
         discard;
     }

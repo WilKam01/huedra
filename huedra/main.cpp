@@ -31,7 +31,7 @@ int main()
     global::graphicsManager.init();
     global::resourceManager.init();
 
-    FontData font = loadTtf("assets/fonts/PlaywritePL-Regular.ttf");
+    FontData font = loadTtf("assets/fonts/ManufacturingConsent-Regular.ttf");
 
     Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720));
 
@@ -366,11 +366,17 @@ int main()
                     forward) *
                eyeSpeed * global::timer.dt();*/
 
-        if (global::input.getMouseScroll() != vec2(0.0f) && global::input.isKeyDown(Keys::OPTION))
+        if (global::input.getMouseScroll() != vec2(0.0f))
         {
-            fontInfo.size += vec2(std::ceil(global::input.getMouseScroll().y));
-            fontInfo.position.x += std::ceil(global::input.getMouseScroll().x);
-            fontInfoBuffer->write(&fontInfo, sizeof(fontInfo));
+            if (global::input.isKeyDown(Keys::OPTION))
+            {
+                fontInfo.size += vec2(std::ceil(global::input.getMouseScroll().y));
+            }
+            else if (global::input.isKeyDown(Keys::CMD))
+            {
+                fontInfo.position.x += std::ceil(global::input.getMouseScroll().x);
+                fontInfo.position.y -= std::ceil(global::input.getMouseScroll().y);
+            }
         }
 
         RenderGraphBuilder renderGraph;
@@ -388,7 +394,6 @@ int main()
                 }
                 windowRenderTargetSize = window->getRenderTarget()->getSize();
 
-                fontInfo.position.y = static_cast<float>(window->getScreenSize().y) / 2.0f;
                 fontInfo.projection =
                     math::ortho(vec2(0, static_cast<float>(window->getScreenSize().x)),
                                 vec2(0, static_cast<float>(window->getScreenSize().y)), vec2(0.0f, 1.0f));
