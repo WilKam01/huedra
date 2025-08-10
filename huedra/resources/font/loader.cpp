@@ -3,11 +3,14 @@
 #include "core/log.hpp"
 #include "core/memory/utils.hpp"
 #include "core/types.hpp"
+#include "math/matrix.hpp"
+#include "math/vec2.hpp"
 #include "resources/font/data.hpp"
 
 #include <array>
 #include <bit>
 #include <cstring>
+#include <functional>
 #include <string_view>
 #include <utility>
 
@@ -305,23 +308,29 @@ FontData loadTtf(const std::string& path)
         }
     }
 
-    fontData.glyphs.resize(numGlyphs);
-    for (u32 i = 0; i < numGlyphs; ++i)
+    struct ReadGlyphData
     {
-        u32 curByteIndex = glyphLocations[i];
-        i16 numberOfContours = parseFromBytes<i16>(&bytes[curByteIndex], std::endian::big);
         Glyph glyph;
+        std::vector<u16> contourEndPointIndices;
+        std::vector<GlyphPoint> points;
+    };
+
+    std::function<ReadGlyphData(u32)> readGlyph = [&](u32 glyphIndex) -> ReadGlyphData {
+        Glyph glyph;
+        u32 curByteIndex = glyphLocations[glyphIndex];
+        i16 numberOfContours = parseFromBytes<i16>(&bytes[curByteIndex], std::endian::big);
         glyph.min.x = parseFromBytes<i16>(&bytes[curByteIndex + 2], std::endian::big);
         glyph.min.y = parseFromBytes<i16>(&bytes[curByteIndex + 4], std::endian::big);
         glyph.max.x = parseFromBytes<i16>(&bytes[curByteIndex + 6], std::endian::big);
         glyph.max.y = parseFromBytes<i16>(&bytes[curByteIndex + 8], std::endian::big);
         glyph.isSimple = numberOfContours >= 0;
-        glyph.advanceWidth = longHorMetrics[i].advanceWidth;
-        glyph.leftSideBearing = longHorMetrics[i].leftSideBearing;
+        glyph.advanceWidth = longHorMetrics[glyphIndex].advanceWidth;
+        glyph.leftSideBearing = longHorMetrics[glyphIndex].leftSideBearing;
 
         curByteIndex += 10;
         std::vector<u16> contourEndPointIndices;
         std::vector<GlyphPoint> points;
+
         // Simple glyphs
         if (glyph.isSimple)
         {
@@ -423,8 +432,120 @@ FontData loadTtf(const std::string& path)
         // Compound glyphs
         else
         {
-            // TODO: Parse
+            // Loop until all component glyph parts have been parsed
+            for (;;)
+            {
+                u16 flags = parseFromBytes<u16>(&bytes[curByteIndex], std::endian::big);
+                u16 glyphIndex = parseFromBytes<u16>(&bytes[curByteIndex + 2], std::endian::big);
+                curByteIndex += 4;
+
+                enum FlagBits
+                {
+                    ARG_1_AND_ARG_2_ARE_WORDS,
+                    ARGS_ARE_XY_VALUES,
+                    ROUND_XY_TO_GRID,
+                    WE_HAVE_A_SCALE,
+                    OBSOLETE,
+                    MORE_COMPONENTS,
+                    WE_HAVE_AN_X_AND_Y_SCALE,
+                    WE_HAVE_A_TWO_BY_TWO,
+                    WE_HAVE_INSTRUCTIONS,
+                    USE_MY_METRICS,
+                    OVERLAP_COMPOUND
+                };
+
+                if (!static_cast<bool>(readBits(reinterpret_cast<u8*>(&flags), ARGS_ARE_XY_VALUES, 1)))
+                {
+                    log(LogLevel::WARNING,
+                        "loadTtf(): Font not supported, compound glyph using xy points instead of offset");
+                    return {};
+                }
+
+                ivec2 offset;
+                if (static_cast<bool>(readBits(reinterpret_cast<u8*>(&flags), ARG_1_AND_ARG_2_ARE_WORDS, 1)))
+                {
+                    offset.x = parseFromBytes<i16>(&bytes[curByteIndex], std::endian::big);
+                    offset.y = parseFromBytes<i16>(&bytes[curByteIndex + 2], std::endian::big);
+                    curByteIndex += 4;
+                }
+                else
+                {
+                    offset.x =
+                        static_cast<i16>(static_cast<u8>(parseFromBytes<i8>(&bytes[curByteIndex], std::endian::big)));
+                    offset.y = static_cast<i16>(
+                        static_cast<u8>(parseFromBytes<i8>(&bytes[curByteIndex + 1], std::endian::big)));
+                    curByteIndex += 2;
+                }
+
+                matrix2 scaleMatrix(1.0f);
+                if (static_cast<bool>(readBits(reinterpret_cast<u8*>(&flags), WE_HAVE_A_SCALE, 1)))
+                {
+                    scaleMatrix =
+                        matrix2(static_cast<float>(parseFromBytes<i16>(&bytes[curByteIndex], std::endian::big)) /
+                                static_cast<float>(1 << 14));
+                    curByteIndex += 2;
+                }
+                else if (static_cast<bool>(readBits(reinterpret_cast<u8*>(&flags), WE_HAVE_AN_X_AND_Y_SCALE, 1)))
+                {
+                    scaleMatrix(0, 0) =
+                        static_cast<float>(parseFromBytes<i16>(&bytes[curByteIndex], std::endian::big)) /
+                        static_cast<float>(1 << 14);
+                    scaleMatrix(1, 1) =
+                        static_cast<float>(parseFromBytes<i16>(&bytes[curByteIndex + 2], std::endian::big)) /
+                        static_cast<float>(1 << 14);
+                    curByteIndex += 4;
+                }
+                else if (static_cast<bool>(readBits(reinterpret_cast<u8*>(&flags), WE_HAVE_A_TWO_BY_TWO, 1)))
+                {
+                    scaleMatrix(0, 0) =
+                        static_cast<float>(parseFromBytes<i16>(&bytes[curByteIndex], std::endian::big)) /
+                        static_cast<float>(1 << 14);
+                    scaleMatrix(0, 1) =
+                        static_cast<float>(parseFromBytes<i16>(&bytes[curByteIndex + 2], std::endian::big)) /
+                        static_cast<float>(1 << 14);
+                    scaleMatrix(1, 0) =
+                        static_cast<float>(parseFromBytes<i16>(&bytes[curByteIndex + 4], std::endian::big)) /
+                        static_cast<float>(1 << 14);
+                    scaleMatrix(1, 1) =
+                        static_cast<float>(parseFromBytes<i16>(&bytes[curByteIndex + 6], std::endian::big)) /
+                        static_cast<float>(1 << 14);
+                    curByteIndex += 8;
+                }
+
+                auto [compGlyph, compContourEndPointIndices, compPoints] = readGlyph(glyphIndex);
+                u32 startIndex = contourEndPointIndices.size();
+                contourEndPointIndices.resize(startIndex + compContourEndPointIndices.size());
+                for (u32 i = 0; i < compContourEndPointIndices.size(); ++i)
+                {
+                    contourEndPointIndices[startIndex + i] = compContourEndPointIndices[i] + points.size();
+                }
+
+                startIndex = points.size();
+                points.resize(startIndex + compPoints.size());
+                for (u32 i = 0; i < compPoints.size(); ++i)
+                {
+                    points[startIndex + i].position =
+                        static_cast<ivec2>(scaleMatrix * static_cast<vec2>(compPoints[i].position)) + offset;
+                    points[startIndex + i].onCurve = compPoints[i].onCurve;
+                }
+
+                if (!static_cast<bool>(readBits(reinterpret_cast<u8*>(&flags), MORE_COMPONENTS, 1)))
+                {
+                    break;
+                }
+            }
         }
+
+        return {.glyph = glyph, .contourEndPointIndices = contourEndPointIndices, .points = points};
+    };
+
+    fontData.glyphs.resize(numGlyphs);
+    for (u32 i = 0; i < numGlyphs; ++i)
+    {
+        ReadGlyphData readGlyphData = readGlyph(i);
+        Glyph& glyph = readGlyphData.glyph;
+        std::vector<u16>& contourEndPointIndices = readGlyphData.contourEndPointIndices;
+        std::vector<GlyphPoint>& points = readGlyphData.points;
 
         glyph.contourRanges.resize(contourEndPointIndices.size());
         u16 curStart{0};
@@ -439,7 +560,7 @@ FontData loadTtf(const std::string& path)
         u32 curContourIndex{0};
         u32 contourRangeOffset{0}; // When points are added, later ranges are offset by points added in previous ranges
         std::vector<GlyphContourRange> origContourRanges{glyph.contourRanges};
-        for (u32 j = 0; j < points.size() && !points.empty(); ++j)
+        for (u32 j = 0; j < points.size(); ++j)
         {
             glyph.points.push_back(points[j]);
 
@@ -456,11 +577,15 @@ FontData loadTtf(const std::string& path)
                     ++glyph.contourRanges[curContourIndex].end;
                     ++contourRangeOffset;
                 }
-                glyph.contourRanges[++curContourIndex].start += contourRangeOffset;
-                glyph.contourRanges[curContourIndex].end += contourRangeOffset;
+
+                if (curContourIndex < origContourRanges.size() - 1)
+                {
+                    glyph.contourRanges[++curContourIndex].start += contourRangeOffset;
+                    glyph.contourRanges[curContourIndex].end += contourRangeOffset;
+                }
             }
             // On curve status is the same between the points, add implied point in between
-            else if (points[j].onCurve == points[j + 1].onCurve)
+            else if (points[j].onCurve == points[(j + 1) % points.size()].onCurve)
             {
                 GlyphPoint point{.position = (points[j].position + points[j + 1].position) / 2,
                                  .onCurve = !points[j].onCurve};
