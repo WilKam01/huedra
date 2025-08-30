@@ -12,6 +12,7 @@ struct VSOutput
     float2 uv : UV;
     uint32_t startContour : START_CONTOUR;
     uint32_t endContour : END_CONTOUR;
+    float2 pixelSize : PIXEL_SIZE;
 };
 
 struct TextInfo
@@ -28,7 +29,8 @@ VSOutput vertMain(VSInput input, ConstantBuffer<TextInfo> info, uint vertexID: S
     float2 position = float2(vertexID & 1, (vertexID >> 1) & 1);
     output.position =
         mul(info.projection, float4(info.origin + (input.position + position * input.size) * info.size, 0.0f, 1.0f));
-    output.uv = position;
+    output.pixelSize = float2(1.0f) / (input.size * info.size * 2.0f);
+    output.uv = position - (output.pixelSize * position);
     output.startContour = input.startContour;
     output.endContour = input.endContour;
     return output;
@@ -51,6 +53,7 @@ struct FSInput
     float2 uv : UV;
     uint32_t startContour : START_CONTOUR;
     uint32_t endContour : END_CONTOUR;
+    float2 pixelSize : PIXEL_SIZE;
 };
 
 struct FSOutput
@@ -89,7 +92,7 @@ struct HorizontalDistanceInfo
     float rightDist;
     float2 leftTangent;
     float2 rightTangent;
-}
+};
 
 HorizontalDistanceInfo getHorizontalDistance(float2 point, float2 p0, float2 p1, float2 p2)
 {
@@ -169,32 +172,62 @@ HorizontalDistanceInfo getHorizontalDistance(float2 point, float2 p0, float2 p1,
     return info;
 }
 
+struct ClosestInfo
+{
+    float dist;
+    bool yDir; // true = Up, false = Down
+    bool valid;
+};
+
 [shader("fragment")]
 FSOutput fragMain(FSInput input, ParameterBlock<FontData> fontData)
 {
     FSOutput output;
-    bool valid = false;
 
-    float closestLeftContourDist = -1e6;
-    bool closestLeftContourYDir = false;
-    bool closestLeftContourIsFilling = false;
+    ClosestInfo closestBottomLeft;
+    closestBottomLeft.dist = -1e6;
+    closestBottomLeft.yDir = false;
+    closestBottomLeft.valid = false;
 
-    float closestRightContourDist = 1e6;
-    bool closestRightContourYDir = false;
-    bool closestRightContourIsFilling = false;
+    ClosestInfo closestBottomRight;
+    closestBottomRight.dist = 1e6;
+    closestBottomRight.yDir = false;
+    closestBottomRight.valid = false;
+
+    ClosestInfo closestTopLeft;
+    closestTopLeft.dist = -1e6;
+    closestTopLeft.yDir = false;
+    closestTopLeft.valid = false;
+
+    ClosestInfo closestTopRight;
+    closestTopRight.dist = 1e6;
+    closestTopRight.yDir = false;
+    closestTopRight.valid = false;
 
     for (int i = input.startContour; i <= input.endContour; ++i)
     {
         Range contour = fontData.contourIndexRanges[i];
         float area = 0.0f;
 
-        float leftDist = -1e6;
-        bool leftYDir = false;
-        bool leftValid = false;
+        ClosestInfo bottomLeft;
+        bottomLeft.dist = -1e6;
+        bottomLeft.yDir = false;
+        bottomLeft.valid = false;
 
-        float rightDist = 1e6;
-        bool rightYDir = false;
-        bool rightValid = false;
+        ClosestInfo topLeft;
+        topLeft.dist = -1e6;
+        topLeft.yDir = false;
+        topLeft.valid = false;
+
+        ClosestInfo bottomRight;
+        bottomRight.dist = 1e6;
+        bottomRight.yDir = false;
+        bottomRight.valid = false;
+
+        ClosestInfo topRight;
+        topRight.dist = 1e6;
+        topRight.yDir = false;
+        topRight.valid = false;
 
         int numIterations = contour.end - contour.start;
         for (int j = 0; j <= numIterations; j += 2)
@@ -202,20 +235,40 @@ FSOutput fragMain(FSInput input, ParameterBlock<FontData> fontData)
             float2 p0 = fontData.points[j + contour.start];
             float2 p1 = fontData.points[j + 1 + contour.start];
             float2 p2 = fontData.points[(j + 2) % (numIterations + 1) + contour.start];
-            if (checkHeightRange(input.uv, p0, p1, p2))
+
+            float2 point = input.uv + float2(input.pixelSize.x / 2.0f, 0.0f);
+            if (checkHeightRange(point, p0, p1, p2))
             {
-                HorizontalDistanceInfo info = getHorizontalDistance(input.uv, p0, p1, p2);
-                if (info.leftDist < 0.0f && info.leftDist > leftDist)
+                HorizontalDistanceInfo info = getHorizontalDistance(point, p0, p1, p2);
+                if (info.leftDist < 0.0f && info.leftDist > bottomLeft.dist)
                 {
-                    leftDist = info.leftDist;
-                    leftYDir = info.leftTangent.y > 0.0f;
-                    leftValid = true;
+                    bottomLeft.dist = info.leftDist;
+                    bottomLeft.yDir = info.leftTangent.y > 0.0f;
+                    bottomLeft.valid = true;
                 }
-                else if (info.rightDist > 0.0f && info.rightDist < rightDist)
+                else if (info.rightDist > 0.0f && info.rightDist < bottomRight.dist)
                 {
-                    rightDist = info.rightDist;
-                    rightYDir = info.rightTangent.y > 0.0f;
-                    rightValid = true;
+                    bottomRight.dist = info.rightDist;
+                    bottomRight.yDir = info.rightTangent.y > 0.0f;
+                    bottomRight.valid = true;
+                }
+            }
+
+            point.y += input.pixelSize.y - 1e-3f;
+            if (checkHeightRange(point, p0, p1, p2))
+            {
+                HorizontalDistanceInfo info = getHorizontalDistance(point, p0, p1, p2);
+                if (info.leftDist < 0.0f && info.leftDist > topLeft.dist)
+                {
+                    topLeft.dist = info.leftDist;
+                    topLeft.yDir = info.leftTangent.y > 0.0f;
+                    topLeft.valid = true;
+                }
+                else if (info.rightDist > 0.0f && info.rightDist < topRight.dist)
+                {
+                    topRight.dist = info.rightDist;
+                    topRight.yDir = info.rightTangent.y > 0.0f;
+                    topRight.valid = true;
                 }
             }
 
@@ -224,31 +277,70 @@ FSOutput fragMain(FSInput input, ParameterBlock<FontData> fontData)
 
         bool goingClockWise = area < -1e-6f;
 
-        if (leftValid && rightValid && (leftYDir || !rightYDir))
+        if (bottomLeft.valid && bottomRight.valid &&
+            min(abs(bottomLeft.dist), bottomRight.dist) < min(abs(closestBottomLeft.dist), closestBottomRight.dist) &&
+            (bottomLeft.yDir != bottomRight.yDir || goingClockWise))
         {
-            valid = true;
+            closestBottomLeft.dist = bottomLeft.dist;
+            closestBottomLeft.yDir = bottomLeft.yDir;
+            closestBottomLeft.valid = true;
+
+            closestBottomRight.dist = bottomRight.dist;
+            closestBottomRight.yDir = bottomRight.yDir;
+            closestBottomRight.valid = true;
         }
 
-        if (leftValid && leftDist > closestLeftContourDist)
+        if (topLeft.valid && topRight.valid &&
+            min(abs(topLeft.dist), topRight.dist) < min(abs(closestTopLeft.dist), closestTopRight.dist) &&
+            (topLeft.yDir != topRight.yDir || goingClockWise))
         {
-            closestLeftContourDist = leftDist;
-            closestLeftContourYDir = leftYDir;
-            closestLeftContourIsFilling = goingClockWise;
-        }
-        if (rightValid && rightDist < closestRightContourDist)
-        {
-            closestRightContourDist = rightDist;
-            closestRightContourYDir = rightYDir;
-            closestRightContourIsFilling = goingClockWise;
+            closestTopLeft.dist = topLeft.dist;
+            closestTopLeft.yDir = topLeft.yDir;
+            closestTopLeft.valid = true;
+
+            closestTopRight.dist = topRight.dist;
+            closestTopRight.yDir = topRight.yDir;
+            closestTopRight.valid = true;
         }
     }
 
-    if (!valid || !(closestLeftContourYDir || (closestLeftContourIsFilling && closestRightContourIsFilling) ||
-                    (!closestRightContourYDir && (closestLeftContourIsFilling || closestRightContourIsFilling))))
+    // Calculate pixel coverage
+    float halfPixelWidth = input.pixelSize.x / 2.0f;
+    float bottomCoverage = 0.0f;
+    if (closestBottomLeft.valid && (closestBottomLeft.yDir || !closestBottomRight.yDir))
+    {
+        bottomCoverage += min(halfPixelWidth, abs(closestBottomLeft.dist)) / input.pixelSize.x;
+    }
+    if (closestBottomRight.valid && (closestBottomLeft.yDir || !closestBottomRight.yDir))
+    {
+        bottomCoverage += min(halfPixelWidth, closestBottomRight.dist) / input.pixelSize.x;
+    }
+
+    float topCoverage = 0.0f;
+    if (closestTopLeft.valid && (closestTopLeft.yDir || !closestTopRight.yDir))
+    {
+        topCoverage += min(halfPixelWidth, abs(closestTopLeft.dist)) / input.pixelSize.x;
+    }
+    if (closestTopRight.valid && (closestTopLeft.yDir || !closestTopRight.yDir))
+    {
+        topCoverage += min(halfPixelWidth, closestTopRight.dist) / input.pixelSize.x;
+    }
+
+    float coverage = 0.0f;
+    if (bottomCoverage != 0.0f && topCoverage != 0.0f)
+    {
+        coverage = (bottomCoverage + topCoverage) / 2.0f;
+    }
+    else
+    {
+        coverage = max(bottomCoverage, topCoverage) / 2.0f;
+    }
+
+    if (coverage == 0.0f)
     {
         discard;
     }
 
-    output.outColor = float4(1.0f);
+    output.outColor = float4(float3(coverage), 1.0f);
     return output;
 }

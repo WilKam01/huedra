@@ -31,7 +31,7 @@ int main()
     global::graphicsManager.init();
     global::resourceManager.init();
 
-    FontData font = loadTtf("assets/fonts/ManufacturingConsent-Regular.ttf");
+    FontData font = loadTtf("assets/fonts/KaushanScript-Regular.ttf");
 
     Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720));
 
