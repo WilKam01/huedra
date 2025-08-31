@@ -111,7 +111,7 @@ void VulkanSwapchain::recreate()
 
 void VulkanSwapchain::partialCleanup()
 {
-    m_renderTarget.partialCleanup();
+    m_renderTarget.cleanup();
     vkDestroySwapchainKHR(m_device->getLogical(), m_swapchain, nullptr);
 
     for (auto& semaphore : m_imageAvailableSemaphores)

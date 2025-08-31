@@ -15,10 +15,9 @@ void VulkanRenderPass::init(Device& device, const RenderPassBuilder& builder)
         for (auto& info : m_builder.getRenderTargets())
         {
             m_targetInfos.push_back({.renderTarget = static_cast<VulkanRenderTarget*>(info.target.get())});
-            m_targetInfos.back().renderTarget->addRenderPass(this);
             if (m_targetInfos.back().renderTarget->getSwapchain() != nullptr)
             {
-                m_swapchainTarget = m_targetInfos.back().renderTarget;
+                m_swapchain = m_targetInfos.back().renderTarget->getSwapchain();
             }
         }
     }
@@ -45,21 +44,13 @@ void VulkanRenderPass::cleanup()
     {
         cleanupFramebuffers();
         vkDestroyRenderPass(m_device->getLogical(), m_renderPass, nullptr);
-        m_swapchainTarget = nullptr;
     }
     m_pipeline.cleanup();
 }
 
 void VulkanRenderPass::createFramebuffers()
 {
-    if (m_swapchainTarget != nullptr)
-    {
-        m_framebuffers.resize(m_swapchainTarget->getImageCount());
-    }
-    else
-    {
-        m_framebuffers.resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
-    }
+    m_framebuffers.resize(m_targetInfos.front().renderTarget->getImageCount());
     for (u64 i = 0; i < m_framebuffers.size(); i++)
     {
         std::vector<VkImageView> attachments;
@@ -133,9 +124,9 @@ void VulkanRenderPass::begin(VkCommandBuffer commandBuffer)
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = m_renderPass;
-    if (m_swapchainTarget != nullptr)
+    if (m_swapchain != nullptr)
     {
-        renderPassInfo.framebuffer = m_framebuffers[m_swapchainTarget->getSwapchain()->getImageIndex()];
+        renderPassInfo.framebuffer = m_framebuffers[m_swapchain->getImageIndex()];
     }
     else
     {

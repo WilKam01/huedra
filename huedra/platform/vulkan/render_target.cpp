@@ -26,11 +26,6 @@ void VulkanRenderTarget::init(Device& device, VulkanSwapchain& swapchain, VkForm
         m_depthTexture.init(device, TextureType::DEPTH, GraphicsDataFormat::UNDEFINED, extent.width, extent.height,
                             m_imageCount, *this);
     }
-
-    for (auto& renderPass : m_renderPasses)
-    {
-        renderPass->createFramebuffers();
-    }
 }
 
 void VulkanRenderTarget::init(Device& device, RenderTargetType type, GraphicsDataFormat format, u32 width, u32 height)
@@ -50,25 +45,10 @@ void VulkanRenderTarget::init(Device& device, RenderTargetType type, GraphicsDat
         m_depthTexture.init(device, TextureType::DEPTH, GraphicsDataFormat::UNDEFINED, width, height, m_imageCount,
                             *this);
     }
-
-    for (auto& renderPass : m_renderPasses)
-    {
-        renderPass->createFramebuffers();
-    }
 }
 
 void VulkanRenderTarget::cleanup()
 {
-    partialCleanup();
-    m_renderPasses.clear();
-}
-
-void VulkanRenderTarget::partialCleanup()
-{
-    for (auto& renderPass : m_renderPasses)
-    {
-        renderPass->cleanupFramebuffers();
-    }
     if (getType() == RenderTargetType::COLOR || getType() == RenderTargetType::COLOR_AND_DEPTH)
     {
         m_texture.cleanup();
@@ -78,8 +58,6 @@ void VulkanRenderTarget::partialCleanup()
         m_depthTexture.cleanup();
     }
 }
-
-void VulkanRenderTarget::addRenderPass(VulkanRenderPass* renderPass) { m_renderPasses.push_back(renderPass); }
 
 Ref<Texture> VulkanRenderTarget::getColorTexture()
 {

@@ -31,7 +31,7 @@ int main()
     global::graphicsManager.init();
     global::resourceManager.init();
 
-    FontData font = loadTtf("assets/fonts/KaushanScript-Regular.ttf");
+    FontData font = loadTtf("assets/fonts/ManufacturingConsent-Regular.ttf");
 
     Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720));
 
@@ -187,7 +187,7 @@ int main()
         vec2 position;
         vec2 size;
         matrix4 projection;
-    } fontInfo{.position = vec2(100.0f, static_cast<float>(window->getScreenSize().y) / 2.0f),
+    } fontInfo{.position = vec2(static_cast<float>(window->getScreenSize().x / 2.0f) - 150.0f, 50.0f),
                .size = vec2(64.0f),
                .projection = math::ortho(vec2(0, static_cast<float>(window->getScreenSize().x)),
                                          vec2(0, static_cast<float>(window->getScreenSize().y)), vec2(0.0f, 1.0f))};
@@ -230,7 +230,7 @@ int main()
         BufferType::STATIC, HU_BUFFER_USAGE_STRUCTURED_BUFFER, sizeof(ContourRange) * contourPointRanges.size(),
         contourPointRanges.data());
 
-    std::string renderText{"ABCDEFGHIJKLMNOPQRSTUVWXYZ\nabcdefghijklmnopqrstuvwxyz"};
+    std::string renderText{"Hello World!"};
     vec2 cursor{0.0f};
     std::vector<TextData> textData;
     Ref<Buffer> textBuffer;
@@ -338,13 +338,13 @@ int main()
         }
         else
         {
-            /*rot += vec3(static_cast<float>(global::input.isKeyDown(Keys::I)) -
+            rot += vec3(static_cast<float>(global::input.isKeyDown(Keys::I)) -
                             static_cast<float>(global::input.isKeyDown(Keys::K)),
                         static_cast<float>(global::input.isKeyDown(Keys::J)) -
                             static_cast<float>(global::input.isKeyDown(Keys::L)),
                         static_cast<float>(global::input.isKeyDown(Keys::O)) -
                             static_cast<float>(global::input.isKeyDown(Keys::U))) *
-                   1.0f * global::timer.dt();*/
+                   1.0f * global::timer.dt();
         }
 
         matrix3 rMat = math::rotateZ(matrix3(1.0f), rot.z) * math::rotateY(matrix3(1.0f), rot.y) *
@@ -354,7 +354,7 @@ int main()
         vec3 up = vec3(rMat(0, 1), rMat(1, 1), rMat(2, 1));
         vec3 forward = vec3(rMat(0, 2), rMat(1, 2), rMat(2, 2));
 
-        /*float eyeSpeed = 5.0f + (10.0f * static_cast<float>(global::input.isKeyDown(Keys::SHIFT)));
+        float eyeSpeed = 5.0f + (10.0f * static_cast<float>(global::input.isKeyDown(Keys::SHIFT)));
         eye += ((static_cast<float>(global::input.isKeyDown(Keys::D)) -
                  static_cast<float>(global::input.isKeyDown(Keys::A))) *
                     right +
@@ -364,7 +364,7 @@ int main()
                 (static_cast<float>(global::input.isKeyDown(Keys::S)) -
                  static_cast<float>(global::input.isKeyDown(Keys::W))) *
                     forward) *
-               eyeSpeed * global::timer.dt();*/
+               eyeSpeed * global::timer.dt();
 
         if (global::input.getMouseScroll() != vec2(0.0f))
         {
@@ -395,8 +395,9 @@ int main()
                 windowRenderTargetSize = window->getRenderTarget()->getSize();
 
                 fontInfo.projection =
-                    math::ortho(vec2(0, static_cast<float>(window->getScreenSize().x)),
-                                vec2(0, static_cast<float>(window->getScreenSize().y)), vec2(0.0f, 1.0f));
+                    math::ortho(vec2(0.0f, static_cast<float>(window->getScreenSize().x)),
+                                vec2(0.0f, static_cast<float>(window->getScreenSize().y)), vec2(0.0f, 1.0f));
+                fontInfo.position = vec2(static_cast<float>(window->getScreenSize().x / 2.0f) - 150.0f, 50.0f);
             }
 
             RenderPassBuilder renderPass;

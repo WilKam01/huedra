@@ -23,9 +23,6 @@ public:
     void init(Device& device, VulkanSwapchain& swapchain, VkFormat format, VkExtent2D extent);
     void init(Device& device, RenderTargetType type, GraphicsDataFormat format, u32 width, u32 height);
     void cleanup();
-    void partialCleanup();
-
-    void addRenderPass(VulkanRenderPass* renderPass);
 
     Ref<Texture> getColorTexture() override;
     Ref<Texture> getDepthTexture() override;
@@ -43,7 +40,6 @@ public:
 private:
     Device* m_device{nullptr};
     VulkanSwapchain* m_swapchain{nullptr};
-    std::vector<VulkanRenderPass*> m_renderPasses;
 
     VulkanTexture m_texture;
     VulkanTexture m_depthTexture;

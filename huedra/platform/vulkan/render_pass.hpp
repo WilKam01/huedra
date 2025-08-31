@@ -56,7 +56,7 @@ private:
     RenderPassBuilder m_builder;
 
     std::vector<TargetInfo> m_targetInfos;
-    VulkanRenderTarget* m_swapchainTarget{nullptr};
+    VulkanSwapchain* m_swapchain{nullptr};
 
     VulkanPipeline m_pipeline;
     VkRenderPass m_renderPass{nullptr};
