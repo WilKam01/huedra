@@ -55,10 +55,13 @@ public:
     RenderPassBuilder(RenderPassBuilder&& rhs) = default;
     RenderPassBuilder& operator=(RenderPassBuilder&& rhs) = default;
 
-    RenderPassBuilder& init(RenderPassType type, const PipelineBuilder& pipeline);
+    RenderPassBuilder& init(RenderPassType type, RenderTargetType renderTargetUse = RenderTargetType::COLOR_AND_DEPTH);
+    RenderPassBuilder& setPipeline(const PipelineBuilder& pipeline);
     RenderPassBuilder& setCommands(const RenderCommands& commands);
-    RenderPassBuilder& setClearRenderTargets(bool clearRenderTargets);
-    RenderPassBuilder& setRenderTargetUse(RenderTargetType renderTargetUse);
+
+    // renderTargetUse only applicable when clearRenderTargets is true
+    RenderPassBuilder& setClearRenderTargets(bool clearRenderTargets,
+                                             RenderTargetType renderTargetUse = RenderTargetType::COLOR_AND_DEPTH);
 
     RenderPassBuilder& addResource(ResourceAccessType access, Ref<Buffer> buffer, ShaderStage shaderStage);
     RenderPassBuilder& addResource(ResourceAccessType access, Ref<Texture> texture, ShaderStage shaderStage);
@@ -66,24 +69,24 @@ public:
 
     u64 generateHash();
 
-    bool empty() const { return !m_initialized; }
+    bool empty() const { return m_pipeline.empty() && m_commands == nullptr; }
     RenderPassType getType() const { return m_type; }
     PipelineBuilder getPipeline() const { return m_pipeline; }
     RenderCommands getCommands() const { return m_commands; }
     bool getClearRenderTargets() const { return m_clearTargets; }
     RenderTargetType getRenderTargetUse() const { return m_renderTargetUse; }
+    RenderTargetType getRenderTargetClearUse() const { return m_renderTargetClearUse; }
     std::vector<RenderPassReference> getInputs() const { return m_inputs; }
     std::vector<RenderPassReference> getOutputs() const { return m_outputs; }
     std::vector<RenderTargetInfo> getRenderTargets() const { return m_renderTargets; }
 
 private:
-    bool m_initialized{false};
-
     RenderPassType m_type{RenderPassType::GRAPHICS};
     PipelineBuilder m_pipeline;
     RenderCommands m_commands{nullptr};
-    bool m_clearTargets{true};
+    bool m_clearTargets{false};
     RenderTargetType m_renderTargetUse{RenderTargetType::COLOR_AND_DEPTH};
+    RenderTargetType m_renderTargetClearUse{RenderTargetType::COLOR_AND_DEPTH};
 
     std::vector<RenderPassReference> m_inputs;
     std::vector<RenderPassReference> m_outputs;

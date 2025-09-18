@@ -1,6 +1,7 @@
 #include "render_pass.hpp"
 #include "core/global.hpp"
 #include "core/log.hpp"
+#include "graphics/utils.hpp"
 #include "platform/vulkan/render_target.hpp"
 #include "platform/vulkan/swapchain.hpp"
 
@@ -56,16 +57,14 @@ void VulkanRenderPass::createFramebuffers()
         std::vector<VkImageView> attachments;
         for (auto& info : m_targetInfos)
         {
-            if (m_builder.getRenderTargetUse() == RenderTargetType::COLOR_AND_DEPTH ||
-                m_builder.getRenderTargetUse() == RenderTargetType::COLOR)
+            if (usesColor(m_builder.getRenderTargetUse()))
             {
                 attachments.push_back(
                     info.renderTarget->getVkColorTexture().getView(i % info.renderTarget->getImageCount()));
             }
         }
 
-        if (m_builder.getRenderTargetUse() == RenderTargetType::COLOR_AND_DEPTH ||
-            m_builder.getRenderTargetUse() == RenderTargetType::DEPTH)
+        if (usesDepth(m_builder.getRenderTargetUse()))
         {
             attachments.push_back(m_targetInfos.front().renderTarget->getVkDepthTexture().getView(
                 i % m_targetInfos.front().renderTarget->getImageCount()));
@@ -134,31 +133,24 @@ void VulkanRenderPass::begin(VkCommandBuffer commandBuffer)
     }
     renderPassInfo.renderArea.offset = {.x = 0, .y = 0};
     renderPassInfo.renderArea.extent = extent;
-    renderPassInfo.clearValueCount = 0;
-    renderPassInfo.pClearValues = nullptr;
 
     std::vector<VkClearValue> clearValues{};
-    if (m_builder.getClearRenderTargets())
+    for (u32 i = 0; i < m_targetInfos.size(); ++i)
     {
-        for (u32 i = 0; i < m_targetInfos.size(); ++i)
+        vec3 clearColor = m_builder.getRenderTargets()[i].clearColor;
+        if (usesColor(m_builder.getRenderTargetUse()))
         {
-            vec3 clearColor = m_builder.getRenderTargets()[i].clearColor;
-            if (m_builder.getRenderTargetUse() == RenderTargetType::COLOR_AND_DEPTH ||
-                m_builder.getRenderTargetUse() == RenderTargetType::COLOR)
-            {
-                VkClearValue& value = clearValues.emplace_back();
-                value.color = {clearColor[0], clearColor[1], clearColor[2], 1.0f};
-            }
-            if (m_builder.getRenderTargetUse() == RenderTargetType::COLOR_AND_DEPTH ||
-                m_builder.getRenderTargetUse() == RenderTargetType::DEPTH)
-            {
-                VkClearValue& value = clearValues.emplace_back();
-                value.depthStencil = {.depth = 1.0f, .stencil = 0};
-            }
+            VkClearValue& value = clearValues.emplace_back();
+            value.color = {clearColor[0], clearColor[1], clearColor[2], 1.0f};
         }
-        renderPassInfo.clearValueCount = static_cast<u32>(clearValues.size());
-        renderPassInfo.pClearValues = clearValues.data();
+        if (usesDepth(m_builder.getRenderTargetUse()))
+        {
+            VkClearValue& value = clearValues.emplace_back();
+            value.depthStencil = {.depth = 1.0f, .stencil = 0};
+        }
     }
+    renderPassInfo.clearValueCount = static_cast<u32>(clearValues.size());
+    renderPassInfo.pClearValues = clearValues.data();
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.get());
@@ -171,13 +163,11 @@ void VulkanRenderPass::end(VkCommandBuffer commandBuffer)
         vkCmdEndRenderPass(commandBuffer);
         for (auto& info : m_targetInfos)
         {
-            if (m_builder.getRenderTargetUse() == RenderTargetType::COLOR_AND_DEPTH ||
-                m_builder.getRenderTargetUse() == RenderTargetType::COLOR)
+            if (usesColor(m_builder.getRenderTargetUse()))
             {
                 info.renderTarget->getVkColorTexture().setLayout(info.finalColorLayout);
             }
-            if (m_builder.getRenderTargetUse() == RenderTargetType::COLOR_AND_DEPTH ||
-                m_builder.getRenderTargetUse() == RenderTargetType::DEPTH)
+            if (usesDepth(m_builder.getRenderTargetUse()))
             {
                 info.renderTarget->getVkDepthTexture().setLayout(info.finalDepthLayout);
             }
@@ -190,12 +180,13 @@ void VulkanRenderPass::createRenderPass()
     std::vector<VkAttachmentDescription> attachments;
     std::vector<VkAttachmentReference> colorAttachmentRef;
     VkAttachmentReference depthAttachmentRef;
-    VkAttachmentLoadOp loadOp =
-        m_builder.getClearRenderTargets() ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
-    for (auto& info : m_targetInfos)
+    if (usesColor(m_builder.getRenderTargetUse()))
     {
-        if (m_builder.getRenderTargetUse() == RenderTargetType::COLOR_AND_DEPTH ||
-            m_builder.getRenderTargetUse() == RenderTargetType::COLOR)
+        VkAttachmentLoadOp loadOp = m_builder.getClearRenderTargets() && usesColor(m_builder.getRenderTargetClearUse())
+                                        ? VK_ATTACHMENT_LOAD_OP_CLEAR
+                                        : VK_ATTACHMENT_LOAD_OP_LOAD;
+
+        for (auto& info : m_targetInfos)
         {
             VkAttachmentDescription colorAttachment{};
             colorAttachment.format = info.renderTarget->getColorFormat();
@@ -217,9 +208,12 @@ void VulkanRenderPass::createRenderPass()
         }
     }
 
-    if (m_builder.getRenderTargetUse() == RenderTargetType::COLOR_AND_DEPTH ||
-        m_builder.getRenderTargetUse() == RenderTargetType::DEPTH)
+    if (usesDepth(m_builder.getRenderTargetUse()))
     {
+        VkAttachmentLoadOp loadOp = m_builder.getClearRenderTargets() && usesDepth(m_builder.getRenderTargetClearUse())
+                                        ? VK_ATTACHMENT_LOAD_OP_CLEAR
+                                        : VK_ATTACHMENT_LOAD_OP_LOAD;
+
         VkAttachmentDescription depthAttachment{};
         depthAttachment.format = m_targetInfos.front().renderTarget->getDepthFormat();
         depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -243,8 +237,7 @@ void VulkanRenderPass::createRenderPass()
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = static_cast<u32>(colorAttachmentRef.size());
     subpass.pColorAttachments = colorAttachmentRef.data();
-    if (m_builder.getRenderTargetUse() == RenderTargetType::COLOR_AND_DEPTH ||
-        m_builder.getRenderTargetUse() == RenderTargetType::DEPTH)
+    if (usesDepth(m_builder.getRenderTargetUse()))
     {
         subpass.pDepthStencilAttachment = &depthAttachmentRef;
     }
@@ -265,8 +258,7 @@ void VulkanRenderPass::createRenderPass()
     renderPassInfo.pAttachments = attachments.data();
     renderPassInfo.subpassCount = 1;
     renderPassInfo.pSubpasses = &subpass;
-    if (m_builder.getRenderTargetUse() == RenderTargetType::COLOR_AND_DEPTH ||
-        m_builder.getRenderTargetUse() == RenderTargetType::COLOR)
+    if (usesColor(m_builder.getRenderTargetUse()))
     {
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies = &dependency;

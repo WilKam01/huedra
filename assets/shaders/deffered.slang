@@ -11,6 +11,7 @@ struct VertOutput
     float2 uv : TEXCOORD1;
     float3 normal : TEXCOORD2;
     float4 position : SV_Position;
+    float pointSize : SV_PointSize;
 };
 
 [shader("vertex")]
@@ -21,6 +22,7 @@ VertOutput vertMain(VertInput input, ConstantBuffer<float4x4> cameraMatrix, unif
     output.worldPosition = input.position;
     output.uv = input.uv;
     output.normal = mul(cameraMatrix, mul(modelMatrix, float4(input.normal, 0.0))).xyz;
+    output.pointSize = 5.0f;
     return output;
 }
 

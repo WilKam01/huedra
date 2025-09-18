@@ -401,9 +401,14 @@ int main()
             }
 
             RenderPassBuilder renderPass;
-            renderPass.init(RenderPassType::GRAPHICS, builder)
+            builder.setPrimitive(PrimitiveType::LINE, PrimitiveLayout::TRIANGLE_LIST);
+            renderPass.init(RenderPassType::GRAPHICS)
                 .addResource(ResourceAccessType::READ, viewProjBuffer, ShaderStage::VERTEX)
                 .addResource(ResourceAccessType::READ, texture, ShaderStage::FRAGMENT)
+                .setClearRenderTargets(true, global::input.isKeyActive(KeyToggles::CAPS_LOCK)
+                                                 ? RenderTargetType::COLOR_AND_DEPTH
+                                                 : RenderTargetType::DEPTH)
+                .setPipeline(builder)
                 .setCommands(commands);
             for (auto& gBuffer : gBuffers)
             {
@@ -411,12 +416,16 @@ int main()
             }
             renderGraph.addPass("GBuffer Pass", renderPass);
 
-            renderPass.init(RenderPassType::COMPUTE, computeBuilder)
+            builder.setPrimitive(PrimitiveType::POINT, PrimitiveLayout::TRIANGLE_LIST);
+            renderPass.setPipeline(builder).setClearRenderTargets(true, RenderTargetType::DEPTH);
+            renderGraph.addPass("GBuffer Pass #2", renderPass);
+
+            renderPass.init(RenderPassType::COMPUTE)
                 .addResource(ResourceAccessType::READ, lightBuffer, ShaderStage::COMPUTE)
                 .addResource(ResourceAccessType::WRITE, window->getRenderTarget()->getColorTexture(),
                              ShaderStage::COMPUTE)
+                .setPipeline(computeBuilder)
                 .setCommands(computeCommands);
-
             for (auto& gBuffer : gBuffers)
             {
                 renderPass.addResource(ResourceAccessType::READ, gBuffer->getColorTexture(), ShaderStage::COMPUTE);
@@ -424,10 +433,9 @@ int main()
             renderGraph.addPass("Deffered pass", renderPass);
 
             renderGraph.addPass("Fonts", RenderPassBuilder()
-                                             .init(RenderPassType::GRAPHICS, fontPipeline)
+                                             .init(RenderPassType::GRAPHICS, RenderTargetType::COLOR)
                                              .addRenderTarget(window->getRenderTarget())
-                                             .setClearRenderTargets(false)
-                                             .setRenderTargetUse(RenderTargetType::COLOR)
+                                             .setPipeline(fontPipeline)
                                              .setCommands(fontRenderCommands));
         }
 

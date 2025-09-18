@@ -5,42 +5,58 @@
 
 namespace huedra {
 
-RenderPassBuilder& RenderPassBuilder::init(RenderPassType type, const PipelineBuilder& pipeline)
+RenderPassBuilder& RenderPassBuilder::init(RenderPassType type, RenderTargetType renderTargetUse)
 {
-    m_initialized = false;
     m_type = type;
-    m_pipeline = pipeline;
-
+    m_renderTargetUse = renderTargetUse;
     m_commands = nullptr;
     m_inputs.clear();
     m_outputs.clear();
     m_renderTargets.clear();
 
-    if (m_pipeline.empty())
+    return *this;
+}
+
+RenderPassBuilder& RenderPassBuilder::setPipeline(const PipelineBuilder& pipeline)
+{
+    if (pipeline.empty())
     {
         log(LogLevel::WARNING, "RenderPassBuilder: pipeline invalid, is empty");
         return *this;
     }
 
-    if (type == RenderPassType::GRAPHICS && pipeline.getType() != PipelineType::GRAPHICS)
+    if (m_type == RenderPassType::GRAPHICS && pipeline.getType() != PipelineType::GRAPHICS)
     {
         log(LogLevel::WARNING, "RenderPassBuilder: pipeline invalid, not a graphics pipeline");
         return *this;
     }
 
-    if (type == RenderPassType::COMPUTE && pipeline.getType() != PipelineType::COMPUTE)
+    if (m_type == RenderPassType::COMPUTE && pipeline.getType() != PipelineType::COMPUTE)
     {
         log(LogLevel::WARNING, "RenderPassBuilder: pipeline invalid, not a compute pipeline");
         return *this;
     }
 
-    if (type == RenderPassType::GRAPHICS && !pipeline.getShaderStages().contains(ShaderStage::VERTEX))
+    if (m_type == RenderPassType::GRAPHICS && !pipeline.getShaderStages().contains(ShaderStage::VERTEX))
     {
         log(LogLevel::WARNING, "RenderPassBuilder: graphics pipeline invalid, no vertex shader present");
         return *this;
     }
 
-    m_initialized = true;
+    m_pipeline = pipeline;
+    return *this;
+}
+
+RenderPassBuilder& RenderPassBuilder::setCommands(const RenderCommands& commands)
+{
+    m_commands = commands;
+    return *this;
+}
+
+RenderPassBuilder& RenderPassBuilder::setClearRenderTargets(bool clearRenderTargets, RenderTargetType renderTargetUse)
+{
+    m_clearTargets = clearRenderTargets;
+    m_renderTargetClearUse = renderTargetUse;
     return *this;
 }
 
@@ -100,24 +116,6 @@ RenderPassBuilder& RenderPassBuilder::addResource(ResourceAccessType access, Ref
     return *this;
 }
 
-RenderPassBuilder& RenderPassBuilder::setCommands(const RenderCommands& commands)
-{
-    m_commands = commands;
-    return *this;
-}
-
-RenderPassBuilder& RenderPassBuilder::setClearRenderTargets(bool clearRenderTargets)
-{
-    m_clearTargets = clearRenderTargets;
-    return *this;
-}
-
-RenderPassBuilder& RenderPassBuilder::setRenderTargetUse(RenderTargetType renderTargetUse)
-{
-    m_renderTargetUse = renderTargetUse;
-    return *this;
-}
-
 RenderPassBuilder& RenderPassBuilder::addRenderTarget(Ref<RenderTarget> renderTarget, vec3 clearColor)
 {
     if (!renderTarget.valid() || !renderTarget->isAvailable())
@@ -160,6 +158,9 @@ u64 RenderPassBuilder::generateHash()
     auto ptrHash = std::hash<void*>();
 
     combineHash(u64Hash(static_cast<u64>(m_type)));
+    combineHash(u64Hash(static_cast<u64>(m_clearTargets)));
+    combineHash(u64Hash(static_cast<u64>(m_renderTargetUse)));
+    combineHash(u64Hash(static_cast<u64>(m_renderTargetClearUse)));
     combineHash(m_pipeline.generateHash());
 
     combineHash(u64Hash(m_inputs.size()));
@@ -177,7 +178,9 @@ u64 RenderPassBuilder::generateHash()
     combineHash(u64Hash(m_renderTargets.size()));
     for (auto& renderTarget : m_renderTargets)
     {
-        combineHash(ptrHash((renderTarget.target.get())));
+        combineHash(ptrHash(renderTarget.target.get()));
+        combineHash(u64Hash(static_cast<u64>(renderTarget.target.get()->getWidth())));
+        combineHash(u64Hash(static_cast<u64>(renderTarget.target.get()->getHeight())));
     }
 
     return hash;

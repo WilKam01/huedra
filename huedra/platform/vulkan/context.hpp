@@ -45,16 +45,9 @@ public:
     VkSampler getSampler(const SamplerSettings& settings);
 
 private:
-    struct ResourceTransition
-    {
-        VulkanTexture* texture{nullptr};
-        VkImageLayout newLayout{VK_IMAGE_LAYOUT_UNDEFINED};
-        VkPipelineStageFlags newStage{VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT};
-    };
     struct PassInfo
     {
         VulkanRenderPass* pass{nullptr};
-        std::vector<ResourceTransition> transitions;
         std::vector<DescriptorHandler> descriptorHandlers;
         VkDescriptorPool descriptorPool;
     };
@@ -62,8 +55,8 @@ private:
     void createDescriptorHandlers(const RenderPassBuilder& builder, PassInfo& passInfo);
     void createSampler(const SamplerSettings& settings);
 
-    void submitGraphicsQueue(u32 batchIndex);
-    void submitComputeQueue(u32 batchIndex);
+    void submitGraphicsQueue(std::vector<CommandBuffer> commandBuffers, u32 batchIndex);
+    void submitComputeQueue(std::vector<CommandBuffer> commandBuffers, u32 batchIndex);
     void presentSwapchains();
 
     static void transitionImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkFormat format,
@@ -105,13 +98,15 @@ private:
     std::vector<SamplerInfo> m_samplers;
 
     CommandPool m_graphicsCommandPool;
-    CommandBuffer m_graphicsCommandBuffer;
+    std::vector<CommandBuffer> m_graphicsCommandBuffers;
+
     std::array<std::vector<VkSemaphore>, 2> m_graphicsSyncSemaphores;
     u32 m_curGraphicsSemphoreIndex{0};
     std::vector<VkFence> m_graphicsFrameInFlightFences;
 
     CommandPool m_computeCommandPool;
-    CommandBuffer m_computeCommandBuffer;
+    std::vector<CommandBuffer> m_computeCommandBuffers;
+
     std::array<std::vector<VkSemaphore>, 2> m_computeSyncSemaphores;
     u32 m_curComputeSemphoreIndex{0};
     std::vector<VkFence> m_computeFrameInFlightFences;
