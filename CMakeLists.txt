@@ -27,9 +27,7 @@ if(WIN32)
   file(GLOB_RECURSE ADDITIONAL_SOURCES 
     ${PROJECT_SOURCE_DIR}/huedra/platform/win32/*.cpp 
     ${PROJECT_SOURCE_DIR}/huedra/platform/vulkan/*.cpp 
-    ${PROJECT_SOURCE_DIR}/huedra/platform/slang/*.cpp 
   )
-  target_sources(huedra PRIVATE ${ADDITIONAL_SOURCES})
 
 elseif(APPLE)
   message(STATUS "Building for MacOS")
@@ -57,17 +55,53 @@ elseif(APPLE)
     ${PROJECT_SOURCE_DIR}/huedra/platform/cocoa/*.mm
     ${PROJECT_SOURCE_DIR}/huedra/platform/metal/*.cpp
     ${PROJECT_SOURCE_DIR}/huedra/platform/metal/*.mm
-    ${PROJECT_SOURCE_DIR}/huedra/platform/slang/*.cpp 
   )
-  target_sources(huedra PRIVATE ${ADDITIONAL_SOURCES})
+
+elseif(LINUX)
+  message(STATUS "Building for Linux")
+  target_compile_definitions(huedra PRIVATE -DLINUX)
+
+  find_package(Vulkan REQUIRED)
+  include_directories(huedra {Vulkan_INCLUDE_DIRS})
+  target_link_libraries(huedra PRIVATE Vulkan::Vulkan)
+  target_compile_definitions(huedra PRIVATE -DVULKAN)
+
+  if($ENV{XDG_SESSION_TYPE} STREQUAL "wayland")
+    message(STATUS "Using Wayland Display System")
+    file(GLOB_RECURSE ADDITIONAL_SOURCES 
+      ${PROJECT_SOURCE_DIR}/huedra/platform/wayland/*.cpp 
+    )
+    target_compile_definitions(huedra PRIVATE -DWAYLAND)
+    else()
+    # Fallback to X11 if available
+    if($ENV{XDG_SESSION_TYPE} STREQUAL "x11")
+      message(STATUS "Using X11 Display System")
+      file(GLOB_RECURSE ADDITIONAL_SOURCES 
+      ${PROJECT_SOURCE_DIR}/huedra/platform/x11/*.cpp 
+      )
+      target_compile_definitions(huedra PRIVATE -DX11)
+      message(FATAL_ERROR "Currently not supported!")
+    else()
+      message(FATAL_ERROR "Could not determine Display System")
+    endif()
+  endif()
+
+  file(GLOB_RECURSE ADDITIONAL_SOURCES 
+    ${PROJECT_SOURCE_DIR}/huedra/platform/vulkan/*.cpp 
+  )
 endif()
 
-# Link dependencies
+# Link common dependencies
 target_link_libraries(huedra PRIVATE slang)
 
 target_include_directories(huedra PRIVATE
   ${PROJECT_SOURCE_DIR}/huedra
 )
+
+file(GLOB_RECURSE ADDITIONAL_SOURCES 
+  ${PROJECT_SOURCE_DIR}/huedra/platform/slang/*.cpp 
+)
+target_sources(huedra PRIVATE ${ADDITIONAL_SOURCES})
 
 # Define compiler flags and macros for different build types
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")

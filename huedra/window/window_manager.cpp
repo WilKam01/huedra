@@ -435,6 +435,10 @@ Window* WindowManager::createWindow(const std::string& title, const WindowInput&
 #elif defined(COCOA)
     auto* window = new WindowCocoa();
     success = window->init(title, input);
+#elif defined(WAYLAND)
+    // TODO: Implement
+#elif defined(X11)
+    // TODO: Implement
 #endif
     if (success)
     {

@@ -13,6 +13,9 @@ if(WIN32)
 elseif(APPLE)
     set(SLANG_OS "macos")
     set(SLANG_ARCH "aarch64")
+elseif(UNIX)
+    set(SLANG_OS "linux")
+    set(SLANG_ARCH "x86_64")
 endif()
 
 FetchContent_Declare(
@@ -32,5 +35,9 @@ if(WIN32)
 elseif(APPLE)
     set_target_properties(slang PROPERTIES 
         IMPORTED_LOCATION ${slang_zip_SOURCE_DIR}/lib/libslang.dylib
+        INTERFACE_INCLUDE_DIRECTORIES ${slang_zip_SOURCE_DIR}/include)
+elseif(UNIX)
+    set_target_properties(slang PROPERTIES 
+        IMPORTED_LOCATION ${slang_zip_SOURCE_DIR}/lib/libslang.so
         INTERFACE_INCLUDE_DIRECTORIES ${slang_zip_SOURCE_DIR}/include)
 endif()
