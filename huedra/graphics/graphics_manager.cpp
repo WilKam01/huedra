@@ -23,9 +23,10 @@ void GraphicsManager::init()
 
 void GraphicsManager::cleanup()
 {
-    // m_slangContext.cleanup();
+    m_slangContext.cleanup();
     m_context->cleanup();
     delete m_context;
+    m_context = nullptr;
 }
 
 void GraphicsManager::update() { m_context->prepareSwapchains(); }
@@ -153,4 +154,5 @@ void GraphicsManager::createSwapchain(Window* window, bool renderDepth)
 }
 
 void GraphicsManager::removeSwapchain(u64 index) { m_context->removeSwapchain(index); }
+
 }; // namespace huedra

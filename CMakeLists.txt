@@ -1,13 +1,15 @@
 cmake_minimum_required(VERSION 3.27.5)
 
+include(FindPackageHandleStandardArgs)
+include(${CMAKE_SOURCE_DIR}/cmake/utils.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/dependencies.cmake)
 
 project(huedra)
 
 set(CMAKE_CXX_STANDARD 23)
 
-file(GLOB_RECURSE SOURCES 
-    ${PROJECT_SOURCE_DIR}/huedra/*.cpp 
+append_glob_recurse_files(SOURCES 
+  ${PROJECT_SOURCE_DIR}/huedra/*.cpp 
 )
 
 list(FILTER SOURCES EXCLUDE REGEX "${PROJECT_SOURCE_DIR}/huedra/platform/.*")
@@ -24,7 +26,7 @@ if(WIN32)
   target_link_libraries(huedra PRIVATE Vulkan::Vulkan)
   target_compile_definitions(huedra PRIVATE -DVULKAN)
 
-  file(GLOB_RECURSE ADDITIONAL_SOURCES 
+  append_glob_recurse_files(ADDITIONAL_SOURCES 
     ${PROJECT_SOURCE_DIR}/huedra/platform/win32/*.cpp 
     ${PROJECT_SOURCE_DIR}/huedra/platform/vulkan/*.cpp 
   )
@@ -49,13 +51,14 @@ elseif(APPLE)
 
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
   set_source_files_properties(${SOURCES} PROPERTIES COMPILE_FLAGS "-x objective-c++")
-
-  file(GLOB_RECURSE ADDITIONAL_SOURCES 
+  
+  append_glob_recurse_files(ADDITIONAL_SOURCES 
     ${PROJECT_SOURCE_DIR}/huedra/platform/cocoa/*.cpp
     ${PROJECT_SOURCE_DIR}/huedra/platform/cocoa/*.mm
     ${PROJECT_SOURCE_DIR}/huedra/platform/metal/*.cpp
     ${PROJECT_SOURCE_DIR}/huedra/platform/metal/*.mm
   )
+  set_source_files_properties(${ADDITIONAL_SOURCES} PROPERTIES COMPILE_FLAGS "-x objective-c++")
 
 elseif(LINUX)
   message(STATUS "Building for Linux")
@@ -65,19 +68,96 @@ elseif(LINUX)
   include_directories(huedra {Vulkan_INCLUDE_DIRS})
   target_link_libraries(huedra PRIVATE Vulkan::Vulkan)
   target_compile_definitions(huedra PRIVATE -DVULKAN)
+  append_glob_recurse_files(ADDITIONAL_SOURCES 
+    ${PROJECT_SOURCE_DIR}/huedra/platform/vulkan/*.cpp 
+  )
 
   if($ENV{XDG_SESSION_TYPE} STREQUAL "wayland")
     message(STATUS "Using Wayland Display System")
-    file(GLOB_RECURSE ADDITIONAL_SOURCES 
+
+    # Find include file and lib
+    find_path(WAYLAND_INCLUDE_DIR
+      NAMES wayland-client.h
+      PATHS /usr/include /usr/local/include
+    )
+    find_library(WAYLAND_LIBRARY
+      NAMES wayland-client
+      PATHS /usr/lib /usr/local/lib /usr/lib/x86_64-linux-gnu
+    )
+    find_package_handle_standard_args(Wayland 
+      REQUIRED_VARS WAYLAND_LIBRARY WAYLAND_INCLUDE_DIR
+    )
+
+    if(NOT Wayland_FOUND)
+      message(FATAL_ERROR "Could not find Wayland dependencies")
+    endif()
+
+    add_library(Wayland::Client UNKNOWN IMPORTED)
+    set_target_properties(Wayland::Client PROPERTIES
+      INTERFACE_INCLUDE_DIRECTORIES "${WAYLAND_INCLUDE_DIR}"
+      IMPORTED_LOCATION "${WAYLAND_LIBRARY}"
+    )
+    target_link_libraries(huedra PRIVATE Wayland::Client)
+
+    # Find scanner to generate protocol files
+    find_program(WAYLAND_SCANNER_EXECUTABLE
+      NAMES wayland-scanner
+    )
+
+    if(NOT WAYLAND_SCANNER_EXECUTABLE)
+      message(FATAL_ERROR "Could not find wayland-scanner to generate protocol files")
+    endif()
+
+    find_path(WAYLAND_SHELL_PROTOCOL_DIR
+      NAMES stable/xdg-shell/xdg-shell.xml
+      PATHS /usr/share/wayland-protocols /usr/local/share/wayland-protocols
+    )
+
+    if(NOT WAYLAND_SHELL_PROTOCOL_DIR)
+      message(FATAL_ERROR "Could not find wayland shell protocol")
+    endif()
+
+    find_path(WAYLAND_DECORATION_PROTOCOL_DIR
+      NAMES unstable/xdg-decoration/xdg-decoration-unstable-v1.xml
+      PATHS /usr/share/wayland-protocols /usr/local/share/wayland-protocols
+    )
+
+    if(NOT WAYLAND_DECORATION_PROTOCOL_DIR)
+      message(FATAL_ERROR "Could not find wayland decoration protocol")
+    endif()
+
+    # Generate protocol files
+    set(SHELL_PROTOCOL_XML "${WAYLAND_SHELL_PROTOCOL_DIR}/stable/xdg-shell/xdg-shell.xml")
+    set(SHELL_GENERATED_NAME "${CMAKE_CURRENT_BINARY_DIR}/wayland/xdg-shell")
+
+    set(DECORATION_PROTOCOL_XML "${WAYLAND_DECORATION_PROTOCOL_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml")
+    set(DECORATION_GENERATED_NAME "${CMAKE_CURRENT_BINARY_DIR}/wayland/xdg-decoration")
+
+    add_custom_target(gen_wayland_protocol_files
+      COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/wayland
+      COMMAND ${WAYLAND_SCANNER_EXECUTABLE} client-header "${SHELL_PROTOCOL_XML}" "${SHELL_GENERATED_NAME}.h"
+      COMMAND ${WAYLAND_SCANNER_EXECUTABLE} private-code "${SHELL_PROTOCOL_XML}" "${SHELL_GENERATED_NAME}.c"
+      COMMAND ${WAYLAND_SCANNER_EXECUTABLE} client-header "${DECORATION_PROTOCOL_XML}" "${DECORATION_GENERATED_NAME}.h"
+      COMMAND ${WAYLAND_SCANNER_EXECUTABLE} private-code "${DECORATION_PROTOCOL_XML}" "${DECORATION_GENERATED_NAME}.c"
+      COMMENT "Generating Wayland Protocol Files..."
+    )
+    add_dependencies(huedra gen_wayland_protocol_files)
+
+    append_glob_recurse_files(ADDITIONAL_SOURCES 
+      ${CMAKE_CURRENT_BINARY_DIR}/wayland/*.c 
       ${PROJECT_SOURCE_DIR}/huedra/platform/wayland/*.cpp 
     )
+    target_include_directories(huedra PRIVATE
+      ${CMAKE_CURRENT_BINARY_DIR}/wayland
+    )
+
     target_compile_definitions(huedra PRIVATE -DWAYLAND)
     else()
     # Fallback to X11 if available
     if($ENV{XDG_SESSION_TYPE} STREQUAL "x11")
       message(STATUS "Using X11 Display System")
-      file(GLOB_RECURSE ADDITIONAL_SOURCES 
-      ${PROJECT_SOURCE_DIR}/huedra/platform/x11/*.cpp 
+      append_glob_recurse_files(ADDITIONAL_SOURCES 
+        ${PROJECT_SOURCE_DIR}/huedra/platform/x11/*.cpp 
       )
       target_compile_definitions(huedra PRIVATE -DX11)
       message(FATAL_ERROR "Currently not supported!")
@@ -85,10 +165,6 @@ elseif(LINUX)
       message(FATAL_ERROR "Could not determine Display System")
     endif()
   endif()
-
-  file(GLOB_RECURSE ADDITIONAL_SOURCES 
-    ${PROJECT_SOURCE_DIR}/huedra/platform/vulkan/*.cpp 
-  )
 endif()
 
 # Link common dependencies
@@ -98,9 +174,10 @@ target_include_directories(huedra PRIVATE
   ${PROJECT_SOURCE_DIR}/huedra
 )
 
-file(GLOB_RECURSE ADDITIONAL_SOURCES 
+append_glob_recurse_files(ADDITIONAL_SOURCES 
   ${PROJECT_SOURCE_DIR}/huedra/platform/slang/*.cpp 
 )
+
 target_sources(huedra PRIVATE ${ADDITIONAL_SOURCES})
 
 # Define compiler flags and macros for different build types

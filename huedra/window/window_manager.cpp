@@ -9,11 +9,17 @@
 #include "core/timer.hpp"
 #include "platform/cocoa/window.hpp"
 #include <AppKit/AppKit.h>
+#elif defined(WAYLAND)
+#include "core/file/utils.hpp"
+#include "platform/wayland/window.hpp"
+#include <cstring>
+#include <sys/poll.h>
+#include <unistd.h>
 #endif
 
 namespace huedra {
 
-#ifdef MACOS
+#ifdef COCOA
 // "Custom" cursors (not available in cocoa, so load them from file instead)
 static constexpr std::vector<NSCursor*> loadCursor(NSString* name)
 {
@@ -108,6 +114,71 @@ static NSCursor* getMacCursor(CursorType cursor)
     }
     return [NSCursor arrowCursor];
 }
+#elif defined(WAYLAND)
+static wl_display* wlDisplay = nullptr;
+static wl_registry* wlRegistry = nullptr;
+static wl_compositor* wlCompositor = nullptr;
+static wl_shm* wlSharedMemory = nullptr;
+static xdg_wm_base* xdgBase = nullptr;
+static zxdg_decoration_manager_v1* zxdgDecorationManager = nullptr;
+
+// Registry bind versions
+static const u32 WAYLAND_COMPOSITOR_BIND_VERSION = 4;
+static const u32 WAYLAND_SHARED_MEMORY_BIND_VERSION = 2;
+static const u32 XDG_SHELL_BIND_VERSION = 1;
+static const u32 ZXDG_DECORATION_MANAGER_BIND_VERSION = 1;
+
+static void handlePing(void* data, xdg_wm_base* base, u32 serial)
+{
+    xdg_wm_base_pong(base, serial);
+    log(LogLevel::D_INFO, "Got handlePing call!");
+}
+
+static const xdg_wm_base_listener pingListener = {.ping = handlePing};
+
+static void handleRegistry(void* data, wl_registry* registry, u32 name, const char* interface, u32 version)
+{
+    log(LogLevel::D_INFO, "Got handleRegistry call!");
+    if (strcmp(interface, wl_compositor_interface.name) == 0)
+    {
+        wlCompositor = static_cast<wl_compositor*>(
+            wl_registry_bind(registry, name, &wl_compositor_interface, WAYLAND_COMPOSITOR_BIND_VERSION));
+        if (!wlCompositor)
+        {
+            log(LogLevel::ERR, "Could not bind wayland compositor from handleRegistry call!");
+        }
+    }
+    else if (strcmp(interface, wl_shm_interface.name) == 0)
+    {
+        wlSharedMemory = static_cast<wl_shm*>(
+            wl_registry_bind(registry, name, &wl_shm_interface, WAYLAND_SHARED_MEMORY_BIND_VERSION));
+        if (!wlSharedMemory)
+        {
+            log(LogLevel::ERR, "Could not bind wayland shared memory from handleRegistry call!");
+        }
+    }
+    else if (strcmp(interface, xdg_wm_base_interface.name) == 0)
+    {
+        xdgBase =
+            static_cast<xdg_wm_base*>(wl_registry_bind(registry, name, &xdg_wm_base_interface, XDG_SHELL_BIND_VERSION));
+        if (!xdgBase)
+        {
+            log(LogLevel::ERR, "Could not bind xdg shell from handleRegistry call!");
+        }
+        xdg_wm_base_add_listener(xdgBase, &pingListener, NULL);
+    }
+    else if (strcmp(interface, zxdg_decoration_manager_v1_interface.name) == 0)
+    {
+        zxdgDecorationManager = static_cast<zxdg_decoration_manager_v1*>(wl_registry_bind(
+            registry, name, &zxdg_decoration_manager_v1_interface, ZXDG_DECORATION_MANAGER_BIND_VERSION));
+        if (!zxdgDecorationManager)
+        {
+            log(LogLevel::ERR, "Could not bind zxdg decoration manager from handleRegistry call!");
+        }
+    }
+}
+
+static const wl_registry_listener registryListener = {.global = handleRegistry};
 #endif
 
 // Multiple functions that could be made static.
@@ -131,7 +202,7 @@ void WindowManager::init()
     rid.dwFlags = RIDEV_DEVNOTIFY; // Receive input globally
     rid.hwndTarget = nullptr;
     RegisterRawInputDevices(&rid, 1, sizeof(rid));
-#elif defined(MACOS)
+#elif defined(COCOA)
     @autoreleasepool
     {
         [NSApplication sharedApplication];
@@ -155,6 +226,20 @@ void WindowManager::init()
         sizeNWSECursor = loadCursor(@"resizenorthwestsoutheast");
         cursorAnimationTimer.init();
     }
+#elif defined(WAYLAND)
+    wlDisplay = wl_display_connect(nullptr);
+    if (!wlDisplay)
+    {
+        log(LogLevel::ERR, "Could not connect wlDisplay!");
+    }
+
+    wlRegistry = wl_display_get_registry(wlDisplay);
+    if (!wlRegistry)
+    {
+        log(LogLevel::ERR, "Could not get wlRegistry!");
+    }
+    wl_registry_add_listener(wlRegistry, &registryListener, nullptr);
+    wl_display_roundtrip(wlDisplay);
 #endif
 }
 
@@ -174,7 +259,7 @@ bool WindowManager::update()
     {
         ClipCursor(nullptr);
     }
-#elif defined(MACOS)
+#elif defined(COCOA)
     @autoreleasepool
     {
         static bool hasActivatedApp{false};
@@ -264,6 +349,21 @@ bool WindowManager::update()
             }
         }
     }
+#elif defined(WAYLAND)
+    wl_display_dispatch_pending(wlDisplay);
+    wl_display_flush(wlDisplay);
+
+    struct pollfd pfd;
+    pfd.fd = wl_display_get_fd(wlDisplay);
+    pfd.events = POLLIN;
+
+    i32 ret = poll(&pfd, 1, 0);
+    if (ret > 0 && (pfd.revents & POLLIN))
+    {
+        wl_display_dispatch(wlDisplay);
+    }
+
+    usleep(1);
 #endif
 
     if (global::input.getMouseMode() == MouseMode::LOCKED && m_focusedWindow != nullptr)
@@ -278,7 +378,10 @@ bool WindowManager::update()
         if (window->shouldClose() || !window->update())
         {
             m_windows.erase(m_windows.begin() + i);
-            global::graphicsManager.removeSwapchain(i);
+            if (global::graphicsManager.isInitialized())
+            {
+                global::graphicsManager.removeSwapchain(i);
+            }
 
             window->cleanup();
             delete window;
@@ -300,7 +403,7 @@ void WindowManager::cleanup()
         delete window;
     }
 
-#ifdef MACOS
+#ifdef COCOA
     for (auto& cursor : sizeNWSECursor)
     {
         [cursor release];
@@ -335,6 +438,11 @@ void WindowManager::cleanup()
     }
 
     [NSApp terminate:nil];
+#elif defined(WAYLAND)
+    xdg_wm_base_destroy(xdgBase);
+    wl_compositor_destroy(wlCompositor);
+    wl_registry_destroy(wlRegistry);
+    wl_display_disconnect(wlDisplay);
 #endif
 }
 
@@ -345,7 +453,10 @@ Ref<Window> WindowManager::addWindow(const std::string& title, const WindowInput
     if (window != nullptr)
     {
         m_windows.push_back(window);
-        global::graphicsManager.createSwapchain(window, input.renderDepth);
+        if (global::graphicsManager.isInitialized())
+        {
+            global::graphicsManager.createSwapchain(window, input.renderDepth);
+        }
         window->setParent(parent);
     }
     else
@@ -360,7 +471,7 @@ void WindowManager::setMousePosition(ivec2 pos)
 {
 #ifdef WIN32
     SetCursorPos(pos.x, pos.y);
-#elif defined(MACOS)
+#elif defined(COCOA)
     if ([NSApp isActive]) // Prevent from locking mouse when unfocusing application
     {
         CGWarpMouseCursorPosition(CGPoint(static_cast<CGFloat>(pos.x), static_cast<CGFloat>(pos.y)));
@@ -436,7 +547,8 @@ Window* WindowManager::createWindow(const std::string& title, const WindowInput&
     auto* window = new WindowCocoa();
     success = window->init(title, input);
 #elif defined(WAYLAND)
-    // TODO: Implement
+    auto* window = new WindowWayland();
+    success = window->init(title, input, wlSharedMemory, wlCompositor, xdgBase, zxdgDecorationManager);
 #elif defined(X11)
     // TODO: Implement
 #endif
@@ -448,6 +560,10 @@ Window* WindowManager::createWindow(const std::string& title, const WindowInput&
     {
         delete window;
     }
+
+#ifdef WAYLAND
+    wl_display_roundtrip(wlDisplay);
+#endif
 
     return ret;
 }

@@ -1,6 +1,7 @@
 #include "instance.hpp"
 
 #include "core/log.hpp"
+#include <cstring>
 #include <string>
 
 namespace huedra {

@@ -47,6 +47,8 @@ private:
     void createSwapchain(Window* window, bool renderDepth);
     void removeSwapchain(u64 index);
 
+    bool isInitialized() const { return m_context != nullptr; }
+
     GraphicalContext* m_context{nullptr};
     SlangContext m_slangContext;
     u32 m_currentFrame{0};

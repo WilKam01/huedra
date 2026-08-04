@@ -28,10 +28,47 @@ int main()
 {
     global::timer.init();
     global::windowManager.init();
-    global::graphicsManager.init();
-    global::resourceManager.init();
+    // global::graphicsManager.init();
+    // global::resourceManager.init();
 
-    FontData font = loadTtf("assets/fonts/ManufacturingConsent-Regular.ttf");
+    Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720));
+    Ref<Window> window2 = global::windowManager.addWindow("Main2", WindowInput(500, 500), window);
+
+    while (global::windowManager.update())
+    {
+        global::timer.update();
+
+        static u32 i = 0;
+        static std::array<u32, 500> avgFps;
+
+        avgFps[i++] = static_cast<u32>(1.0f / global::timer.dt());
+        if (i >= 500)
+        {
+            u32 sum = 0;
+            for (auto& fps : avgFps)
+            {
+                sum += fps;
+            }
+
+            log(LogLevel::D_INFO, "Elapsed: {:.5f}, Delta: {:.5f}, FPS: {}", global::timer.elapsedSeconds(),
+                global::timer.dt(), sum / 500);
+            i = 0;
+
+            if (window.valid())
+            {
+                window->setTitle(std::format("Main FPS: {}", sum / 500));
+            }
+        }
+
+        static bool once = false;
+        if (!once && global::timer.passedInterval(Timer::SECONDS_TO_NANO * 2.0))
+        {
+            once = true;
+            window2->setResolution(400, 200);
+        }
+    }
+
+    /*FontData font = loadTtf("assets/fonts/ManufacturingConsent-Regular.ttf");
 
     Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720));
 
@@ -480,10 +517,10 @@ int main()
     }
 
     global::graphicsManager.removeTexture(texture);
-    global::graphicsManager.removeBuffer(viewProjBuffer);
+    global::graphicsManager.removeBuffer(viewProjBuffer);*/
 
-    global::resourceManager.cleanup();
-    global::graphicsManager.cleanup();
+    // global::resourceManager.cleanup();
+    // global::graphicsManager.cleanup();
     global::windowManager.cleanup();
 
 #ifdef DEBUG
