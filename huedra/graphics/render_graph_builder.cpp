@@ -49,12 +49,14 @@ u64 RenderGraphBuilder::generateHash()
     m_hash = 0xcbf29ce484222325;
     auto combineHash = [this, fnvPrime](u64 val) { m_hash ^= val * fnvPrime; };
     auto u64Hash = std::hash<u64>();
-    auto strHash = std::hash<std::string>();
 
     combineHash(u64Hash(static_cast<u64>(m_passes.size())));
     for (auto& [name, pass] : m_passes)
     {
-        combineHash(strHash(name));
+        for (const auto& c : name)
+        {
+            combineHash(u64Hash(static_cast<u64>(c)));
+        }
         combineHash(pass.generateHash());
     }
 

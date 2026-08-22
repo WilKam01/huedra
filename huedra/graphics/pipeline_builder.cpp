@@ -73,15 +73,20 @@ u64 PipelineBuilder::generateHash()
     auto combineHash = [this, fnvPrime](u64 val) { m_hash ^= val * fnvPrime; };
     auto u64Hash = std::hash<u64>();
     auto u32Hash = std::hash<u32>();
-    auto strHash = std::hash<std::string>();
 
     combineHash(u64Hash(static_cast<u64>(m_type)));
     combineHash(u64Hash(m_shaderStages.size()));
     for (auto& [stage, input] : m_shaderStages)
     {
         combineHash(u64Hash(static_cast<u64>(stage)));
-        combineHash(strHash(input.shaderModule->getName()));
-        combineHash(strHash(input.entryPointName));
+        for (const auto& c : input.shaderModule->getName())
+        {
+            combineHash(u64Hash(static_cast<u64>(c)));
+        }
+        for (const auto& c : input.entryPointName)
+        {
+            combineHash(u64Hash(static_cast<u64>(c)));
+        }
     }
 
     combineHash(u64Hash(m_vertexStreams.size()));

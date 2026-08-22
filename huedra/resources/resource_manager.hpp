@@ -26,8 +26,6 @@ public:
     ShaderModule& loadShaderModule(const std::string& path);
 
 private:
-    std::hash<std::string> m_strHash;
-
     std::vector<MeshData> m_missingMeshData;
     TextureData m_missingTextureData;
     ShaderModule m_missingShaderModule;
