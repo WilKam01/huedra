@@ -55,10 +55,10 @@ public:
     virtual void cleanup();
     virtual bool update() = 0;
 
-    bool isWithinBounds(ivec2 position, i32 margin = 0) const;
-    bool isWithinScreenBounds(ivec2 position, i32 margin = 0) const;
-    ivec2 getRelativePosition(ivec2 position) const;
-    ivec2 getRelativeScreenPosition(ivec2 position) const;
+    virtual bool isWithinBounds(ivec2 position, i32 margin = 0) const = 0;
+    virtual bool isWithinScreenBounds(ivec2 position, i32 margin = 0) const = 0;
+    virtual ivec2 getRelativePosition(ivec2 position) const = 0;
+    virtual ivec2 getRelativeScreenPosition(ivec2 position) const = 0;
 
     std::string getTitle() const { return m_title; }
     WindowRect getRect() const { return m_rect; }

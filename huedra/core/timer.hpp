@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/constants.hpp"
 #include "core/types.hpp"
 
 namespace huedra {
@@ -7,9 +8,6 @@ namespace huedra {
 class Timer
 {
 public:
-    const static u64 SECONDS_TO_NANO = 1'000'000'000;
-    const static u64 MILLISECONDS_TO_NANO = 1'000'000;
-
     Timer() = default;
     ~Timer() = default;
 
@@ -31,20 +29,26 @@ public:
     i64 dtNano() const { return m_deltaTime; }
 
     // In milliseconds
-    float currentTimeMs() const { return static_cast<float>(m_currentTime) / static_cast<float>(MILLISECONDS_TO_NANO); }
+    float currentTimeMs() const
+    {
+        return static_cast<float>(m_currentTime) / static_cast<float>(constants::MILLISECONDS_TO_NANO);
+    }
     float elapsedMs() const
     {
-        return static_cast<float>(m_currentTime - m_startTime) / static_cast<float>(MILLISECONDS_TO_NANO);
+        return static_cast<float>(m_currentTime - m_startTime) / static_cast<float>(constants::MILLISECONDS_TO_NANO);
     }
-    float dtMs() const { return static_cast<float>(m_deltaTime) / static_cast<float>(MILLISECONDS_TO_NANO); }
+    float dtMs() const { return static_cast<float>(m_deltaTime) / static_cast<float>(constants::MILLISECONDS_TO_NANO); }
 
     // In seconds
-    float currentTimeSeconds() const { return static_cast<float>(m_currentTime) / static_cast<float>(SECONDS_TO_NANO); }
+    float currentTimeSeconds() const
+    {
+        return static_cast<float>(m_currentTime) / static_cast<float>(constants::SECONDS_TO_NANO);
+    }
     float elapsedSeconds() const
     {
-        return static_cast<float>(m_currentTime - m_startTime) / static_cast<float>(SECONDS_TO_NANO);
+        return static_cast<float>(m_currentTime - m_startTime) / static_cast<float>(constants::SECONDS_TO_NANO);
     }
-    float dt() const { return static_cast<float>(m_deltaTime) / static_cast<float>(SECONDS_TO_NANO); }
+    float dt() const { return static_cast<float>(m_deltaTime) / static_cast<float>(constants::SECONDS_TO_NANO); }
 
 private:
     i64 m_startTime{};

@@ -288,6 +288,28 @@ bool WindowCocoa::update()
     return !m_shouldClose;
 }
 
+bool WindowCocoa::isWithinBounds(ivec2 position, i32 margin) const
+{
+    WindowRect rect = getRect();
+    return position.x >= rect.positionX + margin &&
+           position.x <= rect.positionX + static_cast<i32>(rect.width) - margin &&
+           position.y >= rect.positionY + margin &&
+           position.y <= rect.positionY + static_cast<i32>(rect.height) - margin && !isMinimized();
+}
+
+bool WindowCocoa::isWithinScreenBounds(ivec2 position, i32 margin) const
+{
+    WindowRect rect = getRect();
+    return position.x >= rect.screenPositionX + margin &&
+           position.x <= rect.screenPositionX + static_cast<i32>(rect.screenWidth) - margin &&
+           position.y >= rect.screenPositionY + margin &&
+           position.y <= rect.screenPositionY + static_cast<i32>(rect.screenHeight) - margin && !isMinimized();
+}
+
+ivec2 WindowCocoa::getRelativePosition(ivec2 position) const { return position - getPosition(); }
+
+ivec2 WindowCocoa::getRelativeScreenPosition(ivec2 position) const { return position - getScreenPosition(); }
+
 void WindowCocoa::setTitle(const std::string& title)
 {
     @autoreleasepool
@@ -423,14 +445,6 @@ Keys WindowCocoa::convertKey(u16 code, char character)
         return Keys::F11;
     case 0x6F:
         return Keys::F12;
-    case 0x2b:
-        return Keys::COMMA;
-    case 0x2f:
-        return Keys::DOT;
-    case 0x1b:
-        return Keys::MINUS;
-    case 0x18:
-        return Keys::PLUS;
     case 0x72:
         return Keys::INSERT;
     case 0x75:
@@ -452,7 +466,7 @@ Keys WindowCocoa::convertKey(u16 code, char character)
     case 0x45:
         return Keys::NUMPAD_PLUS;
     case 0x41:
-        return Keys::NUMPAD_DEL;
+        return Keys::NUMPAD_DOT;
     case 0x52:
         return Keys::NUMPAD_0;
     case 0x53:

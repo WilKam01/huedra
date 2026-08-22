@@ -78,11 +78,6 @@ enum class Keys
     F11,
     F12,
 
-    COMMA,
-    DOT,
-    MINUS,
-    PLUS,
-
     INSERT,
     DEL,
     HOME,
@@ -94,7 +89,7 @@ enum class Keys
     NUMPAD_MULT,
     NUMPAD_MINUS,
     NUMPAD_PLUS,
-    NUMPAD_DEL,
+    NUMPAD_DOT,
     NUMPAD_0,
     NUMPAD_1,
     NUMPAD_2,

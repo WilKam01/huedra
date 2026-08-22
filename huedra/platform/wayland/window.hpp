@@ -24,9 +24,22 @@ public:
     void cleanup() override;
     bool update() override;
 
+    bool isWithinBounds(ivec2 position, i32 margin = 0) const override;
+    bool isWithinScreenBounds(ivec2 position, i32 margin = 0) const override;
+    ivec2 getRelativePosition(ivec2 position) const override;
+    ivec2 getRelativeScreenPosition(ivec2 position) const override;
+
     void setTitle(const std::string& title) override;
     void setResolution(u32 width, u32 height) override;
     void setPosition(i32 x, i32 y) override;
+
+    void setIsMouseFocused(bool isMouseFocused) { m_isMouseFocused = isMouseFocused; }
+    void setLastPointerSerial(u32 serial) { m_lastPointerSerial = serial; }
+
+    wl_surface* getSurface() { return m_mainSurface; }
+    wl_surface* getCursorSurface() { return m_cursorSurface; }
+    bool isMouseFocused() const { return m_isMouseFocused; }
+    u32 getLastPointerSerial() const { return m_lastPointerSerial; }
 
 private:
     static void handleSurfaceConfigure(void* data, xdg_surface* shellSurface, u32 serial);
@@ -35,18 +48,22 @@ private:
 
     void resize();
 
+    bool m_isMouseFocused{false};
+    u32 m_lastPointerSerial{0};
+
     // Per window
-    wl_surface* m_wlSurface{nullptr};
+    wl_surface* m_mainSurface{nullptr};
     xdg_surface* m_xdgSurface{nullptr};
     xdg_toplevel* m_xdgToplevel{nullptr};
     zxdg_toplevel_decoration_v1* m_zxdgToplevelDecoration{nullptr};
-    bool m_shouldClose{false};
+    wl_surface* m_cursorSurface{nullptr};
 
     // References
     wl_shm* m_wlSharedMemory{nullptr};
 
-    static constexpr xdg_surface_listener surfaceListener{.configure = handleSurfaceConfigure};
-    static constexpr xdg_toplevel_listener toplevelListener = {.configure = handleToplevelConfigure,
+    static constexpr wl_surface_listener wlSurfaceListener{};
+    static constexpr xdg_surface_listener xdgSurfaceListener{.configure = handleSurfaceConfigure};
+    static constexpr xdg_toplevel_listener xdgToplevelListener{.configure = handleToplevelConfigure,
                                                                .close = handleToplevelClose};
 };
 

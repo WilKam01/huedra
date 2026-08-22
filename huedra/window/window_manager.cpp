@@ -11,8 +11,7 @@
 #include <AppKit/AppKit.h>
 #elif defined(WAYLAND)
 #include "core/file/utils.hpp"
-#include "platform/wayland/window.hpp"
-#include <cstring>
+#include "platform/wayland/config.hpp"
 #include <sys/poll.h>
 #include <unistd.h>
 #endif
@@ -115,70 +114,7 @@ static NSCursor* getMacCursor(CursorType cursor)
     return [NSCursor arrowCursor];
 }
 #elif defined(WAYLAND)
-static wl_display* wlDisplay = nullptr;
-static wl_registry* wlRegistry = nullptr;
-static wl_compositor* wlCompositor = nullptr;
-static wl_shm* wlSharedMemory = nullptr;
-static xdg_wm_base* xdgBase = nullptr;
-static zxdg_decoration_manager_v1* zxdgDecorationManager = nullptr;
-
-// Registry bind versions
-static const u32 WAYLAND_COMPOSITOR_BIND_VERSION = 4;
-static const u32 WAYLAND_SHARED_MEMORY_BIND_VERSION = 2;
-static const u32 XDG_SHELL_BIND_VERSION = 1;
-static const u32 ZXDG_DECORATION_MANAGER_BIND_VERSION = 1;
-
-static void handlePing(void* data, xdg_wm_base* base, u32 serial)
-{
-    xdg_wm_base_pong(base, serial);
-    log(LogLevel::D_INFO, "Got handlePing call!");
-}
-
-static const xdg_wm_base_listener pingListener = {.ping = handlePing};
-
-static void handleRegistry(void* data, wl_registry* registry, u32 name, const char* interface, u32 version)
-{
-    log(LogLevel::D_INFO, "Got handleRegistry call!");
-    if (strcmp(interface, wl_compositor_interface.name) == 0)
-    {
-        wlCompositor = static_cast<wl_compositor*>(
-            wl_registry_bind(registry, name, &wl_compositor_interface, WAYLAND_COMPOSITOR_BIND_VERSION));
-        if (!wlCompositor)
-        {
-            log(LogLevel::ERR, "Could not bind wayland compositor from handleRegistry call!");
-        }
-    }
-    else if (strcmp(interface, wl_shm_interface.name) == 0)
-    {
-        wlSharedMemory = static_cast<wl_shm*>(
-            wl_registry_bind(registry, name, &wl_shm_interface, WAYLAND_SHARED_MEMORY_BIND_VERSION));
-        if (!wlSharedMemory)
-        {
-            log(LogLevel::ERR, "Could not bind wayland shared memory from handleRegistry call!");
-        }
-    }
-    else if (strcmp(interface, xdg_wm_base_interface.name) == 0)
-    {
-        xdgBase =
-            static_cast<xdg_wm_base*>(wl_registry_bind(registry, name, &xdg_wm_base_interface, XDG_SHELL_BIND_VERSION));
-        if (!xdgBase)
-        {
-            log(LogLevel::ERR, "Could not bind xdg shell from handleRegistry call!");
-        }
-        xdg_wm_base_add_listener(xdgBase, &pingListener, NULL);
-    }
-    else if (strcmp(interface, zxdg_decoration_manager_v1_interface.name) == 0)
-    {
-        zxdgDecorationManager = static_cast<zxdg_decoration_manager_v1*>(wl_registry_bind(
-            registry, name, &zxdg_decoration_manager_v1_interface, ZXDG_DECORATION_MANAGER_BIND_VERSION));
-        if (!zxdgDecorationManager)
-        {
-            log(LogLevel::ERR, "Could not bind zxdg decoration manager from handleRegistry call!");
-        }
-    }
-}
-
-static const wl_registry_listener registryListener = {.global = handleRegistry};
+static WaylandConfig wlConfig;
 #endif
 
 // Multiple functions that could be made static.
@@ -227,19 +163,39 @@ void WindowManager::init()
         cursorAnimationTimer.init();
     }
 #elif defined(WAYLAND)
-    wlDisplay = wl_display_connect(nullptr);
-    if (!wlDisplay)
+    wlConfig.wlDisplay = wl_display_connect(nullptr);
+    if (!wlConfig.wlDisplay)
     {
         log(LogLevel::ERR, "Could not connect wlDisplay!");
     }
 
-    wlRegistry = wl_display_get_registry(wlDisplay);
-    if (!wlRegistry)
+    wlConfig.wlRegistry = wl_display_get_registry(wlConfig.wlDisplay);
+    if (!wlConfig.wlRegistry)
     {
         log(LogLevel::ERR, "Could not get wlRegistry!");
     }
-    wl_registry_add_listener(wlRegistry, &registryListener, nullptr);
-    wl_display_roundtrip(wlDisplay);
+    wl_registry_add_listener(wlConfig.wlRegistry, &wlConfig.registryListener, &wlConfig);
+    wl_display_roundtrip(wlConfig.wlDisplay);
+
+    wlConfig.xkbContext = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+    if (!wlConfig.xkbContext)
+    {
+        log(LogLevel::ERR, "Could not create xkb context!");
+    }
+
+    xkb_keymap* keymap = xkb_keymap_new_from_names(wlConfig.xkbContext, nullptr, XKB_KEYMAP_COMPILE_NO_FLAGS);
+    if (keymap)
+    {
+        wlConfig.xkbState = xkb_state_new(keymap);
+
+        wlConfig.hwCapsBit = xkb_keymap_mod_get_index(keymap, XKB_MOD_NAME_CAPS);
+        wlConfig.hwNumBit = xkb_keymap_mod_get_index(keymap, XKB_MOD_NAME_NUM);
+        wlConfig.hwScrollBit = xkb_keymap_mod_get_index(keymap, XKB_VMOD_NAME_SCROLL);
+
+        xkb_keymap_unref(keymap);
+    }
+
+    wlConfig.loadCursorTheme();
 #endif
 }
 
@@ -350,27 +306,87 @@ bool WindowManager::update()
         }
     }
 #elif defined(WAYLAND)
-    wl_display_dispatch_pending(wlDisplay);
-    wl_display_flush(wlDisplay);
+    wl_display_dispatch_pending(wlConfig.wlDisplay);
+    wl_display_flush(wlConfig.wlDisplay);
 
     struct pollfd pfd;
-    pfd.fd = wl_display_get_fd(wlDisplay);
+    pfd.fd = wl_display_get_fd(wlConfig.wlDisplay);
     pfd.events = POLLIN;
 
     i32 ret = poll(&pfd, 1, 0);
     if (ret > 0 && (pfd.revents & POLLIN))
     {
-        wl_display_dispatch(wlDisplay);
+        wl_display_dispatch(wlConfig.wlDisplay);
     }
 
     usleep(1);
+
+    bool resetMousePos{true};
 #endif
 
-    if (global::input.getMouseMode() == MouseMode::LOCKED && m_focusedWindow != nullptr)
+#if defined(WIN32) || defined(COCOA)
+    if (global::input.getMouseMode() == MouseMode::LOCKED && m_focusedWindow)
     {
         global::input.setMousePosition(m_focusedWindow->getScreenPosition() +
                                        static_cast<ivec2>(m_focusedWindow->getScreenSize()) / 2);
     }
+#elif defined(WAYLAND)
+    if (global::input.getMouseMode() == MouseMode::LOCKED && m_focusedWindow && !wlConfig.mouseLocked) // Lock mouse
+    {
+        if (!wlConfig.zwpPointerConstraints || !wlConfig.wlPointer)
+        {
+            log(LogLevel::WARNING,
+                "Wayland: Could not lock mouse, either pointer constraints or pointer object are not available");
+            wlConfig.mouseLocked = true; // Stop spam
+        }
+        else
+        {
+            global::input.setMousePosition(m_focusedWindow->getScreenPosition() +
+                                           static_cast<ivec2>(m_focusedWindow->getScreenSize()) / 2);
+            wlConfig.zwpLockedPointer = zwp_pointer_constraints_v1_lock_pointer(
+                wlConfig.zwpPointerConstraints, static_cast<WindowWayland*>(m_focusedWindow)->getSurface(),
+                wlConfig.wlPointer, nullptr, ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_PERSISTENT);
+            wlConfig.mouseLocked = true;
+        }
+    }
+    else if (global::input.getMouseMode() != MouseMode::LOCKED && wlConfig.mouseLocked) // Unlock mouse
+    {
+        if (wlConfig.zwpLockedPointer)
+        {
+            zwp_locked_pointer_v1_destroy(wlConfig.zwpLockedPointer);
+            wlConfig.zwpLockedPointer = nullptr;
+        }
+        wlConfig.mouseLocked = false;
+    }
+    if (global::input.getMouseMode() == MouseMode::CONFINED && m_focusedWindow &&
+        !wlConfig.mouseConfined) // Confine mouse
+    {
+        if (!wlConfig.zwpPointerConstraints || !wlConfig.wlPointer)
+        {
+            log(LogLevel::WARNING,
+                "Wayland: Could not confine mouse, either pointer constraints or pointer object are not available");
+            wlConfig.mouseConfined = true; // Stop spam
+        }
+        else
+        {
+            wlConfig.zwpConfinedPointer = zwp_pointer_constraints_v1_confine_pointer(
+                wlConfig.zwpPointerConstraints, static_cast<WindowWayland*>(m_focusedWindow)->getSurface(),
+                wlConfig.wlPointer, nullptr, ZWP_POINTER_CONSTRAINTS_V1_LIFETIME_PERSISTENT);
+            wlConfig.mouseConfined = true;
+        }
+    }
+    else if (global::input.getMouseMode() != MouseMode::CONFINED && wlConfig.mouseConfined) // Unconfine mouse
+    {
+        if (wlConfig.zwpConfinedPointer)
+        {
+            zwp_confined_pointer_v1_destroy(wlConfig.zwpConfinedPointer);
+            wlConfig.zwpConfinedPointer = nullptr;
+        }
+        wlConfig.mouseConfined = false;
+    }
+
+    wlConfig.updateCursor();
+#endif
 
     for (u32 i = 0; i < m_windows.size();)
     {
@@ -383,14 +399,34 @@ bool WindowManager::update()
                 global::graphicsManager.removeSwapchain(i);
             }
 
+#ifdef WAYLAND
+            if (wlConfig.lastMouseSelectedWindow == static_cast<WindowWayland*>(window))
+            {
+                wlConfig.lastMouseSelectedWindow = nullptr;
+            }
+#endif
+
             window->cleanup();
             delete window;
         }
         else
         {
             ++i;
+#ifdef WAYLAND
+            if (resetMousePos && static_cast<WindowWayland*>(window)->isMouseFocused())
+            {
+                resetMousePos = false;
+            }
+#endif
         }
     }
+
+#ifdef WAYLAND
+    if (resetMousePos)
+    {
+        global::input.setMousePos(ivec2(0));
+    }
+#endif
 
     return !m_windows.empty();
 }
@@ -439,10 +475,22 @@ void WindowManager::cleanup()
 
     [NSApp terminate:nil];
 #elif defined(WAYLAND)
-    xdg_wm_base_destroy(xdgBase);
-    wl_compositor_destroy(wlCompositor);
-    wl_registry_destroy(wlRegistry);
-    wl_display_disconnect(wlDisplay);
+    if (wlConfig.wlCursorTheme)
+    {
+        wl_cursor_theme_destroy(wlConfig.wlCursorTheme);
+    }
+    if (wlConfig.xkbState)
+    {
+        xkb_state_unref(wlConfig.xkbState);
+    }
+    if (wlConfig.xkbContext)
+    {
+        xkb_context_unref(wlConfig.xkbContext);
+    }
+    xdg_wm_base_destroy(wlConfig.xdgBase);
+    wl_compositor_destroy(wlConfig.wlCompositor);
+    wl_registry_destroy(wlConfig.wlRegistry);
+    wl_display_disconnect(wlConfig.wlDisplay);
 #endif
 }
 
@@ -476,6 +524,30 @@ void WindowManager::setMousePosition(ivec2 pos)
     {
         CGWarpMouseCursorPosition(CGPoint(static_cast<CGFloat>(pos.x), static_cast<CGFloat>(pos.y)));
     }
+#elif defined(WAYLAND)
+    if (!wlConfig.wpPointerWarp || !wlConfig.wlPointer)
+    {
+        log(LogLevel::WARNING, "Wayland: wp pointer warp or pointer objects not initialized");
+        return;
+    }
+
+    if (!wlConfig.lastMouseSelectedWindow)
+    {
+        log(LogLevel::WARNING, "Wayland: not possible to set mouse position with not relative to a window");
+        return;
+    }
+
+    if (!wlConfig.lastMouseSelectedWindow->isWithinBounds(pos))
+    {
+        log(LogLevel::WARNING, "Wayland: not possible to set mouse position outside of window bounds");
+        return;
+    }
+
+    wp_pointer_warp_v1_warp_pointer(wlConfig.wpPointerWarp, wlConfig.lastMouseSelectedWindow->getSurface(),
+                                    wlConfig.wlPointer, wl_fixed_from_int(pos.x), wl_fixed_from_int(pos.y),
+                                    wlConfig.lastMouseSelectedWindow->getLastPointerSerial());
+
+    wl_display_flush(wlConfig.wlDisplay);
 #endif
 }
 
@@ -548,7 +620,8 @@ Window* WindowManager::createWindow(const std::string& title, const WindowInput&
     success = window->init(title, input);
 #elif defined(WAYLAND)
     auto* window = new WindowWayland();
-    success = window->init(title, input, wlSharedMemory, wlCompositor, xdgBase, zxdgDecorationManager);
+    success = window->init(title, input, wlConfig.wlSharedMemory, wlConfig.wlCompositor, wlConfig.xdgBase,
+                           wlConfig.zxdgDecorationManager);
 #elif defined(X11)
     // TODO: Implement
 #endif
@@ -562,7 +635,7 @@ Window* WindowManager::createWindow(const std::string& title, const WindowInput&
     }
 
 #ifdef WAYLAND
-    wl_display_roundtrip(wlDisplay);
+    wl_display_roundtrip(wlConfig.wlDisplay);
 #endif
 
     return ret;

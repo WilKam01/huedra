@@ -263,6 +263,28 @@ bool WindowWin32::update()
     return IsWindow(m_handle) != 0;
 }
 
+bool WindowWin32::isWithinBounds(ivec2 position, i32 margin) const
+{
+    WindowRect rect = getRect();
+    return position.x >= rect.positionX + margin &&
+           position.x <= rect.positionX + static_cast<i32>(rect.width) - margin &&
+           position.y >= rect.positionY + margin &&
+           position.y <= rect.positionY + static_cast<i32>(rect.height) - margin && !isMinimized();
+}
+
+bool WindowWin32::isWithinScreenBounds(ivec2 position, i32 margin) const
+{
+    WindowRect rect = getRect();
+    return position.x >= rect.screenPositionX + margin &&
+           position.x <= rect.screenPositionX + static_cast<i32>(rect.screenWidth) - margin &&
+           position.y >= rect.screenPositionY + margin &&
+           position.y <= rect.screenPositionY + static_cast<i32>(rect.screenHeight) - margin && !isMinimized();
+}
+
+ivec2 WindowWin32::getRelativePosition(ivec2 position) const { return position - getPosition(); }
+
+ivec2 WindowWin32::getRelativeScreenPosition(ivec2 position) const { return position - getScreenPosition(); }
+
 void WindowWin32::setTitle(const std::string& title)
 {
     if (SetWindowTextA(m_handle, title.c_str()) != 0)
@@ -370,18 +392,6 @@ Keys WindowWin32::convertKey(u32 code)
     case VK_F12:
         key = Keys::F12;
         break;
-    case VK_OEM_COMMA:
-        key = Keys::COMMA;
-        break;
-    case VK_OEM_PERIOD:
-        key = Keys::DOT;
-        break;
-    case VK_OEM_MINUS:
-        key = Keys::MINUS;
-        break;
-    case VK_OEM_PLUS:
-        key = Keys::PLUS;
-        break;
     case VK_INSERT:
         key = Keys::INSERT;
         break;
@@ -413,7 +423,7 @@ Keys WindowWin32::convertKey(u32 code)
         key = Keys::NUMPAD_PLUS;
         break;
     case VK_SEPARATOR:
-        key = Keys::NUMPAD_DEL;
+        key = Keys::NUMPAD_DOT;
         break;
     case VK_NUMPAD0:
         key = Keys::NUMPAD_0;

@@ -76,28 +76,47 @@ elseif(LINUX)
     message(STATUS "Using Wayland Display System")
 
     # Find include file and lib
-    find_path(WAYLAND_INCLUDE_DIR
+    find_path(WAYLAND_CLIENT_INCLUDE_DIR
       NAMES wayland-client.h
       PATHS /usr/include /usr/local/include
     )
-    find_library(WAYLAND_LIBRARY
+    find_library(WAYLAND_CLIENT_LIBRARY
       NAMES wayland-client
       PATHS /usr/lib /usr/local/lib /usr/lib/x86_64-linux-gnu
     )
-    find_package_handle_standard_args(Wayland 
-      REQUIRED_VARS WAYLAND_LIBRARY WAYLAND_INCLUDE_DIR
+    find_package_handle_standard_args(WAYLAND_CLIENT 
+      REQUIRED_VARS WAYLAND_CLIENT_LIBRARY WAYLAND_CLIENT_INCLUDE_DIR
     )
 
-    if(NOT Wayland_FOUND)
+    find_path(WAYLAND_CURSOR_INCLUDE_DIR
+      NAMES wayland-cursor.h
+      PATHS /usr/include /usr/local/include
+    )
+    find_library(WAYLAND_CURSOR_LIBRARY
+      NAMES wayland-cursor
+      PATHS /usr/lib /usr/local/lib /usr/lib/x86_64-linux-gnu
+    )
+    find_package_handle_standard_args(WAYLAND_CURSOR 
+      REQUIRED_VARS WAYLAND_CURSOR_LIBRARY WAYLAND_CURSOR_INCLUDE_DIR
+    )
+
+    if(NOT WAYLAND_CLIENT_FOUND OR NOT WAYLAND_CURSOR_FOUND)
       message(FATAL_ERROR "Could not find Wayland dependencies")
     endif()
 
     add_library(Wayland::Client UNKNOWN IMPORTED)
     set_target_properties(Wayland::Client PROPERTIES
-      INTERFACE_INCLUDE_DIRECTORIES "${WAYLAND_INCLUDE_DIR}"
-      IMPORTED_LOCATION "${WAYLAND_LIBRARY}"
+      INTERFACE_INCLUDE_DIRECTORIES "${WAYLAND_CLIENT_INCLUDE_DIR}"
+      IMPORTED_LOCATION "${WAYLAND_CLIENT_LIBRARY}"
     )
     target_link_libraries(huedra PRIVATE Wayland::Client)
+
+    add_library(Wayland::Cursor UNKNOWN IMPORTED)
+    set_target_properties(Wayland::Cursor PROPERTIES
+      INTERFACE_INCLUDE_DIRECTORIES "${WAYLAND_CURSOR_INCLUDE_DIR}"
+      IMPORTED_LOCATION "${WAYLAND_CURSOR_LIBRARY}"
+    )
+    target_link_libraries(huedra PRIVATE Wayland::Cursor)
 
     # Find scanner to generate protocol files
     find_program(WAYLAND_SCANNER_EXECUTABLE
@@ -108,48 +127,80 @@ elseif(LINUX)
       message(FATAL_ERROR "Could not find wayland-scanner to generate protocol files")
     endif()
 
-    find_path(WAYLAND_SHELL_PROTOCOL_DIR
-      NAMES stable/xdg-shell/xdg-shell.xml
-      PATHS /usr/share/wayland-protocols /usr/local/share/wayland-protocols
+    find_path(WAYLAND_PROTOCOLS_DIR
+      NAMES wayland-protocols
+      PATHS /usr/share/ /usr/local/share/
+      NO_DEFAULT_PATH
     )
 
-    if(NOT WAYLAND_SHELL_PROTOCOL_DIR)
-      message(FATAL_ERROR "Could not find wayland shell protocol")
+    if(NOT WAYLAND_PROTOCOLS_DIR)
+      message(FATAL_ERROR "Could not find wayland protocols directory")
     endif()
 
-    find_path(WAYLAND_DECORATION_PROTOCOL_DIR
-      NAMES unstable/xdg-decoration/xdg-decoration-unstable-v1.xml
-      PATHS /usr/share/wayland-protocols /usr/local/share/wayland-protocols
-    )
-
-    if(NOT WAYLAND_DECORATION_PROTOCOL_DIR)
-      message(FATAL_ERROR "Could not find wayland decoration protocol")
-    endif()
+    set(WAYLAND_PROTOCOLS_DIR ${WAYLAND_PROTOCOLS_DIR}/wayland-protocols)
 
     # Generate protocol files
-    set(SHELL_PROTOCOL_XML "${WAYLAND_SHELL_PROTOCOL_DIR}/stable/xdg-shell/xdg-shell.xml")
+    set(SHELL_PROTOCOL_XML "${WAYLAND_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml")
     set(SHELL_GENERATED_NAME "${CMAKE_CURRENT_BINARY_DIR}/wayland/xdg-shell")
 
-    set(DECORATION_PROTOCOL_XML "${WAYLAND_DECORATION_PROTOCOL_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml")
+    set(DECORATION_PROTOCOL_XML "${WAYLAND_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml")
     set(DECORATION_GENERATED_NAME "${CMAKE_CURRENT_BINARY_DIR}/wayland/xdg-decoration")
 
-    add_custom_target(gen_wayland_protocol_files
+    set(WARP_PROTOCOL_XML "${WAYLAND_PROTOCOLS_DIR}/staging/pointer-warp/pointer-warp-v1.xml")
+    set(WARP_GENERATED_NAME "${CMAKE_CURRENT_BINARY_DIR}/wayland/pointer-warp")
+
+    set(RELATIVE_POINTER_PROTOCOL_XML "${WAYLAND_PROTOCOLS_DIR}/unstable/relative-pointer/relative-pointer-unstable-v1.xml")
+    set(RELATIVE_POINTER_GENERATED_NAME "${CMAKE_CURRENT_BINARY_DIR}/wayland/relative-pointer")
+
+    set(POINTER_CONSTRAINTS_PROTOCOL_XML "${WAYLAND_PROTOCOLS_DIR}/unstable/pointer-constraints/pointer-constraints-unstable-v1.xml")
+    set(POINTER_CONSTRAINTS_GENERATED_NAME "${CMAKE_CURRENT_BINARY_DIR}/wayland/pointer-constraints")
+
+    execute_process(
       COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/wayland
       COMMAND ${WAYLAND_SCANNER_EXECUTABLE} client-header "${SHELL_PROTOCOL_XML}" "${SHELL_GENERATED_NAME}.h"
       COMMAND ${WAYLAND_SCANNER_EXECUTABLE} private-code "${SHELL_PROTOCOL_XML}" "${SHELL_GENERATED_NAME}.c"
       COMMAND ${WAYLAND_SCANNER_EXECUTABLE} client-header "${DECORATION_PROTOCOL_XML}" "${DECORATION_GENERATED_NAME}.h"
       COMMAND ${WAYLAND_SCANNER_EXECUTABLE} private-code "${DECORATION_PROTOCOL_XML}" "${DECORATION_GENERATED_NAME}.c"
-      COMMENT "Generating Wayland Protocol Files..."
+      COMMAND ${WAYLAND_SCANNER_EXECUTABLE} client-header "${WARP_PROTOCOL_XML}" "${WARP_GENERATED_NAME}.h"
+      COMMAND ${WAYLAND_SCANNER_EXECUTABLE} private-code "${WARP_PROTOCOL_XML}" "${WARP_GENERATED_NAME}.c"
+      COMMAND ${WAYLAND_SCANNER_EXECUTABLE} client-header "${RELATIVE_POINTER_PROTOCOL_XML}" "${RELATIVE_POINTER_GENERATED_NAME}.h"
+      COMMAND ${WAYLAND_SCANNER_EXECUTABLE} private-code "${RELATIVE_POINTER_PROTOCOL_XML}" "${RELATIVE_POINTER_GENERATED_NAME}.c"
+      COMMAND ${WAYLAND_SCANNER_EXECUTABLE} client-header "${POINTER_CONSTRAINTS_PROTOCOL_XML}" "${POINTER_CONSTRAINTS_GENERATED_NAME}.h"
+      COMMAND ${WAYLAND_SCANNER_EXECUTABLE} private-code "${POINTER_CONSTRAINTS_PROTOCOL_XML}" "${POINTER_CONSTRAINTS_GENERATED_NAME}.c"
+      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
-    add_dependencies(huedra gen_wayland_protocol_files)
+
+    find_path(XKBCOMMON_INCLUDE_DIR NAMES xkbcommon/xkbcommon.h REQUIRED)
+    find_library(XKBCOMMON_LIB NAMES xkbcommon REQUIRED)
+    target_include_directories(huedra PRIVATE ${XKBCOMMON_INCLUDE_DIR})
+    target_link_libraries(huedra PRIVATE ${XKBCOMMON_LIB})
 
     append_glob_recurse_files(ADDITIONAL_SOURCES 
-      ${CMAKE_CURRENT_BINARY_DIR}/wayland/*.c 
+      ${SHELL_GENERATED_NAME}.c 
+      ${DECORATION_GENERATED_NAME}.c 
+      ${WARP_GENERATED_NAME}.c 
+      ${RELATIVE_POINTER_GENERATED_NAME}.c 
+      ${POINTER_CONSTRAINTS_GENERATED_NAME}.c 
       ${PROJECT_SOURCE_DIR}/huedra/platform/wayland/*.cpp 
     )
     target_include_directories(huedra PRIVATE
       ${CMAKE_CURRENT_BINARY_DIR}/wayland
     )
+
+    find_path(SYSTEMD_INCLUDE_DIR
+        NAMES systemd/sd-bus.h
+    )
+
+    find_library(SYSTEMD_LIBRARY
+        NAMES systemd
+    )
+
+    if(NOT SYSTEMD_INCLUDE_DIR OR NOT SYSTEMD_LIBRARY)
+        message(FATAL_ERROR "Could not find libsystemd!")
+    endif()
+
+    target_include_directories(huedra PRIVATE ${SYSTEMD_INCLUDE_DIR})
+    target_link_libraries(huedra PRIVATE ${SYSTEMD_LIBRARY})
 
     target_compile_definitions(huedra PRIVATE -DWAYLAND)
     else()

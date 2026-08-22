@@ -22,6 +22,11 @@ public:
     void cleanup() override;
     bool update() override;
 
+    bool isWithinBounds(ivec2 position, i32 margin = 0) const override;
+    bool isWithinScreenBounds(ivec2 position, i32 margin = 0) const override;
+    ivec2 getRelativePosition(ivec2 position) const override;
+    ivec2 getRelativeScreenPosition(ivec2 position) const override;
+
     void setTitle(const std::string& title) override;
     void setResolution(u32 width, u32 height) override;
     void setPosition(i32 x, i32 y) override;

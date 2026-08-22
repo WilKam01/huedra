@@ -1,6 +1,7 @@
 #include "window.hpp"
 
 namespace huedra {
+
 Window::Window() { ReferenceCounter::addResource(static_cast<void*>(this)); }
 
 Window::~Window() { ReferenceCounter::removeResource(static_cast<void*>(this)); }

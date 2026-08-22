@@ -32,25 +32,34 @@ bool WindowWayland::init(const std::string& title, const WindowInput& input, wl_
     Window::init(title, rect);
 
     m_wlSharedMemory = wlSharedMemory;
-    m_wlSurface = wl_compositor_create_surface(wlCompositor);
-    if (!m_wlSurface)
+
+    m_mainSurface = wl_compositor_create_surface(wlCompositor);
+    if (!m_mainSurface)
     {
         log(LogLevel::ERR, "Could not create wayland surface!");
     }
+    wl_surface_add_listener(m_mainSurface, &wlSurfaceListener, this);
 
-    m_xdgSurface = xdg_wm_base_get_xdg_surface(xdgBase, m_wlSurface);
+    m_cursorSurface = wl_compositor_create_surface(wlCompositor);
+    if (!m_cursorSurface)
+    {
+        log(LogLevel::ERR, "Could not create wayland cursor surface!");
+    }
+    wl_surface_add_listener(m_cursorSurface, &wlSurfaceListener, this);
+
+    m_xdgSurface = xdg_wm_base_get_xdg_surface(xdgBase, m_mainSurface);
     if (!m_xdgSurface)
     {
         log(LogLevel::ERR, "Could not get xdg surface!");
     }
-    xdg_surface_add_listener(m_xdgSurface, &surfaceListener, this);
+    xdg_surface_add_listener(m_xdgSurface, &xdgSurfaceListener, this);
 
     m_xdgToplevel = xdg_surface_get_toplevel(m_xdgSurface);
     if (!m_xdgToplevel)
     {
         log(LogLevel::ERR, "Could not get xdg toplevel!");
     }
-    xdg_toplevel_add_listener(m_xdgToplevel, &toplevelListener, this);
+    xdg_toplevel_add_listener(m_xdgToplevel, &xdgToplevelListener, this);
 
     xdg_toplevel_set_title(m_xdgToplevel, title.c_str());
     xdg_toplevel_set_app_id(m_xdgToplevel, title.c_str());
@@ -59,7 +68,7 @@ bool WindowWayland::init(const std::string& title, const WindowInput& input, wl_
     m_zxdgToplevelDecoration = zxdg_decoration_manager_v1_get_toplevel_decoration(zxdgDecorationManager, m_xdgToplevel);
     zxdg_toplevel_decoration_v1_set_mode(m_zxdgToplevelDecoration, ZXDG_TOPLEVEL_DECORATION_V1_MODE_SERVER_SIDE);
 
-    wl_surface_commit(m_wlSurface);
+    wl_surface_commit(m_mainSurface);
 
     return true;
 }
@@ -68,16 +77,47 @@ void WindowWayland::cleanup()
 {
     xdg_toplevel_destroy(m_xdgToplevel);
     xdg_surface_destroy(m_xdgSurface);
-    wl_surface_destroy(m_wlSurface);
+    wl_surface_destroy(m_cursorSurface);
+    wl_surface_destroy(m_mainSurface);
+    Window::cleanup();
 }
 
-bool WindowWayland::update() { return !m_shouldClose; }
+bool WindowWayland::update() { return !shouldClose(); }
+
+bool WindowWayland::isWithinBounds(ivec2 position, i32 margin) const
+{
+    return position.x > 0 && position.y > 0 && position.x <= getRect().width && position.y <= getRect().height;
+}
+
+bool WindowWayland::isWithinScreenBounds(ivec2 position, i32 margin) const
+{
+    return position.x > 0 && position.y > 0 && position.x <= getRect().screenWidth &&
+           position.y <= getRect().screenHeight;
+}
+
+ivec2 WindowWayland::getRelativePosition(ivec2 position) const
+{
+    if (m_isMouseFocused)
+    {
+        return position;
+    }
+    return ivec2(0);
+}
+
+ivec2 WindowWayland::getRelativeScreenPosition(ivec2 position) const
+{
+    if (m_isMouseFocused)
+    {
+        return position;
+    }
+    return ivec2(0);
+}
 
 void WindowWayland::setTitle(const std::string& title)
 {
     xdg_toplevel_set_title(m_xdgToplevel, title.c_str());
     xdg_toplevel_set_app_id(m_xdgToplevel, title.c_str());
-    wl_surface_commit(m_wlSurface);
+    wl_surface_commit(m_mainSurface);
 }
 
 void WindowWayland::setResolution(u32 width, u32 height)
@@ -91,7 +131,7 @@ void WindowWayland::setResolution(u32 width, u32 height)
     updateResolution(width, height, width, height);
 
     resize();
-    wl_surface_commit(m_wlSurface);
+    wl_surface_commit(m_mainSurface);
 }
 
 void WindowWayland::setPosition(i32 x, i32 y)
@@ -102,26 +142,32 @@ void WindowWayland::setPosition(i32 x, i32 y)
 void WindowWayland::handleSurfaceConfigure(void* data, xdg_surface* shellSurface, u32 serial)
 {
     xdg_surface_ack_configure(shellSurface, serial);
-    log(LogLevel::D_INFO, "Got handleShellSurfaceConfigure call!");
-
     static_cast<WindowWayland*>(data)->resize();
 }
 
 void WindowWayland::handleToplevelConfigure(void* data, xdg_toplevel* toplevel, i32 width, i32 height, wl_array* states)
 {
-    log(LogLevel::D_INFO, "Got handleToplevelConfigure call!");
+    auto* window = static_cast<WindowWayland*>(data);
     if (width != 0 && height != 0)
     {
-        log(LogLevel::D_INFO, "Got new width and height ({}, {})!", width, height);
-        static_cast<WindowWayland*>(data)->updateResolution(width, height, width, height);
-        static_cast<WindowWayland*>(data)->resize();
+        window->updateResolution(width, height, width, height);
+        window->resize();
+    }
+
+    window->updateMinimized(true);
+    char* state = nullptr;
+    for (u32* state = static_cast<u32*>(states->data); state < static_cast<u32*>(states->data) + states->size; ++state)
+    {
+        if (*state == XDG_TOPLEVEL_STATE_ACTIVATED)
+        {
+            window->updateMinimized(false);
+        }
     }
 }
 
 void WindowWayland::handleToplevelClose(void* data, xdg_toplevel* toplevel)
 {
-    log(LogLevel::D_INFO, "Got handleToplevelClose call!");
-    static_cast<WindowWayland*>(data)->m_shouldClose = true;
+    static_cast<WindowWayland*>(data)->setShouldClose();
 }
 
 void WindowWayland::resize()
@@ -152,9 +198,9 @@ void WindowWayland::resize()
     wl_buffer* buffer =
         wl_shm_pool_create_buffer(pool, 0, rect.screenWidth, rect.screenHeight, stride, WL_SHM_FORMAT_XRGB8888);
 
-    wl_surface_attach(m_wlSurface, buffer, 0, 0);
-    wl_surface_damage_buffer(m_wlSurface, 0, 0, rect.screenWidth, rect.screenHeight);
-    wl_surface_commit(m_wlSurface);
+    wl_surface_attach(m_mainSurface, buffer, 0, 0);
+    wl_surface_damage_buffer(m_mainSurface, 0, 0, rect.screenWidth, rect.screenHeight);
+    wl_surface_commit(m_mainSurface);
 
     munmap(pixelData, size);
     close(fileDesc);

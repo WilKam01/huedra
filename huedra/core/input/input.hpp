@@ -15,6 +15,8 @@ class Input
     friend class WindowWin32;
 #elif defined(MACOS)
     friend class WindowCocoa;
+#elif defined(WAYLAND)
+    friend struct WaylandConfig;
 #endif
 public:
     Input() = default;

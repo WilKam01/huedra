@@ -39,7 +39,7 @@ VulkanSurfaceSupport Device::querySurfaceSupport(VkPhysicalDevice device, VkSurf
 
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
 
-    uint32_t formatCount{0};
+    u32 formatCount{0};
     vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
 
     if (formatCount != 0)
@@ -48,7 +48,7 @@ VulkanSurfaceSupport Device::querySurfaceSupport(VkPhysicalDevice device, VkSurf
         vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
     }
 
-    uint32_t presentModeCount{0};
+    u32 presentModeCount{0};
     vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
 
     if (presentModeCount != 0)

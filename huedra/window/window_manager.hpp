@@ -19,6 +19,9 @@ class WindowManager
 #ifdef VULKAN
     friend class VulkanContext;
 #endif
+#ifdef WAYLAND
+    friend struct WaylandConfig;
+#endif
 public:
     WindowManager() = default;
     ~WindowManager() = default;

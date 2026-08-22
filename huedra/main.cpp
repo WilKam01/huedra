@@ -20,7 +20,6 @@
 #include "resources/mesh/loader.hpp"
 #include "resources/texture/loader.hpp"
 #include "scene/components/transform.hpp"
-#include <cctype>
 
 using namespace huedra;
 
@@ -32,7 +31,6 @@ int main()
     // global::resourceManager.init();
 
     Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720));
-    Ref<Window> window2 = global::windowManager.addWindow("Main2", WindowInput(500, 500), window);
 
     while (global::windowManager.update())
     {
@@ -40,6 +38,28 @@ int main()
 
         static u32 i = 0;
         static std::array<u32, 500> avgFps;
+
+        if (global::input.isMouseButtonDoubleClicked(MouseButton::LEFT))
+        {
+            log(LogLevel::D_INFO, "Double click!");
+        }
+
+        if (global::input.isKeyPressed(Keys::ESCAPE))
+        {
+            global::input.setCursor(static_cast<CursorType>((static_cast<u32>(global::input.getCursor()) + 1) % 15));
+        }
+
+        if (global::input.isKeyPressed(Keys::NUM_1))
+        {
+            global::input.setMouseHidden(true);
+            global::input.setMouseMode(MouseMode::LOCKED);
+        }
+
+        if (global::input.isKeyReleased(Keys::NUM_1))
+        {
+            global::input.setMouseHidden(false);
+            global::input.setMouseMode(MouseMode::NORMAL);
+        }
 
         avgFps[i++] = static_cast<u32>(1.0f / global::timer.dt());
         if (i >= 500)
@@ -50,22 +70,18 @@ int main()
                 sum += fps;
             }
 
-            log(LogLevel::D_INFO, "Elapsed: {:.5f}, Delta: {:.5f}, FPS: {}", global::timer.elapsedSeconds(),
-                global::timer.dt(), sum / 500);
+            // log(LogLevel::D_INFO, "Elapsed: {:.5f}, Delta: {:.5f}, FPS: {}", global::timer.elapsedSeconds(),
+            //     global::timer.dt(), sum / 500);
             i = 0;
 
             if (window.valid())
             {
-                window->setTitle(std::format("Main FPS: {}", sum / 500));
+                window->setTitle(
+                    std::format("Main FPS: {}, Elapsed seconds: {:.2f}", sum / 500, global::timer.elapsedSeconds()));
             }
         }
 
-        static bool once = false;
-        if (!once && global::timer.passedInterval(Timer::SECONDS_TO_NANO * 2.0))
-        {
-            once = true;
-            window2->setResolution(400, 200);
-        }
+        global::input.update();
     }
 
     /*FontData font = loadTtf("assets/fonts/ManufacturingConsent-Regular.ttf");
