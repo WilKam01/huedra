@@ -1,4 +1,5 @@
 #include "render_pass_builder.hpp"
+#include "core/constants.hpp"
 #include "core/log.hpp"
 #include "graphics/pipeline_data.hpp"
 #include "graphics/render_target.hpp"
@@ -151,9 +152,8 @@ RenderPassBuilder& RenderPassBuilder::addRenderTarget(Ref<RenderTarget> renderTa
 
 u64 RenderPassBuilder::generateHash()
 {
-    u64 fnvPrime = 0x00000100000001b3;
-    u64 hash = 0xcbf29ce484222325;
-    auto combineHash = [&hash, fnvPrime](u64 val) { hash ^= val * fnvPrime; };
+    u64 hash = constants::FNV_OFFSET;
+    auto combineHash = [&hash](u64 val) { hash ^= val * constants::FNV_PRIME; };
     auto u64Hash = std::hash<u64>();
     auto ptrHash = std::hash<void*>();
 

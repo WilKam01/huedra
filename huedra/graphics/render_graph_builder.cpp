@@ -1,4 +1,5 @@
 #include "render_graph_builder.hpp"
+#include "core/constants.hpp"
 #include "core/log.hpp"
 #include "graphics/buffer.hpp"
 #include "graphics/texture.hpp"
@@ -45,9 +46,8 @@ RenderGraphBuilder& RenderGraphBuilder::addPass(const std::string& name, const R
 
 u64 RenderGraphBuilder::generateHash()
 {
-    u64 fnvPrime = 0x00000100000001b3;
-    m_hash = 0xcbf29ce484222325;
-    auto combineHash = [this, fnvPrime](u64 val) { m_hash ^= val * fnvPrime; };
+    m_hash = constants::FNV_OFFSET;
+    auto combineHash = [this](u64 val) { m_hash ^= val * constants::FNV_PRIME; };
     auto u64Hash = std::hash<u64>();
 
     combineHash(u64Hash(static_cast<u64>(m_passes.size())));

@@ -1,5 +1,4 @@
 #include "json.hpp"
-
 #include "core/log.hpp"
 
 #include <functional>
@@ -8,235 +7,220 @@
 
 namespace huedra {
 
-JsonValue::JsonValue(JsonObject* parent, Type desiredType) : m_parent(parent), m_type(desiredType)
+JsonValue::JsonValue(JsonValueType type) : m_type(type)
 {
-    if (m_type == Type::STRING)
+    switch (m_type)
     {
-        m_value.str = m_parent->addString("");
-    }
-    else if (m_type == Type::ARRAY)
-    {
-        m_value.array = m_parent->addArray({});
-    }
-    else if (m_type == Type::OBJECT)
-    {
-        m_value.object = m_parent->addObject({});
+    case JsonValueType::INT:
+        m_value = 0LL;
+        break;
+    case JsonValueType::UINT:
+        m_value = 0ULL;
+        break;
+    case JsonValueType::FLOAT:
+        m_value = 0.0;
+        break;
+    case JsonValueType::BOOL:
+        m_value = false;
+        break;
+    case JsonValueType::STRING:
+        m_value = "";
+        break;
+    case JsonValueType::ARRAY:
+        m_value = JsonArray();
+        break;
+    case JsonValueType::OBJECT:
+        m_value = JsonObject();
+        break;
+    default:
+        break;
     }
 }
 
 JsonValue& JsonValue::operator=(std::nullptr_t /*null*/)
 {
-    m_type = Type::NIL;
+    m_type = JsonValueType::NIL;
     return *this;
 }
 
-JsonValue& JsonValue::operator=(i32 value)
+JsonValue& JsonValue::operator=(i64 value)
 {
-    m_type = Type::INT;
-    m_value.iNum = value;
+    m_type = JsonValueType::INT;
+    m_value = value;
     return *this;
 }
 
-JsonValue& JsonValue::operator=(u32 value)
+JsonValue& JsonValue::operator=(u64 value)
 {
-    m_type = Type::UINT;
-    m_value.uNum = value;
+    m_type = JsonValueType::UINT;
+    m_value = value;
     return *this;
 }
 
 JsonValue& JsonValue::operator=(double value)
 {
-    m_type = Type::FLOAT;
-    m_value.dNum = value;
+    m_type = JsonValueType::FLOAT;
+    m_value = value;
     return *this;
 }
 
 JsonValue& JsonValue::operator=(bool value)
 {
-    m_type = Type::BOOL;
-    m_value.boolean = value;
+    m_type = JsonValueType::BOOL;
+    m_value = value;
     return *this;
 }
 
 JsonValue& JsonValue::operator=(const std::string& value)
 {
-    m_type = Type::STRING;
-    m_value.str = m_parent->addString(value);
+    m_type = JsonValueType::STRING;
+    m_value = value;
     return *this;
 }
 
 JsonValue& JsonValue::operator=(const char* value)
 {
-    m_type = Type::STRING;
-    m_value.str = m_parent->addString(std::string(value));
+    m_type = JsonValueType::STRING;
+    m_value = std::string(value);
     return *this;
 }
 
 JsonValue& JsonValue::operator=(const std::string_view& value)
 {
-    m_type = Type::STRING;
-    m_value.str = m_parent->addString(std::string(value));
+    m_type = JsonValueType::STRING;
+    m_value = std::string(value);
     return *this;
 }
 
 JsonValue& JsonValue::operator=(const JsonArray& values)
 {
-    m_type = Type::ARRAY;
-    m_value.array = m_parent->addArray(values);
+    m_type = JsonValueType::ARRAY;
+    m_value = values;
     return *this;
 }
 
 JsonValue& JsonValue::operator=(const JsonObject& value)
 {
-    m_type = Type::OBJECT;
-    m_value.object = m_parent->addObject(value);
+    m_type = JsonValueType::OBJECT;
+    m_value = value;
     return *this;
 }
 
-i32& JsonValue::asInt()
+i64& JsonValue::asInt()
 {
-    if (m_type == Type::NIL)
+    if (m_type == JsonValueType::NIL)
     {
-        m_type = Type::INT;
-        m_value.iNum = 0;
+        m_type = JsonValueType::INT;
+        m_value = 0LL;
     }
-    else if (m_type != Type::INT)
-    {
-        log(LogLevel::ERR, "json value can't be accessed as i32");
-    }
-    return m_value.iNum;
+    return std::get<i64>(m_value);
 }
 
-u32& JsonValue::asUint()
+u64& JsonValue::asUint()
 {
-    if (m_type == Type::NIL)
+    if (m_type == JsonValueType::NIL)
     {
-        m_type = Type::UINT;
-        m_value.uNum = 0u;
+        m_type = JsonValueType::UINT;
+        m_value = 0ULL;
     }
-    else if (m_type != Type::UINT)
-    {
-        log(LogLevel::ERR, "json value can't be accessed as u32");
-    }
-    return m_value.uNum;
+    return std::get<u64>(m_value);
 }
 
 double& JsonValue::asFloat()
 {
-    if (m_type == Type::NIL)
+    if (m_type == JsonValueType::NIL)
     {
-        m_type = Type::FLOAT;
-        m_value.dNum = 0.0f;
+        m_type = JsonValueType::FLOAT;
+        m_value = 0.0;
     }
-    else if (m_type != Type::FLOAT)
-    {
-        log(LogLevel::ERR, "json value can't be accessed as double");
-    }
-    return m_value.dNum;
+    return std::get<double>(m_value);
 }
 
 bool& JsonValue::asBool()
 {
-    if (m_type == Type::NIL)
+    if (m_type == JsonValueType::NIL)
     {
-        m_type = Type::BOOL;
-        m_value.boolean = false;
+        m_type = JsonValueType::BOOL;
+        m_value = false;
     }
-    else if (m_type != Type::BOOL)
-    {
-        log(LogLevel::ERR, "json value can't be accessed as bool");
-    }
-    return m_value.boolean;
+    return std::get<bool>(m_value);
 }
 
 std::string& JsonValue::asString()
 {
-    if (m_type == Type::NIL)
+    if (m_type == JsonValueType::NIL)
     {
-        m_type = Type::STRING;
-        m_value.str = m_parent->addString("");
+        m_type = JsonValueType::STRING;
+        m_value = "";
     }
-    else if (m_type != Type::STRING)
-    {
-        log(LogLevel::ERR, "json value can't be accessed as string");
-    }
-    return *m_value.str;
+    return std::get<std::string>(m_value);
 }
 
 JsonArray& JsonValue::asArray()
 {
-    if (m_type == Type::NIL)
+    if (m_type == JsonValueType::NIL)
     {
-        m_type = Type::ARRAY;
-        m_value.array = m_parent->addArray({});
+        m_type = JsonValueType::ARRAY;
+        m_value = JsonArray({});
     }
-    else if (m_type != Type::ARRAY)
-    {
-        log(LogLevel::ERR, "json value can't be accessed as array");
-    }
-    return *m_value.array;
+    return std::get<JsonArray>(m_value);
 }
 
 JsonObject& JsonValue::asObject()
 {
-    if (m_type == Type::NIL)
+    if (m_type == JsonValueType::NIL)
     {
-        m_type = Type::OBJECT;
-        m_value.object = m_parent->addObject({});
+        m_type = JsonValueType::OBJECT;
+        m_value = JsonObject();
     }
-    else if (m_type != Type::OBJECT)
-    {
-        log(LogLevel::ERR, "json value can't be accessed as object");
-    }
-    return *m_value.object;
+    return std::get<JsonObject>(m_value);
 }
 
 JsonValue& JsonValue::operator[](u64 index)
 {
-    static JsonValue invalid(nullptr);
-    if (m_type == Type::NIL)
+    static JsonValue invalid;
+    if (m_type == JsonValueType::NIL)
     {
-        m_type = Type::ARRAY;
-        m_value.array = m_parent->addArray({});
+        m_type = JsonValueType::ARRAY;
+        m_value = JsonArray({});
     }
-    else if (m_type != Type::ARRAY)
+    else if (m_type != JsonValueType::ARRAY)
     {
-        log(LogLevel::ERR, "Can't return at index: {} of json member, not an array", index);
         return invalid;
     }
-    if (index >= m_value.array->size())
+
+    JsonArray& arr = std::get<JsonArray>(m_value);
+    if (index >= arr.size())
     {
-        Type type = Type::NIL;
-        if (!m_value.array->empty())
+        JsonValueType type = JsonValueType::NIL;
+        if (!arr.empty())
         {
-            type = m_value.array->back().getType();
+            type = arr.back().getType();
         }
-        m_value.array->resize(index + 1, JsonValue(m_parent, type));
+        JsonValue value{type};
+        arr.resize(index + 1, value);
     }
-    return (*m_value.array)[index];
+    return arr[index];
 }
 
 JsonValue& JsonValue::operator[](const std::string& identifier)
 {
-    static JsonValue invalid(nullptr);
-    if (m_type == Type::NIL)
+    static JsonValue invalid;
+    if (m_type == JsonValueType::NIL)
     {
-        m_type = Type::OBJECT;
-        m_value.object = m_parent->addObject({});
+        m_type = JsonValueType::OBJECT;
+        m_value = JsonObject();
     }
-    else if (m_type != Type::OBJECT)
+    else if (m_type != JsonValueType::OBJECT)
     {
-        log(LogLevel::ERR, "Can't return with identifier: {} of json member, not an object", identifier.c_str());
         return invalid;
     }
-    return (*m_value.object)[identifier];
+    return std::get<JsonObject>(m_value)[identifier];
 }
 
 JsonValue& JsonValue::operator[](const char* str) { return (*this)[std::string(str)]; }
 
-JsonObject::JsonObject(const JsonObject& rhs)
-    : m_strings(rhs.m_strings), m_arrays(rhs.m_arrays), m_objects(rhs.m_objects), m_keys(rhs.m_keys),
-      m_members(rhs.m_members)
+JsonObject::JsonObject(const JsonObject& rhs) : m_keys(rhs.m_keys), m_members(rhs.m_members)
 {
     for (auto& [key, value] : m_members)
     {
@@ -244,9 +228,7 @@ JsonObject::JsonObject(const JsonObject& rhs)
     }
 }
 
-JsonObject::JsonObject(const JsonObject&& rhs)
-    : m_strings(rhs.m_strings), m_arrays(rhs.m_arrays), m_objects(rhs.m_objects), m_keys(rhs.m_keys),
-      m_members(rhs.m_members)
+JsonObject::JsonObject(const JsonObject&& rhs) : m_keys(rhs.m_keys), m_members(rhs.m_members)
 {
     for (auto& [key, value] : m_members)
     {
@@ -261,9 +243,6 @@ JsonObject& JsonObject::operator=(const JsonObject& rhs)
         return *this;
     }
 
-    m_strings = rhs.m_strings;
-    m_arrays = rhs.m_arrays;
-    m_objects = rhs.m_objects;
     m_keys = rhs.m_keys;
     m_members = rhs.m_members;
 
@@ -276,9 +255,6 @@ JsonObject& JsonObject::operator=(const JsonObject& rhs)
 
 JsonObject& JsonObject::operator=(JsonObject&& rhs)
 {
-    m_strings = rhs.m_strings;
-    m_arrays = rhs.m_arrays;
-    m_objects = rhs.m_objects;
     m_keys = rhs.m_keys;
     m_members = rhs.m_members;
     for (auto& [key, value] : m_members)
@@ -292,7 +268,9 @@ JsonValue& JsonObject::operator[](const std::string& identifier)
 {
     if (!m_members.contains(identifier))
     {
-        m_members.insert(std::pair<std::string, JsonValue>(identifier, JsonValue(this)));
+        JsonValue value;
+        value.setParent(this);
+        m_members.insert(std::pair<std::string, JsonValue>(identifier, value));
         m_keys.push_back(identifier);
     }
     return m_members.at(identifier);
@@ -300,31 +278,13 @@ JsonValue& JsonObject::operator[](const std::string& identifier)
 
 bool JsonObject::hasMember(const std::string& identifier) const { return m_members.contains(identifier); }
 
-bool JsonObject::hasMember(const std::string& identifier, JsonValue::Type type) const
+bool JsonObject::hasMember(const std::string& identifier, JsonValueType type) const
 {
     if (!m_members.contains(identifier))
     {
         return false;
     }
     return m_members.at(identifier).getType() == type;
-}
-
-std::string* JsonObject::addString(const std::string& value)
-{
-    m_strings.push_back(std::make_shared<std::string>(value));
-    return m_strings.back().get();
-}
-
-JsonArray* JsonObject::addArray(const JsonArray& values)
-{
-    m_arrays.push_back(std::make_shared<JsonArray>(values));
-    return m_arrays.back().get();
-}
-
-JsonObject* JsonObject::addObject(const JsonObject& value)
-{
-    m_objects.push_back(std::make_shared<JsonObject>(value));
-    return m_objects.back().get();
 }
 
 JsonObject parseJson(const std::vector<u8>& bytes)
@@ -441,7 +401,7 @@ JsonObject parseJson(const std::vector<u8>& bytes)
 
             case State::IN_ARRAY:
             case State::ARRAY_COMMA_SET: {
-                JsonValue& val = curArrays.back()->emplace_back(curValues.back()->getParent());
+                JsonValue& val = curArrays.back()->emplace_back();
                 val = str;
                 states.back() = State::ARRAY_VALUE_SET;
                 break;
@@ -494,7 +454,7 @@ JsonObject parseJson(const std::vector<u8>& bytes)
             }
             else if (states.back() == State::IN_ARRAY || states.back() == State::ARRAY_COMMA_SET)
             {
-                JsonValue& val = curArrays.back()->emplace_back(curValues.back()->getParent());
+                JsonValue& val = curArrays.back()->emplace_back();
                 val = JsonArray();
                 curArrays.push_back(&val.asArray());
                 states.push_back(State::IN_ARRAY);
@@ -537,7 +497,7 @@ JsonObject parseJson(const std::vector<u8>& bytes)
             }
             else if (states.back() == State::IN_ARRAY || states.back() == State::ARRAY_COMMA_SET)
             {
-                JsonValue& val = curArrays.back()->emplace_back(curValues.back()->getParent());
+                JsonValue& val = curArrays.back()->emplace_back();
                 val = JsonObject();
                 curObjects.push_back(&val.asObject());
                 states.push_back(State::IN_OBJECT);
@@ -625,11 +585,11 @@ JsonObject parseJson(const std::vector<u8>& bytes)
             }
 
             std::string buf;
-            JsonValue::Type type = JsonValue::Type::UINT;
+            JsonValueType type = JsonValueType::UINT;
             if (static_cast<char>(bytes[i]) == '-')
             {
                 buf.push_back(static_cast<char>(bytes[i++]));
-                type = JsonValue::Type::INT;
+                type = JsonValueType::INT;
             }
 
             // Number
@@ -656,7 +616,7 @@ JsonObject parseJson(const std::vector<u8>& bytes)
             if (static_cast<char>(bytes[i]) == '.')
             {
                 buf.push_back(static_cast<char>(bytes[i++]));
-                type = JsonValue::Type::FLOAT;
+                type = JsonValueType::FLOAT;
                 if (static_cast<char>(bytes[i]) < '0' || static_cast<char>(bytes[i]) > '9')
                 {
                     log(LogLevel::WARNING, "parseJson(): ({}, {}) No number defined in fraction", line, i - lineStart);
@@ -672,7 +632,7 @@ JsonObject parseJson(const std::vector<u8>& bytes)
             if (static_cast<char>(bytes[i]) == 'E' || static_cast<char>(bytes[i]) == 'e')
             {
                 buf.push_back(static_cast<char>(bytes[i++]));
-                type = JsonValue::Type::FLOAT;
+                type = JsonValueType::FLOAT;
                 if (static_cast<char>(bytes[i]) == '-' || static_cast<char>(bytes[i]) == '+')
                 {
                     buf.push_back(static_cast<char>(bytes[i++]));
@@ -691,15 +651,15 @@ JsonObject parseJson(const std::vector<u8>& bytes)
 
             if (states.back() == State::ASSIGNMENT_SET)
             {
-                if (type == JsonValue::Type::UINT)
+                if (type == JsonValueType::UINT)
                 {
                     *curValues.back() = static_cast<u32>(std::stoul(buf));
                 }
-                else if (type == JsonValue::Type::INT)
+                else if (type == JsonValueType::INT)
                 {
                     *curValues.back() = static_cast<i32>(std::stol(buf));
                 }
-                else if (type == JsonValue::Type::FLOAT)
+                else if (type == JsonValueType::FLOAT)
                 {
                     *curValues.back() = std::stod(buf);
                 }
@@ -708,16 +668,16 @@ JsonObject parseJson(const std::vector<u8>& bytes)
             }
             else if (states.back() == State::IN_ARRAY || states.back() == State::ARRAY_COMMA_SET)
             {
-                JsonValue& val = curArrays.back()->emplace_back(curValues.back()->getParent());
-                if (type == JsonValue::Type::UINT)
+                JsonValue& val = curArrays.back()->emplace_back();
+                if (type == JsonValueType::UINT)
                 {
                     val = static_cast<u32>(std::stoul(buf));
                 }
-                else if (type == JsonValue::Type::INT)
+                else if (type == JsonValueType::INT)
                 {
                     val = static_cast<i32>(std::stoul(buf));
                 }
-                else if (type == JsonValue::Type::FLOAT)
+                else if (type == JsonValueType::FLOAT)
                 {
                     val = std::stod(buf);
                 }
@@ -812,27 +772,27 @@ std::vector<u8> serializeJson(const JsonObject& json)
         std::string str;
         switch (value.getType())
         {
-        case JsonValue::Type::NIL:
+        case JsonValueType::NIL:
             bytes.push_back('n');
             bytes.push_back('u');
             bytes.push_back('l');
             bytes.push_back('l');
             break;
-        case JsonValue::Type::INT:
+        case JsonValueType::INT:
             str = std::to_string(value.asInt());
             for (auto& c : str)
             {
                 bytes.push_back(c);
             }
             break;
-        case JsonValue::Type::UINT:
+        case JsonValueType::UINT:
             str = std::to_string(value.asUint());
             for (auto& c : str)
             {
                 bytes.push_back(c);
             }
             break;
-        case JsonValue::Type::FLOAT: {
+        case JsonValueType::FLOAT: {
             std::ostringstream oss;
             oss << std::setprecision(std::numeric_limits<double>::digits10 + 1) << value.asFloat();
             str = oss.str();
@@ -842,14 +802,14 @@ std::vector<u8> serializeJson(const JsonObject& json)
             }
             break;
         }
-        case JsonValue::Type::BOOL:
+        case JsonValueType::BOOL:
             str = value.asBool() ? "true" : "false";
             for (auto& c : str)
             {
                 bytes.push_back(c);
             }
             break;
-        case JsonValue::Type::STRING:
+        case JsonValueType::STRING:
             str = value.asString();
             bytes.push_back('\"');
             for (auto& c : str)
@@ -891,7 +851,7 @@ std::vector<u8> serializeJson(const JsonObject& json)
             }
             bytes.push_back('\"');
             break;
-        case JsonValue::Type::ARRAY: {
+        case JsonValueType::ARRAY: {
             bytes.push_back('[');
             JsonArray& array = value.asArray();
             if (!array.empty())
@@ -912,7 +872,7 @@ std::vector<u8> serializeJson(const JsonObject& json)
             bytes.push_back(']');
             break;
         }
-        case JsonValue::Type::OBJECT:
+        case JsonValueType::OBJECT:
             serializeObject(value.asObject(), level + 1);
             break;
         }

@@ -1,4 +1,5 @@
 #include "resource_manager.hpp"
+#include "core/constants.hpp"
 #include "core/file/utils.hpp"
 #include "core/global.hpp"
 #include "core/log.hpp"
@@ -18,7 +19,14 @@ void ResourceManager::cleanup()
 
 std::vector<MeshData>& ResourceManager::loadMeshData(const std::string& path)
 {
-    u64 hash = m_strHash(path);
+    u64 hash = constants::FNV_OFFSET;
+    auto combineHash = [&hash](u64 val) { hash ^= val * constants::FNV_PRIME; };
+    auto u64Hash = std::hash<u64>();
+    for (const auto& c : path)
+    {
+        combineHash(u64Hash(static_cast<u64>(c)));
+    }
+
     if (!m_meshDatas.contains(hash))
     {
         FilePathInfo info = transformFilePath(path);
@@ -45,7 +53,14 @@ std::vector<MeshData>& ResourceManager::loadMeshData(const std::string& path)
 
 TextureData& ResourceManager::loadTextureData(const std::string& path, TexelChannelFormat channelFormat)
 {
-    u64 hash = m_strHash(path);
+    u64 hash = constants::FNV_OFFSET;
+    auto combineHash = [&hash](u64 val) { hash ^= val * constants::FNV_PRIME; };
+    auto u64Hash = std::hash<u64>();
+    for (const auto& c : path)
+    {
+        combineHash(u64Hash(static_cast<u64>(c)));
+    }
+
     if (!m_textureDatas.contains(hash))
     {
         FilePathInfo info = transformFilePath(path);
@@ -64,7 +79,14 @@ TextureData& ResourceManager::loadTextureData(const std::string& path, TexelChan
 
 ShaderModule& ResourceManager::loadShaderModule(const std::string& path)
 {
-    u64 hash = m_strHash(path);
+    u64 hash = constants::FNV_OFFSET;
+    auto combineHash = [&hash](u64 val) { hash ^= val * constants::FNV_PRIME; };
+    auto u64Hash = std::hash<u64>();
+    for (const auto& c : path)
+    {
+        combineHash(u64Hash(static_cast<u64>(c)));
+    }
+
     if (!m_shaders.contains(hash))
     {
         FilePathInfo info = transformFilePath(path);

@@ -56,7 +56,7 @@ public:
         return Vec4<T>(x OP scalar, y OP scalar, z OP scalar, w OP scalar); \
     }                                                                       \
                                                                             \
-    constexpr Vec4<T>& operator OP##=(const Vec4<T>& rhs)                   \
+    constexpr Vec4<T>& operator OP## = (const Vec4<T>& rhs)                 \
     {                                                                       \
         x OP## = rhs.x;                                                     \
         y OP## = rhs.y;                                                     \
@@ -77,7 +77,7 @@ public:
 #undef VEC_OP
     // NOLINTEND(cppcoreguidelines-macro-usage)
 
-    constexpr Vec4<T> operator-() const { return Vec4<T>(-x, -y, -z); }
+    constexpr Vec4<T> operator-() const { return Vec4<T>(-x, -y, -z, -w); }
     constexpr std::strong_ordering operator<=>(const Vec4<T>& rhs) const
     {
         if (auto cmp = x <=> rhs.x; cmp != 0)

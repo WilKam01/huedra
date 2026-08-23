@@ -30,6 +30,10 @@ int main()
     // global::graphicsManager.init();
     // global::resourceManager.init();
 
+    JsonObject json = parseJson(readBytes("assets/test.json"));
+    json["Hello World!"] = true;
+    writeBytes("assets/result.json", serializeJson(json));
+
     Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720));
 
     while (global::windowManager.update())
