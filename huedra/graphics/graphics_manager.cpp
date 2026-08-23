@@ -100,8 +100,8 @@ Ref<RenderTarget> GraphicsManager::createRenderTarget(RenderTargetType type, Gra
 ShaderModule GraphicsManager::createShaderModule(const std::string& name, const u8* sourceCode, u64 sourceCodeLength)
 {
     // Need to create string from source for null termination
-    std::string sourceString(reinterpret_cast<const char*>(sourceCode),
-                             reinterpret_cast<const char*>(sourceCode) + sourceCodeLength);
+    std::string sourceString(std::bit_cast<const char*>(sourceCode),
+                             std::bit_cast<const char*>(sourceCode) + sourceCodeLength);
     return m_slangContext.createModule(name, sourceString);
 }
 

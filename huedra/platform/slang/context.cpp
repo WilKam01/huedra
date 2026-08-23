@@ -56,7 +56,7 @@ ShaderModule SlangContext::createModule(const std::string& name, const std::stri
     if (diagnositicBlob != nullptr)
     {
         log(LogLevel::WARNING, "createModule(): load module from string error:\n{}",
-            reinterpret_cast<const char*>(diagnositicBlob->getBufferPointer()));
+            std::bit_cast<const char*>(diagnositicBlob->getBufferPointer()));
     }
     if (shaderModule == nullptr)
     {
@@ -85,7 +85,7 @@ ShaderModule SlangContext::createModule(const std::string& name, const std::stri
     if (SLANG_FAILED(result))
     {
         log(LogLevel::WARNING, "createModule(): create composite component type error: {}",
-            reinterpret_cast<const char*>(diagnositicBlob->getBufferPointer()));
+            std::bit_cast<const char*>(diagnositicBlob->getBufferPointer()));
         return {};
     }
 
@@ -121,7 +121,7 @@ CompiledShaderModule SlangContext::compileAndLinkModules(const std::map<ShaderSt
     if (SLANG_FAILED(result))
     {
         log(LogLevel::WARNING, "compileAndLinkModules(): create composite component type error: {}",
-            reinterpret_cast<const char*>(diagnositicBlob->getBufferPointer()));
+            std::bit_cast<const char*>(diagnositicBlob->getBufferPointer()));
         return {};
     }
 
@@ -130,7 +130,7 @@ CompiledShaderModule SlangContext::compileAndLinkModules(const std::map<ShaderSt
     if (SLANG_FAILED(result))
     {
         log(LogLevel::WARNING, "compileAndLinkModules(): link error: {}",
-            reinterpret_cast<const char*>(diagnositicBlob->getBufferPointer()));
+            std::bit_cast<const char*>(diagnositicBlob->getBufferPointer()));
         return {};
     }
 
@@ -139,12 +139,12 @@ CompiledShaderModule SlangContext::compileAndLinkModules(const std::map<ShaderSt
     if (SLANG_FAILED(result))
     {
         log(LogLevel::WARNING, "compileAndLinkModules(): get target point code error: {}",
-            reinterpret_cast<const char*>(diagnositicBlob->getBufferPointer()));
+            std::bit_cast<const char*>(diagnositicBlob->getBufferPointer()));
         return {};
     }
 
     CompiledShaderModule compiledModule;
-    compiledModule.init(linkedProgram, reinterpret_cast<const u8*>(codeBlob->getBufferPointer()),
+    compiledModule.init(linkedProgram, std::bit_cast<const u8*>(codeBlob->getBufferPointer()),
                         codeBlob->getBufferSize());
     return compiledModule;
 }

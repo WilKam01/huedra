@@ -50,7 +50,7 @@ public:
                                                                                                         \
     constexpr Vec2<T> operator OP(T scalar) const { return Vec2<T>(x OP scalar, y OP scalar); }         \
                                                                                                         \
-    constexpr Vec2<T>& operator OP##=(const Vec2<T>& rhs)                                               \
+    constexpr Vec2<T>& operator OP## = (const Vec2<T>& rhs)                                             \
     {                                                                                                   \
         x OP## = rhs.x;                                                                                 \
         y OP## = rhs.y;                                                                                 \
@@ -103,11 +103,11 @@ VEC_OP(<<);
 #undef VEC_OP
 // NOLINTEND(cppcoreguidelines-macro-usage)
 
-using vec2 = Vec2<float>;
+using vec2 = Vec2<f32>;
 using ivec2 = Vec2<i32>;
 using uvec2 = Vec2<u32>;
 using bvec2 = Vec2<bool>;
-using dvec2 = Vec2<double>;
+using dvec2 = Vec2<f64>;
 
 using i8vec2 = Vec2<i8>;
 using u8vec2 = Vec2<u8>;

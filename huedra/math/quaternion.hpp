@@ -9,7 +9,7 @@ class Quaternion
 {
 public:
     Quaternion() = default;
-    constexpr Quaternion(float scalar, const vec3& axis) : scalar(scalar), axis(axis) {}
+    constexpr Quaternion(f32 scalar, const vec3& axis) : scalar(scalar), axis(axis) {}
 
     constexpr Quaternion operator+(const Quaternion& rhs) const { return {scalar + rhs.scalar, axis + rhs.axis}; }
     constexpr Quaternion operator*(const Quaternion& rhs) const
@@ -18,15 +18,15 @@ public:
                 (scalar * rhs.axis) + (rhs.scalar * axis) + math::cross(axis, rhs.axis)};
     }
 
-    constexpr Quaternion operator*(float scalar) const { return {this->scalar * scalar, axis * scalar}; }
-    constexpr Quaternion operator/(float scalar) const { return {this->scalar / scalar, axis / scalar}; }
+    constexpr Quaternion operator*(f32 scalar) const { return {this->scalar * scalar, axis * scalar}; }
+    constexpr Quaternion operator/(f32 scalar) const { return {this->scalar / scalar, axis / scalar}; }
     constexpr Quaternion operator-() const { return {-scalar, -axis}; }
 
-    float scalar{0.0f};
+    f32 scalar{0.0f};
     vec3 axis;
 };
 
-constexpr Quaternion operator*(float scalar, const Quaternion& quat)
+constexpr Quaternion operator*(f32 scalar, const Quaternion& quat)
 {
     return {quat.scalar * scalar, quat.axis * scalar};
 }

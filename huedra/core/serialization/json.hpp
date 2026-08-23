@@ -74,7 +74,7 @@ public:
     JsonValue& operator=(std::nullptr_t null);
     JsonValue& operator=(i64 value);
     JsonValue& operator=(u64 value);
-    JsonValue& operator=(double value);
+    JsonValue& operator=(f64 value);
     JsonValue& operator=(bool value);
     JsonValue& operator=(const std::string& value);
     JsonValue& operator=(const char* value);
@@ -84,7 +84,7 @@ public:
 
     i64& asInt();
     u64& asUint();
-    double& asFloat();
+    f64& asFloat();
     bool& asBool();
     std::string& asString();
     JsonArray& asArray();
@@ -108,7 +108,7 @@ public:
 
 private:
     JsonValueType m_type{JsonValueType::NIL};
-    std::variant<i64, u64, double, bool, std::string, JsonArray, JsonObject> m_value{0ULL};
+    std::variant<i64, u64, f64, bool, std::string, JsonArray, JsonObject> m_value{0ULL};
     JsonObject* m_parent{nullptr};
 };
 

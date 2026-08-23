@@ -207,8 +207,8 @@ bool WindowManager::update()
         RECT rect;
         HWND hwnd = static_cast<WindowWin32*>(m_focusedWindow)->getHandle();
         GetClientRect(hwnd, &rect);
-        ClientToScreen(hwnd, reinterpret_cast<POINT*>(&rect.left));
-        ClientToScreen(hwnd, reinterpret_cast<POINT*>(&rect.right));
+        ClientToScreen(hwnd, std::bit_cast<POINT*>(&rect.left));
+        ClientToScreen(hwnd, std::bit_cast<POINT*>(&rect.right));
         ClipCursor(&rect);
     }
     else

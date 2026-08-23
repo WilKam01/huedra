@@ -8,16 +8,16 @@ namespace huedra::math {
 
 template <typename T>
     requires std::is_arithmetic_v<T>
-constexpr float radians(T degrees)
+constexpr f32 radians(T degrees)
 {
-    return static_cast<float>(degrees) * (std::numbers::pi / 180.0);
+    return static_cast<f32>(degrees) * (std::numbers::pi / 180.0);
 }
 
 template <typename T>
     requires std::is_arithmetic_v<T>
-constexpr float degrees(T radians)
+constexpr f32 degrees(T radians)
 {
-    return static_cast<float>(radians) * (180.0 / std::numbers::pi);
+    return static_cast<f32>(radians) * (180.0 / std::numbers::pi);
 }
 
 } // namespace huedra

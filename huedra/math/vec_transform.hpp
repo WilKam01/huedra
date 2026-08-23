@@ -164,19 +164,19 @@ T angle(const Vec4<T>& lhs, const Vec4<T>& rhs)
 // Lerp
 
 template <typename T>
-Vec2<T> lerp(const Vec2<T>& start, const Vec2<T>& end, float t)
+Vec2<T> lerp(const Vec2<T>& start, const Vec2<T>& end, f32 t)
 {
     return start * (1.0f - t) + end * t;
 }
 
 template <typename T>
-Vec3<T> lerp(const Vec3<T>& start, const Vec3<T>& end, float t)
+Vec3<T> lerp(const Vec3<T>& start, const Vec3<T>& end, f32 t)
 {
     return start * (1.0f - t) + end * t;
 }
 
 template <typename T>
-Vec4<T> lerp(const Vec4<T>& start, const Vec4<T>& end, float t)
+Vec4<T> lerp(const Vec4<T>& start, const Vec4<T>& end, f32 t)
 {
     return start * (1.0f - t) + end * t;
 }
@@ -184,13 +184,13 @@ Vec4<T> lerp(const Vec4<T>& start, const Vec4<T>& end, float t)
 // Slerp
 
 template <typename T>
-Vec2<T> slerp(const Vec2<T>& start, const Vec2<T>& end, float t)
+Vec2<T> slerp(const Vec2<T>& start, const Vec2<T>& end, f32 t)
 {
     T cosTheta = dot(normalize(start), normalize(end));
     T theta = acos(cosTheta);
 
     // Use lerp when vectors are near or identical
-    const float EPSILON = 0.001f;
+    const f32 EPSILON = 0.001f;
     if (fabs(theta) < EPSILON)
     {
         return lerp(start, end, t);
@@ -202,13 +202,13 @@ Vec2<T> slerp(const Vec2<T>& start, const Vec2<T>& end, float t)
 }
 
 template <typename T>
-Vec3<T> slerp(const Vec3<T>& start, const Vec3<T>& end, float t)
+Vec3<T> slerp(const Vec3<T>& start, const Vec3<T>& end, f32 t)
 {
     T cosTheta = dot(normalize(start), normalize(end));
     T theta = acos(cosTheta);
 
     // Use lerp when vectors are near or identical
-    const float EPSILON = 0.001f;
+    const f32 EPSILON = 0.001f;
     if (fabs(theta) < EPSILON)
     {
         return lerp(start, end, t);
@@ -220,13 +220,13 @@ Vec3<T> slerp(const Vec3<T>& start, const Vec3<T>& end, float t)
 }
 
 template <typename T>
-Vec4<T> slerp(const Vec4<T>& start, const Vec4<T>& end, float t)
+Vec4<T> slerp(const Vec4<T>& start, const Vec4<T>& end, f32 t)
 {
     T cosTheta = dot(normalize(start), normalize(end));
     T theta = acos(cosTheta);
 
     // Use lerp when vectors are near or identical
-    const float EPSILON = 0.001f;
+    const f32 EPSILON = 0.001f;
     if (fabs(theta) < EPSILON)
     {
         return lerp(start, end, t);

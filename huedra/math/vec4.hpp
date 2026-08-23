@@ -121,11 +121,11 @@ VEC_OP(<<);
 #undef VEC_OP
 // NOLINTEND(cppcoreguidelines-macro-usage)
 
-using vec4 = Vec4<float>;
+using vec4 = Vec4<f32>;
 using ivec4 = Vec4<i32>;
 using uvec4 = Vec4<u32>;
 using bvec4 = Vec4<bool>;
-using dvec4 = Vec4<double>;
+using dvec4 = Vec4<f64>;
 
 using i8vec4 = Vec4<i8>;
 using u8vec4 = Vec4<u8>;

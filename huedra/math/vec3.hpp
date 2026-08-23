@@ -49,7 +49,7 @@ public:
                                                                                                                     \
     constexpr Vec3<T> operator OP(T scalar) const { return Vec3<T>(x OP scalar, y OP scalar, z OP scalar); }        \
                                                                                                                     \
-    constexpr Vec3<T>& operator OP##=(const Vec3<T>& rhs)                                                           \
+    constexpr Vec3<T>& operator OP## = (const Vec3<T>& rhs)                                                         \
     {                                                                                                               \
         x OP## = rhs.x;                                                                                             \
         y OP## = rhs.y;                                                                                             \
@@ -106,11 +106,11 @@ VEC_OP(<<);
 #undef VEC_OP
 // NOLINTEND(cppcoreguidelines-macro-usage)
 
-using vec3 = Vec3<float>;
+using vec3 = Vec3<f32>;
 using ivec3 = Vec3<i32>;
 using uvec3 = Vec3<u32>;
 using bvec3 = Vec3<bool>;
-using dvec3 = Vec3<double>;
+using dvec3 = Vec3<f64>;
 
 using i8vec3 = Vec3<i8>;
 using u8vec3 = Vec3<u8>;

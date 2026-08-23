@@ -201,18 +201,18 @@ private:
     std::array<std::array<T, R>, C> m_elements{static_cast<T>(0)};
 };
 
-using matrix2x2 = Matrix<float, 2, 2>;
-using matrix3x3 = Matrix<float, 3, 3>;
-using matrix4x4 = Matrix<float, 4, 4>;
-using matrix2 = Matrix<float, 2, 2>;
-using matrix3 = Matrix<float, 3, 3>;
-using matrix4 = Matrix<float, 4, 4>;
+using matrix2x2 = Matrix<f32, 2, 2>;
+using matrix3x3 = Matrix<f32, 3, 3>;
+using matrix4x4 = Matrix<f32, 4, 4>;
+using matrix2 = Matrix<f32, 2, 2>;
+using matrix3 = Matrix<f32, 3, 3>;
+using matrix4 = Matrix<f32, 4, 4>;
 
-using dmatrix2x2 = Matrix<double, 2, 2>;
-using dmatrix3x3 = Matrix<double, 3, 3>;
-using dmatrix4x4 = Matrix<double, 4, 4>;
-using dmatrix2 = Matrix<double, 2, 2>;
-using dmatrix3 = Matrix<double, 3, 3>;
-using dmatrix4 = Matrix<double, 4, 4>;
+using dmatrix2x2 = Matrix<f64, 2, 2>;
+using dmatrix3x3 = Matrix<f64, 3, 3>;
+using dmatrix4x4 = Matrix<f64, 4, 4>;
+using dmatrix2 = Matrix<f64, 2, 2>;
+using dmatrix3 = Matrix<f64, 3, 3>;
+using dmatrix4 = Matrix<f64, 4, 4>;
 
 } // namespace huedra

@@ -255,8 +255,8 @@ bool WindowCocoa::update()
             }
             break;
             case NSEventTypeScrollWheel:
-                global::input.setMouseScrollHorizontal(static_cast<float>(event.scrollingDeltaX));
-                global::input.setMouseScrollVertical(static_cast<float>(event.scrollingDeltaY));
+                global::input.setMouseScrollHorizontal(static_cast<f32>(event.scrollingDeltaX));
+                global::input.setMouseScrollVertical(static_cast<f32>(event.scrollingDeltaY));
                 break;
             case NSEventTypeMouseMoved:
             case NSEventTypeLeftMouseDragged:
@@ -371,7 +371,7 @@ void WindowCocoa::setFocusInternal(bool isFocus)
     }
 }
 
-double WindowCocoa::getScreenDPI() const { return [m_window backingScaleFactor]; }
+f64 WindowCocoa::getScreenDPI() const { return [m_window backingScaleFactor]; }
 
 Keys WindowCocoa::convertKey(u16 code, char character)
 {

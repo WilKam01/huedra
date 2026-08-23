@@ -454,7 +454,7 @@ FontData loadTtf(const std::string& path)
                     OVERLAP_COMPOUND
                 };
 
-                if (!static_cast<bool>(readBits(reinterpret_cast<u8*>(&flags), ARGS_ARE_XY_VALUES, 1)))
+                if (!static_cast<bool>(readBits(std::bit_cast<u8*>(&flags), ARGS_ARE_XY_VALUES, 1)))
                 {
                     log(LogLevel::WARNING,
                         "loadTtf(): Font not supported, compound glyph using xy points instead of offset");
@@ -462,7 +462,7 @@ FontData loadTtf(const std::string& path)
                 }
 
                 ivec2 offset;
-                if (static_cast<bool>(readBits(reinterpret_cast<u8*>(&flags), ARG_1_AND_ARG_2_ARE_WORDS, 1)))
+                if (static_cast<bool>(readBits(std::bit_cast<u8*>(&flags), ARG_1_AND_ARG_2_ARE_WORDS, 1)))
                 {
                     offset.x = parseFromBytes<i16>(&bytes[curByteIndex], std::endian::big);
                     offset.y = parseFromBytes<i16>(&bytes[curByteIndex + 2], std::endian::big);
@@ -478,37 +478,35 @@ FontData loadTtf(const std::string& path)
                 }
 
                 matrix2 scaleMatrix(1.0f);
-                if (static_cast<bool>(readBits(reinterpret_cast<u8*>(&flags), WE_HAVE_A_SCALE, 1)))
+                if (static_cast<bool>(readBits(std::bit_cast<u8*>(&flags), WE_HAVE_A_SCALE, 1)))
                 {
                     scaleMatrix =
-                        matrix2(static_cast<float>(parseFromBytes<i16>(&bytes[curByteIndex], std::endian::big)) /
-                                static_cast<float>(1 << 14));
+                        matrix2(static_cast<f32>(parseFromBytes<i16>(&bytes[curByteIndex], std::endian::big)) /
+                                static_cast<f32>(1 << 14));
                     curByteIndex += 2;
                 }
-                else if (static_cast<bool>(readBits(reinterpret_cast<u8*>(&flags), WE_HAVE_AN_X_AND_Y_SCALE, 1)))
+                else if (static_cast<bool>(readBits(std::bit_cast<u8*>(&flags), WE_HAVE_AN_X_AND_Y_SCALE, 1)))
                 {
-                    scaleMatrix(0, 0) =
-                        static_cast<float>(parseFromBytes<i16>(&bytes[curByteIndex], std::endian::big)) /
-                        static_cast<float>(1 << 14);
+                    scaleMatrix(0, 0) = static_cast<f32>(parseFromBytes<i16>(&bytes[curByteIndex], std::endian::big)) /
+                                        static_cast<f32>(1 << 14);
                     scaleMatrix(1, 1) =
-                        static_cast<float>(parseFromBytes<i16>(&bytes[curByteIndex + 2], std::endian::big)) /
-                        static_cast<float>(1 << 14);
+                        static_cast<f32>(parseFromBytes<i16>(&bytes[curByteIndex + 2], std::endian::big)) /
+                        static_cast<f32>(1 << 14);
                     curByteIndex += 4;
                 }
-                else if (static_cast<bool>(readBits(reinterpret_cast<u8*>(&flags), WE_HAVE_A_TWO_BY_TWO, 1)))
+                else if (static_cast<bool>(readBits(std::bit_cast<u8*>(&flags), WE_HAVE_A_TWO_BY_TWO, 1)))
                 {
-                    scaleMatrix(0, 0) =
-                        static_cast<float>(parseFromBytes<i16>(&bytes[curByteIndex], std::endian::big)) /
-                        static_cast<float>(1 << 14);
+                    scaleMatrix(0, 0) = static_cast<f32>(parseFromBytes<i16>(&bytes[curByteIndex], std::endian::big)) /
+                                        static_cast<f32>(1 << 14);
                     scaleMatrix(0, 1) =
-                        static_cast<float>(parseFromBytes<i16>(&bytes[curByteIndex + 2], std::endian::big)) /
-                        static_cast<float>(1 << 14);
+                        static_cast<f32>(parseFromBytes<i16>(&bytes[curByteIndex + 2], std::endian::big)) /
+                        static_cast<f32>(1 << 14);
                     scaleMatrix(1, 0) =
-                        static_cast<float>(parseFromBytes<i16>(&bytes[curByteIndex + 4], std::endian::big)) /
-                        static_cast<float>(1 << 14);
+                        static_cast<f32>(parseFromBytes<i16>(&bytes[curByteIndex + 4], std::endian::big)) /
+                        static_cast<f32>(1 << 14);
                     scaleMatrix(1, 1) =
-                        static_cast<float>(parseFromBytes<i16>(&bytes[curByteIndex + 6], std::endian::big)) /
-                        static_cast<float>(1 << 14);
+                        static_cast<f32>(parseFromBytes<i16>(&bytes[curByteIndex + 6], std::endian::big)) /
+                        static_cast<f32>(1 << 14);
                     curByteIndex += 8;
                 }
 
@@ -529,7 +527,7 @@ FontData loadTtf(const std::string& path)
                     points[startIndex + i].onCurve = compPoints[i].onCurve;
                 }
 
-                if (!static_cast<bool>(readBits(reinterpret_cast<u8*>(&flags), MORE_COMPONENTS, 1)))
+                if (!static_cast<bool>(readBits(std::bit_cast<u8*>(&flags), MORE_COMPONENTS, 1)))
                 {
                     break;
                 }

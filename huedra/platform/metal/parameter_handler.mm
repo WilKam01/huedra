@@ -209,7 +209,7 @@ void MetalParameterHandler::writeParameter(const ParameterBinding& parameter, vo
             info.buffers.push_back(buffer);
         }
 
-        void* dst = reinterpret_cast<u8*>([info.buffers[info.curBufferIndex] contents]) + info.curByteIndex +
+        void* dst = std::bit_cast<u8*>([info.buffers[info.curBufferIndex] contents]) + info.curByteIndex +
                     (parameter.offset - info.startByte);
         std::memcpy(dst, data, size);
         info.updatedSinceLastUpdate = true;

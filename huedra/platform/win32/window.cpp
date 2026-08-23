@@ -5,20 +5,20 @@
 namespace huedra {
 
 // Win32 is notorious for converting actual bytes to other types
-// Therefore, it's permissable to use reinterpret_cast and other pointer arithmetic
+// Therefore, it's permissable to use std::bit_cast and other pointer arithmetic
 // NOLINTBEGIN(performance-no-int-to-ptr, performance-no-int-to-ptr)
 LRESULT CALLBACK WindowWin32::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
     WindowWin32* self = nullptr;
     if (uMsg == WM_NCCREATE)
     {
-        auto* lpcs = reinterpret_cast<LPCREATESTRUCT>(lParam);
+        auto* lpcs = std::bit_cast<LPCREATESTRUCT>(lParam);
         self = static_cast<WindowWin32*>(lpcs->lpCreateParams);
-        SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
+        SetWindowLongPtr(hwnd, GWLP_USERDATA, std::bit_cast<LONG_PTR>(self));
     }
     else
     {
-        self = reinterpret_cast<WindowWin32*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+        self = std::bit_cast<WindowWin32*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
     }
 
     if (self != nullptr)
@@ -64,7 +64,7 @@ LRESULT CALLBACK WindowWin32::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
             self->updatePosition(positionX, positionY, screenPositionX, screenPositionY);
             break;
         case WM_MOVING:
-            winRect = *reinterpret_cast<RECT*>(lParam);
+            winRect = *std::bit_cast<RECT*>(lParam);
             screenPositionX = winRect.left;
             screenPositionY = winRect.top;
 
@@ -78,7 +78,7 @@ LRESULT CALLBACK WindowWin32::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
         case WM_INPUT: {
             RAWINPUT raw;
             UINT size = sizeof(RAWINPUT);
-            GetRawInputData(reinterpret_cast<HRAWINPUT>(lParam), RID_INPUT, &raw, &size, sizeof(RAWINPUTHEADER));
+            GetRawInputData(std::bit_cast<HRAWINPUT>(lParam), RID_INPUT, &raw, &size, sizeof(RAWINPUTHEADER));
 
             if (raw.header.dwType == RIM_TYPEMOUSE)
             {
@@ -91,11 +91,11 @@ LRESULT CALLBACK WindowWin32::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
             global::input.setMousePos(ivec2(point.x, point.y));
             break;
         case WM_MOUSEWHEEL:
-            global::input.setMouseScrollVertical(static_cast<float>(GET_WHEEL_DELTA_WPARAM(wParam)) /
+            global::input.setMouseScrollVertical(static_cast<f32>(GET_WHEEL_DELTA_WPARAM(wParam)) /
                                                  120.0f); // Normalize to 1.0f
             break;
         case WM_MOUSEHWHEEL:
-            global::input.setMouseScrollHorizontal(static_cast<float>(GET_WHEEL_DELTA_WPARAM(wParam)) /
+            global::input.setMouseScrollHorizontal(static_cast<f32>(GET_WHEEL_DELTA_WPARAM(wParam)) /
                                                    120.0f); // Normalize to 1.0f
             break;
         case WM_ACTIVATE:

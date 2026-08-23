@@ -45,8 +45,8 @@ public:
     ivec2 getMouseDelta() const;
 
     vec2 getMouseScroll() const; // x = horizontal, y = vertical
-    float getMouseScrollVertical() const;
-    float getMouseScrollHorizontal() const;
+    f32 getMouseScrollVertical() const;
+    f32 getMouseScrollHorizontal() const;
 
     MouseMode getMouseMode() const { return m_mouseMode; }
     CursorType getCursor() const { return m_cursor; }
@@ -67,8 +67,8 @@ private:
     void setMouseButtonDoubleClick(MouseButton button);
     void setMousePos(ivec2 pos);
     void setMouseDelta(ivec2 pos);
-    void setMouseScrollVertical(float vertical);
-    void setMouseScrollHorizontal(float horizontal);
+    void setMouseScrollVertical(f32 vertical);
+    void setMouseScrollHorizontal(f32 horizontal);
 
     std::array<u64, 2> m_keyDown{0};
     std::array<u64, 2> m_prevKeyDown{0};

@@ -212,7 +212,7 @@ void Device::createLogicalDevice(VkSurfaceKHR surface)
     std::set<u32> uniqueQueueFamilies = {m_graphicsQueueuFamilyIndex, m_presentQueueuFamilyIndex,
                                          m_computeQueueuFamilyIndex};
 
-    float queuePriority = 1.0f;
+    f32 queuePriority = 1.0f;
     for (u32 queueFamily : uniqueQueueFamilies)
     {
         VkDeviceQueueCreateInfo queueCreateInfo{};

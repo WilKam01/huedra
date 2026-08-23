@@ -125,7 +125,7 @@ vec2 Input::getMouseScroll() const
     return m_mouseScroll;
 }
 
-float Input::getMouseScrollVertical() const
+f32 Input::getMouseScrollVertical() const
 {
     if (m_mouseMode == MouseMode::DISABLED)
     {
@@ -134,7 +134,7 @@ float Input::getMouseScrollVertical() const
     return m_mouseScroll.y;
 }
 
-float Input::getMouseScrollHorizontal() const
+f32 Input::getMouseScrollHorizontal() const
 {
     if (m_mouseMode == MouseMode::DISABLED)
     {
@@ -241,8 +241,8 @@ void Input::setMousePos(ivec2 pos) { m_mousePos = pos; }
 
 void Input::setMouseDelta(ivec2 pos) { m_mouseDelta = pos; }
 
-void Input::setMouseScrollVertical(float vertical) { m_mouseScroll.y = vertical; }
+void Input::setMouseScrollVertical(f32 vertical) { m_mouseScroll.y = vertical; }
 
-void Input::setMouseScrollHorizontal(float horizontal) { m_mouseScroll.x = horizontal; }
+void Input::setMouseScrollHorizontal(f32 horizontal) { m_mouseScroll.x = horizontal; }
 
 } // namespace huedra

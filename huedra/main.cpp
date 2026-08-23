@@ -130,11 +130,11 @@ int main()
         {
             Entity e = global::sceneManager.addEntity();
             Transform transform;
-            transform.position = vec3(-(numEnities / 2.0f) + static_cast<float>(x) + 0.5f,
-                                      -(numEnities / 2.0f) + static_cast<float>(y) + 0.5f, 0.0f) *
+            transform.position = vec3(-(numEnities / 2.0f) + static_cast<f32>(x) + 0.5f,
+                                      -(numEnities / 2.0f) + static_cast<f32>(y) + 0.5f, 0.0f) *
                                  3.0f;
             transform.rotation =
-                vec3(math::radians(15) * static_cast<float>(x), math::radians(15) * static_cast<float>(y), 0.0f);
+                vec3(math::radians(15) * static_cast<f32>(x), math::radians(15) * static_cast<f32>(y), 0.0f);
             transform.scale = vec3(1.0f);
             global::sceneManager.setComponent(e, transform);
         }
@@ -143,7 +143,7 @@ int main()
     // Shader Resources
     WindowRect rect = window->getRect();
     matrix4 viewProj = math::perspective(math::radians(45),
-                                         static_cast<float>(rect.screenWidth) / static_cast<float>(rect.screenHeight),
+                                         static_cast<f32>(rect.screenWidth) / static_cast<f32>(rect.screenHeight),
                                          vec2(0.1f, 100.0f)) *
                        math::lookAt(vec3(0.0f, 0.0f, -5.0f), vec3(0.0f), vec3(0.0f, 1.0f, 0.0f));
 
@@ -244,10 +244,10 @@ int main()
         vec2 position;
         vec2 size;
         matrix4 projection;
-    } fontInfo{.position = vec2(static_cast<float>(window->getScreenSize().x / 2.0f) - 150.0f, 50.0f),
+    } fontInfo{.position = vec2(static_cast<f32>(window->getScreenSize().x / 2.0f) - 150.0f, 50.0f),
                .size = vec2(64.0f),
-               .projection = math::ortho(vec2(0, static_cast<float>(window->getScreenSize().x)),
-                                         vec2(0, static_cast<float>(window->getScreenSize().y)), vec2(0.0f, 1.0f))};
+               .projection = math::ortho(vec2(0, static_cast<f32>(window->getScreenSize().x)),
+                                         vec2(0, static_cast<f32>(window->getScreenSize().y)), vec2(0.0f, 1.0f))};
     Ref<Buffer> fontInfoBuffer = global::graphicsManager.createBuffer(
         BufferType::DYNAMIC, HU_BUFFER_USAGE_CONSTANT_BUFFER, sizeof(fontInfo), &fontInfo);
 
@@ -296,24 +296,24 @@ int main()
         u32 glyphIndex = font.characterMappings[static_cast<u32>(static_cast<unsigned char>(renderText[i]))];
         if (renderText[i] == ' ')
         {
-            cursor.x += 0.33f * static_cast<float>(font.unitsPerEm);
+            cursor.x += 0.33f * static_cast<f32>(font.unitsPerEm);
         }
         else if (renderText[i] == '\n')
         {
-            cursor.y -= 1.0f * static_cast<float>(font.unitsPerEm);
+            cursor.y -= 1.0f * static_cast<f32>(font.unitsPerEm);
             cursor.x = 0.0f;
         }
         else
         {
             TextData text;
             text.position =
-                (static_cast<vec2>(font.glyphs[glyphIndex].min) + cursor) / static_cast<float>(font.unitsPerEm);
+                (static_cast<vec2>(font.glyphs[glyphIndex].min) + cursor) / static_cast<f32>(font.unitsPerEm);
             text.size = static_cast<vec2>(font.glyphs[glyphIndex].max - font.glyphs[glyphIndex].min) /
-                        static_cast<float>(font.unitsPerEm);
+                        static_cast<f32>(font.unitsPerEm);
             text.contourRange.x = glyphContourRanges[glyphIndex].start;
             text.contourRange.y = glyphContourRanges[glyphIndex].end;
             textData.push_back(text);
-            cursor.x += static_cast<float>(font.glyphs[glyphIndex].advanceWidth);
+            cursor.x += static_cast<f32>(font.glyphs[glyphIndex].advanceWidth);
         }
     }
     textBuffer = global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER,
@@ -344,7 +344,7 @@ int main()
         global::graphicsManager.update();
 
         cursorBlinkTimer.update();
-        if (cursorBlinkTimer.passedInterval(static_cast<u64>(0.5f * static_cast<float>(Timer::SECONDS_TO_NANO))))
+        if (cursorBlinkTimer.passedInterval(static_cast<u64>(0.5f * static_cast<f32>(Timer::SECONDS_TO_NANO))))
         {
             renderCursor = !renderCursor;
         }
@@ -391,16 +391,16 @@ int main()
         if (lock)
         {
             ivec2 mouseDt = global::input.getMouseDelta();
-            rot -= vec3(static_cast<float>(mouseDt.y), static_cast<float>(mouseDt.x), 0.0f) * 1.0f * global::timer.dt();
+            rot -= vec3(static_cast<f32>(mouseDt.y), static_cast<f32>(mouseDt.x), 0.0f) * 1.0f * global::timer.dt();
         }
         else
         {
-            rot += vec3(static_cast<float>(global::input.isKeyDown(Keys::I)) -
-                            static_cast<float>(global::input.isKeyDown(Keys::K)),
-                        static_cast<float>(global::input.isKeyDown(Keys::J)) -
-                            static_cast<float>(global::input.isKeyDown(Keys::L)),
-                        static_cast<float>(global::input.isKeyDown(Keys::O)) -
-                            static_cast<float>(global::input.isKeyDown(Keys::U))) *
+            rot += vec3(static_cast<f32>(global::input.isKeyDown(Keys::I)) -
+                            static_cast<f32>(global::input.isKeyDown(Keys::K)),
+                        static_cast<f32>(global::input.isKeyDown(Keys::J)) -
+                            static_cast<f32>(global::input.isKeyDown(Keys::L)),
+                        static_cast<f32>(global::input.isKeyDown(Keys::O)) -
+                            static_cast<f32>(global::input.isKeyDown(Keys::U))) *
                    1.0f * global::timer.dt();
         }
 
@@ -411,15 +411,15 @@ int main()
         vec3 up = vec3(rMat(0, 1), rMat(1, 1), rMat(2, 1));
         vec3 forward = vec3(rMat(0, 2), rMat(1, 2), rMat(2, 2));
 
-        float eyeSpeed = 5.0f + (10.0f * static_cast<float>(global::input.isKeyDown(Keys::SHIFT)));
-        eye += ((static_cast<float>(global::input.isKeyDown(Keys::D)) -
-                 static_cast<float>(global::input.isKeyDown(Keys::A))) *
+        f32 eyeSpeed = 5.0f + (10.0f * static_cast<f32>(global::input.isKeyDown(Keys::SHIFT)));
+        eye += ((static_cast<f32>(global::input.isKeyDown(Keys::D)) -
+                 static_cast<f32>(global::input.isKeyDown(Keys::A))) *
                     right +
-                (static_cast<float>(global::input.isKeyDown(Keys::Q)) -
-                 static_cast<float>(global::input.isKeyDown(Keys::E))) *
+                (static_cast<f32>(global::input.isKeyDown(Keys::Q)) -
+                 static_cast<f32>(global::input.isKeyDown(Keys::E))) *
                     up +
-                (static_cast<float>(global::input.isKeyDown(Keys::S)) -
-                 static_cast<float>(global::input.isKeyDown(Keys::W))) *
+                (static_cast<f32>(global::input.isKeyDown(Keys::S)) -
+                 static_cast<f32>(global::input.isKeyDown(Keys::W))) *
                     forward) *
                eyeSpeed * global::timer.dt();
 
@@ -452,9 +452,9 @@ int main()
                 windowRenderTargetSize = window->getRenderTarget()->getSize();
 
                 fontInfo.projection =
-                    math::ortho(vec2(0.0f, static_cast<float>(window->getScreenSize().x)),
-                                vec2(0.0f, static_cast<float>(window->getScreenSize().y)), vec2(0.0f, 1.0f));
-                fontInfo.position = vec2(static_cast<float>(window->getScreenSize().x / 2.0f) - 150.0f, 50.0f);
+                    math::ortho(vec2(0.0f, static_cast<f32>(window->getScreenSize().x)),
+                                vec2(0.0f, static_cast<f32>(window->getScreenSize().y)), vec2(0.0f, 1.0f));
+                fontInfo.position = vec2(static_cast<f32>(window->getScreenSize().x / 2.0f) - 150.0f, 50.0f);
             }
 
             RenderPassBuilder renderPass;
@@ -500,7 +500,7 @@ int main()
 
         rect = window->getRect();
         viewProj = math::perspective(math::radians(90.0f),
-                                     static_cast<float>(rect.screenWidth) / static_cast<float>(rect.screenHeight),
+                                     static_cast<f32>(rect.screenWidth) / static_cast<f32>(rect.screenHeight),
                                      vec2(0.1f, 100.0f)) *
                    math::lookTo(eye, -forward, up);
         viewProjBuffer->write(&viewProj, sizeof(viewProj));

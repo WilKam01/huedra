@@ -205,7 +205,7 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
         {
             // If first char is uppercase (5th bit == 1) the chunk is critical
             // Critical chunks has to be supported for correct decoding of png image data
-            bool isCritical = static_cast<bool>((readBits(reinterpret_cast<u8*>(chunkType.data()), 5, 1)) == 0);
+            bool isCritical = static_cast<bool>((readBits(std::bit_cast<u8*>(chunkType.data()), 5, 1)) == 0);
             if (isCritical)
             {
                 log(LogLevel::WARNING, "loadPng(): Chunk type: {} is critical but not supported, aborting load",
@@ -238,9 +238,9 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
                               static_cast<u64>(textureData.texelSize));
 
     // Reconstruct image data for each scanline (reverse filtering)
-    float bytesPerPixel = (static_cast<float>(header.bitDepth) / 8.0f) *
-                          static_cast<float>(CHANNELS_PER_TYPE[static_cast<u64>(header.colorType)]);
-    u64 scanlineByteWidth = static_cast<u64>(std::round(static_cast<float>(header.width) * bytesPerPixel) + 1);
+    f32 bytesPerPixel = (static_cast<f32>(header.bitDepth) / 8.0f) *
+                        static_cast<f32>(CHANNELS_PER_TYPE[static_cast<u64>(header.colorType)]);
+    u64 scanlineByteWidth = static_cast<u64>(std::round(static_cast<f32>(header.width) * bytesPerPixel) + 1);
     u64 wholeBytesPerPixel = static_cast<u64>(std::round(bytesPerPixel)); // Sets it to 1 if less for use in filtering
     for (u64 i = 0; i < header.height; ++i)
     {
@@ -346,10 +346,10 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
                     }
                     else // 1, 2, 4 bits
                     {
-                        pngChannel = static_cast<u16>(
-                            static_cast<float>(readBits(&imageBytes[(i * scanlineByteWidth) + byteIndex], bits,
-                                                        header.bitDepth, false)) *
-                            255.0 / static_cast<float>((1u << header.bitDepth) - 1));
+                        pngChannel =
+                            static_cast<u16>(static_cast<f32>(readBits(&imageBytes[(i * scanlineByteWidth) + byteIndex],
+                                                                       bits, header.bitDepth, false)) *
+                                             255.0 / static_cast<f32>((1u << header.bitDepth) - 1));
                         bits += header.bitDepth;
                     }
                 }

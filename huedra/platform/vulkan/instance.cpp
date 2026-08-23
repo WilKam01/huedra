@@ -123,7 +123,7 @@ VkResult Instance::createDebugUtilsMessengerEXT(const VkDebugUtilsMessengerCreat
                                                 const VkAllocationCallbacks* pAllocator,
                                                 VkDebugUtilsMessengerEXT* pDebugMessenger)
 {
-    auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
+    auto func = std::bit_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
         vkGetInstanceProcAddr(m_instance, "vkCreateDebugUtilsMessengerEXT"));
     if (func != nullptr)
     {
@@ -135,7 +135,7 @@ VkResult Instance::createDebugUtilsMessengerEXT(const VkDebugUtilsMessengerCreat
 void Instance::destroyDebugUtilsMessengerEXT(VkDebugUtilsMessengerEXT debugMessenger,
                                              const VkAllocationCallbacks* pAllocator)
 {
-    auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
+    auto func = std::bit_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
         vkGetInstanceProcAddr(m_instance, "vkDestroyDebugUtilsMessengerEXT"));
     if (func != nullptr)
     {

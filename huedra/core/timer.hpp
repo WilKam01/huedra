@@ -29,26 +29,26 @@ public:
     i64 dtNano() const { return m_deltaTime; }
 
     // In milliseconds
-    float currentTimeMs() const
+    f32 currentTimeMs() const
     {
-        return static_cast<float>(m_currentTime) / static_cast<float>(constants::MILLISECONDS_TO_NANO);
+        return static_cast<f32>(m_currentTime) / static_cast<f32>(constants::MILLISECONDS_TO_NANO);
     }
-    float elapsedMs() const
+    f32 elapsedMs() const
     {
-        return static_cast<float>(m_currentTime - m_startTime) / static_cast<float>(constants::MILLISECONDS_TO_NANO);
+        return static_cast<f32>(m_currentTime - m_startTime) / static_cast<f32>(constants::MILLISECONDS_TO_NANO);
     }
-    float dtMs() const { return static_cast<float>(m_deltaTime) / static_cast<float>(constants::MILLISECONDS_TO_NANO); }
+    f32 dtMs() const { return static_cast<f32>(m_deltaTime) / static_cast<f32>(constants::MILLISECONDS_TO_NANO); }
 
     // In seconds
-    float currentTimeSeconds() const
+    f32 currentTimeSeconds() const
     {
-        return static_cast<float>(m_currentTime) / static_cast<float>(constants::SECONDS_TO_NANO);
+        return static_cast<f32>(m_currentTime) / static_cast<f32>(constants::SECONDS_TO_NANO);
     }
-    float elapsedSeconds() const
+    f32 elapsedSeconds() const
     {
-        return static_cast<float>(m_currentTime - m_startTime) / static_cast<float>(constants::SECONDS_TO_NANO);
+        return static_cast<f32>(m_currentTime - m_startTime) / static_cast<f32>(constants::SECONDS_TO_NANO);
     }
-    float dt() const { return static_cast<float>(m_deltaTime) / static_cast<float>(constants::SECONDS_TO_NANO); }
+    f32 dt() const { return static_cast<f32>(m_deltaTime) / static_cast<f32>(constants::SECONDS_TO_NANO); }
 
 private:
     i64 m_startTime{};

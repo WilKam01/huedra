@@ -144,7 +144,7 @@ std::vector<MeshData> loadObj(const std::string& path)
     {
         if (static_cast<char>(bytes[i]) == '\n')
         {
-            std::string line(reinterpret_cast<char*>(&bytes[lineStart]), i - lineStart);
+            std::string line(std::bit_cast<char*>(&bytes[lineStart]), i - lineStart);
             lineStart = i + 1;
 
             if (line.empty())
@@ -157,7 +157,7 @@ std::vector<MeshData> loadObj(const std::string& path)
     }
 
     // Parse left over line
-    std::string line(reinterpret_cast<char*>(&bytes[lineStart]), bytes.size() - lineStart);
+    std::string line(std::bit_cast<char*>(&bytes[lineStart]), bytes.size() - lineStart);
     if (!line.empty())
     {
         parseLine(line);
@@ -351,8 +351,8 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
             }
 
             std::vector<u8> bytes = readAccessor(attribute["POSITION"].asUint(), "VEC3", 3, ComponentType::FLOAT, 4);
-            meshData.positions = std::vector<vec3>(reinterpret_cast<vec3*>(bytes.data()),
-                                                   reinterpret_cast<vec3*>(&bytes[bytes.size() - 1]));
+            meshData.positions =
+                std::vector<vec3>(std::bit_cast<vec3*>(bytes.data()), std::bit_cast<vec3*>(&bytes[bytes.size() - 1]));
 
             if (primitive["indices"].asUint() >= accessors.size() ||
                 accessors[primitive["indices"].asUint()].getType() != JsonValueType::OBJECT)
@@ -382,28 +382,28 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
             else if (indexType == ComponentType::UINT16)
             {
                 bytes = readAccessor(primitive["indices"].asUint(), "SCALAR", 1, ComponentType::UINT16, 2);
-                std::vector<u16> bytes16 = std::vector<u16>(reinterpret_cast<u16*>(bytes.data()),
-                                                            reinterpret_cast<u16*>(&bytes[bytes.size() - 1]));
+                std::vector<u16> bytes16 =
+                    std::vector<u16>(std::bit_cast<u16*>(bytes.data()), std::bit_cast<u16*>(&bytes[bytes.size() - 1]));
                 meshData.indices = std::vector<u32>(bytes16.begin(), bytes16.end());
             }
             else if (indexType == ComponentType::UINT32)
             {
                 bytes = readAccessor(primitive["indices"].asUint(), "SCALAR", 1, ComponentType::UINT32, 4);
-                meshData.indices = std::vector<u32>(reinterpret_cast<u32*>(bytes.data()),
-                                                    reinterpret_cast<u32*>(&bytes[bytes.size() - 1]));
+                meshData.indices =
+                    std::vector<u32>(std::bit_cast<u32*>(bytes.data()), std::bit_cast<u32*>(&bytes[bytes.size() - 1]));
             }
 
             if (attribute.hasMember("NORMAL", JsonValueType::UINT))
             {
                 bytes = readAccessor(attribute["NORMAL"].asUint(), "VEC3", 3, ComponentType::FLOAT, 4);
-                meshData.normals = std::vector<vec3>(reinterpret_cast<vec3*>(bytes.data()),
-                                                     reinterpret_cast<vec3*>(&bytes[bytes.size() - 1]));
+                meshData.normals = std::vector<vec3>(std::bit_cast<vec3*>(bytes.data()),
+                                                     std::bit_cast<vec3*>(&bytes[bytes.size() - 1]));
             }
             if (attribute.hasMember("TEXCOORD_0", JsonValueType::UINT))
             {
                 bytes = readAccessor(attribute["TEXCOORD_0"].asUint(), "VEC2", 2, ComponentType::FLOAT, 4);
-                meshData.uvs = std::vector<vec2>(reinterpret_cast<vec2*>(bytes.data()),
-                                                 reinterpret_cast<vec2*>(&bytes[bytes.size() - 1]));
+                meshData.uvs = std::vector<vec2>(std::bit_cast<vec2*>(bytes.data()),
+                                                 std::bit_cast<vec2*>(&bytes[bytes.size() - 1]));
             }
         }
     }

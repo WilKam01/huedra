@@ -36,7 +36,7 @@ public:
     void updateResolutionInternal(u32 width, u32 height, u32 screenWidth, u32 screenHeight);
     void setFocusInternal(bool isFocus);
     void setShouldClose() { m_shouldClose = true; }
-    double getScreenDPI() const;
+    f64 getScreenDPI() const;
 
 private:
     static Keys convertKey(u16 code, char character);

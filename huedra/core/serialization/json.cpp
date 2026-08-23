@@ -57,7 +57,7 @@ JsonValue& JsonValue::operator=(u64 value)
     return *this;
 }
 
-JsonValue& JsonValue::operator=(double value)
+JsonValue& JsonValue::operator=(f64 value)
 {
     m_type = JsonValueType::FLOAT;
     m_value = value;
@@ -126,14 +126,14 @@ u64& JsonValue::asUint()
     return std::get<u64>(m_value);
 }
 
-double& JsonValue::asFloat()
+f64& JsonValue::asFloat()
 {
     if (m_type == JsonValueType::NIL)
     {
         m_type = JsonValueType::FLOAT;
         m_value = 0.0;
     }
-    return std::get<double>(m_value);
+    return std::get<f64>(m_value);
 }
 
 bool& JsonValue::asBool()
@@ -794,7 +794,7 @@ std::vector<u8> serializeJson(const JsonObject& json)
             break;
         case JsonValueType::FLOAT: {
             std::ostringstream oss;
-            oss << std::setprecision(std::numeric_limits<double>::digits10 + 1) << value.asFloat();
+            oss << std::setprecision(std::numeric_limits<f64>::digits10 + 1) << value.asFloat();
             str = oss.str();
             for (auto& c : str)
             {

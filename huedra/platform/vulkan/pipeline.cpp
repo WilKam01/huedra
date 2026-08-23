@@ -24,7 +24,7 @@ void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = static_cast<u32>(m_shaderModule.getCode().size());
-    createInfo.pCode = reinterpret_cast<const u32*>(m_shaderModule.getCode().data());
+    createInfo.pCode = std::bit_cast<const u32*>(m_shaderModule.getCode().data());
 
     VkShaderModule shaderModule{nullptr};
     if (vkCreateShaderModule(m_device->getLogical(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
@@ -192,7 +192,7 @@ void VulkanPipeline::initCompute(const PipelineBuilder& pipelineBuilder, Device&
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = static_cast<u32>(m_shaderModule.getCode().size());
-    createInfo.pCode = reinterpret_cast<const u32*>(m_shaderModule.getCode().data());
+    createInfo.pCode = std::bit_cast<const u32*>(m_shaderModule.getCode().data());
 
     VkShaderModule shaderModule{nullptr};
     if (vkCreateShaderModule(m_device->getLogical(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS)

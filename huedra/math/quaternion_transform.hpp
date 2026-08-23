@@ -4,12 +4,12 @@
 
 namespace huedra::math {
 
-float inline dot(const Quaternion& lhs, const Quaternion& rhs)
+f32 inline dot(const Quaternion& lhs, const Quaternion& rhs)
 {
     return (lhs.scalar * rhs.scalar) + dot(lhs.axis, rhs.axis);
 }
 
-float inline length(const Quaternion& quat) { return sqrt(dot(quat, quat)); }
+f32 inline length(const Quaternion& quat) { return sqrt(dot(quat, quat)); }
 
 Quaternion inline normalize(const Quaternion& quat) { return quat / length(quat); }
 
@@ -17,14 +17,14 @@ Quaternion inline conjugate(const Quaternion& quat) { return {quat.scalar, -quat
 
 Quaternion inline inverse(const Quaternion& quat) { return conjugate(quat) / dot(quat, quat); }
 
-Quaternion inline lerp(const Quaternion& start, const Quaternion& end, float t)
+Quaternion inline lerp(const Quaternion& start, const Quaternion& end, f32 t)
 {
     return normalize(start * (1.0f - t) + end * t);
 }
 
-Quaternion inline slerp(const Quaternion& start, const Quaternion& end, float t)
+Quaternion inline slerp(const Quaternion& start, const Quaternion& end, f32 t)
 {
-    float cosTheta = dot(normalize(start), normalize(end));
+    f32 cosTheta = dot(normalize(start), normalize(end));
     Quaternion end2 = end;
     if (cosTheta < 0.0f)
     {
@@ -33,12 +33,12 @@ Quaternion inline slerp(const Quaternion& start, const Quaternion& end, float t)
     }
 
     // Use lerp when quaternions are near or identical
-    if (cosTheta > 1.0f - std::numeric_limits<float>::epsilon())
+    if (cosTheta > 1.0f - std::numeric_limits<f32>::epsilon())
     {
         return lerp(start, end2, t);
     }
 
-    float theta = acos(cosTheta);
+    f32 theta = acos(cosTheta);
     return (sin((1.0f - t) * theta) * start + sin(t * theta) * end) / sin(theta);
 }
 

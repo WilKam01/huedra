@@ -53,7 +53,7 @@ bool WaylandConfig::loadCursorTheme()
                     // Try normal variant: v -> i
                     readResult = sd_bus_message_read(reply, "v", "i", &innerVal);
 
-                    // If failed, check if using double variant: v -> v -> i
+                    // If failed, check if using f64 variant: v -> v -> i
                     if (readResult < 0)
                     {
                         readResult = sd_bus_message_read(reply, "v", "v", "i", &innerVal);

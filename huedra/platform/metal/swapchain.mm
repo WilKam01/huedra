@@ -49,8 +49,8 @@ void MetalSwapchain::init(id<MTLDevice> device, id<MTLCommandQueue> commandQueue
 
     RenderTargetType renderTargetType = renderDepth ? RenderTargetType::COLOR_AND_DEPTH : RenderTargetType::COLOR;
     m_renderTarget.init(m_device, renderTargetType, GraphicsDataFormat::RGBA_8_UNORM,
-                        static_cast<u32>(static_cast<float>(m_window->getScreenSize().x) * m_window->getScreenDPI()),
-                        static_cast<u32>(static_cast<float>(m_window->getScreenSize().y) * m_window->getScreenDPI()),
+                        static_cast<u32>(static_cast<f32>(m_window->getScreenSize().x) * m_window->getScreenDPI()),
+                        static_cast<u32>(static_cast<f32>(m_window->getScreenSize().y) * m_window->getScreenDPI()),
                         this);
     m_window->setRenderTarget(Ref<RenderTarget>(&m_renderTarget));
 
@@ -125,8 +125,8 @@ void MetalSwapchain::aquireNextDrawable()
                 CGSizeMake(static_cast<CGFloat>(m_window->getScreenSize().x) * m_window->getScreenDPI(),
                            static_cast<CGFloat>(m_window->getScreenSize().y) * m_window->getScreenDPI());
             m_renderTarget.recreate(
-                static_cast<u32>(static_cast<float>(m_window->getScreenSize().x) * m_window->getScreenDPI()),
-                static_cast<u32>(static_cast<float>(m_window->getScreenSize().y) * m_window->getScreenDPI()));
+                static_cast<u32>(static_cast<f32>(m_window->getScreenSize().x) * m_window->getScreenDPI()),
+                static_cast<u32>(static_cast<f32>(m_window->getScreenSize().y) * m_window->getScreenDPI()));
 
             m_threadInfo.alreadyFetchedDrawable.store(false);
             m_threadInfo.condition.notify_one();
