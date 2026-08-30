@@ -8,6 +8,10 @@
 #include "platform/vulkan/os_manager.hpp"
 #include "platform/vulkan/type_converter.hpp"
 
+#ifdef WAYLAND
+#include "platform/wayland/window.hpp"
+#endif
+
 namespace huedra {
 
 void VulkanContext::init()
@@ -16,6 +20,10 @@ void VulkanContext::init()
 
     Window* tempWindow = global::windowManager.createWindow("temp", {});
     VkSurfaceKHR surface = createSurface(m_instance, tempWindow);
+
+#ifdef WAYLAND
+    wl_display_roundtrip(static_cast<WindowWayland*>(tempWindow)->getDisplay());
+#endif
 
     m_device.init(m_instance, surface);
 
@@ -313,7 +321,10 @@ void VulkanContext::prepareSwapchains()
 {
     for (auto& swapchain : m_swapchains)
     {
-        swapchain->aquireNextImage();
+        if (!swapchain->needsRecreation())
+        {
+            swapchain->aquireNextImage();
+        }
     }
 }
 
@@ -321,7 +332,27 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
 {
     if (m_curGraph.getHash() == builder.getHash())
     {
-        return;
+        bool swapchainsNeedRecreation{false};
+        for (auto& swapchain : m_activeSwapchains)
+        {
+            if (swapchain->needsRecreation())
+            {
+                swapchainsNeedRecreation = true;
+                break;
+            }
+        }
+        if (swapchainsNeedRecreation)
+        {
+            for (auto& swapchain : m_activeSwapchains)
+            {
+                swapchain->recreate();
+                swapchain->aquireNextImage();
+            }
+        }
+        else
+        {
+            return;
+        }
     }
 
     m_curGraph = builder;

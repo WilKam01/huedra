@@ -27,6 +27,7 @@ void VulkanSwapchain::aquireNextImage()
 {
     if (m_window->isMinimized())
     {
+        log(LogLevel::D_INFO, "Minimized!");
         m_renderTarget.setAvailability(false);
         return;
     }
@@ -43,9 +44,9 @@ void VulkanSwapchain::aquireNextImage()
         vkAcquireNextImageKHR(m_device->getLogical(), m_swapchain, UINT64_MAX,
                               m_imageAvailableSemaphores[m_semaphoreIndex], VK_NULL_HANDLE, &m_imageIndex);
 
-    if (result == VK_ERROR_OUT_OF_DATE_KHR)
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || m_window->getScreenSize() != m_renderTarget.getSize())
     {
-        recreate();
+        m_needsRecreation = true;
     }
     else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
     {
@@ -65,7 +66,7 @@ void VulkanSwapchain::handlePresentResult(VkResult result)
     m_semaphoreIndex = (m_semaphoreIndex + 1) % m_imageAvailableSemaphores.size();
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
     {
-        recreate();
+        m_needsRecreation = true;
     }
 }
 
@@ -105,8 +106,8 @@ void VulkanSwapchain::recreate()
 
     m_device->waitIdle();
     partialCleanup();
-
     create();
+    m_needsRecreation = false;
 }
 
 void VulkanSwapchain::partialCleanup()

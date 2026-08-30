@@ -80,16 +80,14 @@ void ShaderModule::init(Slang::ComPtr<slang::IModule> shaderModule,
 
 ShaderStage ShaderModule::getShaderStage(const std::string& entryPointName) const
 {
-    ShaderStage stage = ShaderStage::NONE;
-
     auto it = std::ranges::find_if(m_entryPoints,
                                    [entryPointName](const EntryPoint& entry) { return entry.name == entryPointName; });
     if (it != m_entryPoints.end())
     {
-        stage = it->stage;
+        return it->stage;
     }
 
-    return stage;
+    return ShaderStage::NONE;
 }
 
 Slang::ComPtr<slang::IEntryPoint> ShaderModule::getSlangEntryPoint(const std::string& entryPointName) const

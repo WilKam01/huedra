@@ -155,7 +155,6 @@ u64 RenderPassBuilder::generateHash()
     u64 hash = constants::FNV_OFFSET;
     auto combineHash = [&hash](u64 val) { hash ^= val * constants::FNV_PRIME; };
     auto u64Hash = std::hash<u64>();
-    auto ptrHash = std::hash<void*>();
 
     combineHash(u64Hash(static_cast<u64>(m_type)));
     combineHash(u64Hash(static_cast<u64>(m_clearTargets)));
@@ -178,9 +177,7 @@ u64 RenderPassBuilder::generateHash()
     combineHash(u64Hash(m_renderTargets.size()));
     for (auto& renderTarget : m_renderTargets)
     {
-        combineHash(ptrHash(renderTarget.target.get()));
-        combineHash(u64Hash(static_cast<u64>(renderTarget.target.get()->getWidth())));
-        combineHash(u64Hash(static_cast<u64>(renderTarget.target.get()->getHeight())));
+        combineHash(u64Hash(*std::bit_cast<u64*>(renderTarget.target.get())));
     }
 
     return hash;

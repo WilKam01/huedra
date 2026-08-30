@@ -111,12 +111,23 @@ void Device::pickPhysicalDevice(Instance& instance, VkSurfaceKHR surface)
     std::vector<VkPhysicalDevice> devices(count);
     vkEnumeratePhysicalDevices(instance.get(), &count, devices.data());
 
+    log(LogLevel::D_INFO, "Physical Devices: ");
+    for (const auto& device : devices)
+    {
+        VkPhysicalDeviceProperties deviceProperties;
+        vkGetPhysicalDeviceProperties(device, &deviceProperties);
+        log(LogLevel::D_INFO, "    {}", deviceProperties.deviceName);
+    }
+
     for (const auto& device : devices)
     {
         if (isDeviceSuitable(device, surface))
         {
             m_physicalDevice = device;
             m_msaaSamples = getMaxUsableSampleCount();
+            VkPhysicalDeviceProperties deviceProperties;
+            vkGetPhysicalDeviceProperties(device, &deviceProperties);
+            log(LogLevel::D_INFO, "Found suitable physical device: {}", deviceProperties.deviceName);
             break;
         }
     }
@@ -130,6 +141,41 @@ void Device::pickPhysicalDevice(Instance& instance, VkSurfaceKHR surface)
 bool Device::isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
     QueueFamilyIndices indices = findQueueFamilies(device, surface);
+
+    bool surfaceSupported{indices.isComplete()};
+    if (indices.graphicsFamily.has_value() && surfaceSupported)
+    {
+        VkBool32 result{VK_FALSE};
+        if (vkGetPhysicalDeviceSurfaceSupportKHR(device, indices.graphicsFamily.value(), surface, &result) !=
+            VK_SUCCESS)
+        {
+            log(LogLevel::ERR, "Failed to check physical device graphics surface support");
+        }
+        surfaceSupported = result == VK_TRUE;
+    }
+    if (indices.computeFamily.has_value() && surfaceSupported)
+    {
+        VkBool32 result{VK_FALSE};
+        if (vkGetPhysicalDeviceSurfaceSupportKHR(device, indices.computeFamily.value(), surface, &result) != VK_SUCCESS)
+        {
+            log(LogLevel::ERR, "Failed to check physical device compute surface support");
+        }
+        surfaceSupported = result == VK_TRUE;
+    }
+    if (indices.presentFamily.has_value() && surfaceSupported)
+    {
+        VkBool32 result{VK_FALSE};
+        if (vkGetPhysicalDeviceSurfaceSupportKHR(device, indices.presentFamily.value(), surface, &result) != VK_SUCCESS)
+        {
+            log(LogLevel::ERR, "Failed to check physical device graphics surface support");
+        }
+        surfaceSupported = result == VK_TRUE;
+    }
+
+    if (!surfaceSupported)
+    {
+        return false;
+    }
 
     bool extensionsSupported = checkDeviceExtensionSupport(device);
     bool swapchainAdequate = false;
@@ -238,13 +284,8 @@ void Device::createLogicalDevice(VkSurfaceKHR surface)
     createInfo.pEnabledFeatures = nullptr;
     createInfo.enabledExtensionCount = static_cast<u32>(vulkan_config::DEVICE_EXTENSIONS.size());
     createInfo.ppEnabledExtensionNames = vulkan_config::DEVICE_EXTENSIONS.data();
-
     createInfo.enabledLayerCount = 0;
-    if (vulkan_config::ENABLE_VALIDATION_LAYERS)
-    {
-        createInfo.enabledLayerCount = static_cast<u32>(vulkan_config::VALIDATION_LAYERS.size());
-        createInfo.ppEnabledLayerNames = vulkan_config::VALIDATION_LAYERS.data();
-    }
+    createInfo.ppEnabledLayerNames = nullptr;
 
     if (vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device) != VK_SUCCESS)
     {

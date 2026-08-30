@@ -23,7 +23,9 @@ public:
 
     void aquireNextImage();
     void handlePresentResult(VkResult result);
+    void recreate();
 
+    Window* getWindow() { return m_window; }
     VkSwapchainKHR get() const { return m_swapchain; }
     VkSurfaceKHR getSurface() const { return m_surface; }
     VulkanRenderTarget& getRenderTarget() { return m_renderTarget; }
@@ -32,6 +34,7 @@ public:
     bool alreadyWaited() const { return m_alreadyWaitedOnFrame; }
     bool canPresent() const { return m_renderTarget.isAvailable(); }
     u32 getImageIndex() const { return m_imageIndex; }
+    bool needsRecreation() const { return m_needsRecreation; }
 
     void setAlreadyWaited() { m_alreadyWaitedOnFrame = true; }
 
@@ -39,9 +42,7 @@ private:
     static VkPresentModeKHR choosePresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
     VkExtent2D chooseExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
-    void recreate();
     void partialCleanup();
-
     void create();
 
     Window* m_window{nullptr};
@@ -57,6 +58,8 @@ private:
     bool m_alreadyWaitedOnFrame{false};
     u32 m_imageIndex{0};
     u32 m_semaphoreIndex{0};
+
+    bool m_needsRecreation{false};
 };
 
 } // namespace huedra

@@ -40,7 +40,7 @@ void ReferenceCounter::reportState()
         log(LogLevel::WARNING, "ReferenceCounter: found {} resources not removed", getRefs().size());
         for (auto& [ptr, refs] : getRefs())
         {
-            log(LogLevel::WARNING, "Address: 0x{:x} | getRefs() alive: {}", ptr, refs.size());
+            log(LogLevel::WARNING, "Address: 0x{:x} | getRefs() alive: {}", *static_cast<u64*>(ptr), refs.size());
         }
     }
 }

@@ -27,43 +27,48 @@ int main()
 {
     global::timer.init();
     global::windowManager.init();
-    // global::graphicsManager.init();
-    // global::resourceManager.init();
-
-    JsonObject json = parseJson(readBytes("assets/test.json"));
-    json["Hello World!"] = true;
-    writeBytes("assets/result.json", serializeJson(json));
+    global::graphicsManager.init();
+    global::resourceManager.init();
 
     Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720));
+
+    ShaderModule shader = global::resourceManager.loadShaderModule("assets/shaders/triangle.slang");
+    PipelineBuilder pipeline;
+    pipeline.init(PipelineType::GRAPHICS)
+        .addVertexInputStream({.size = sizeof(vec2),
+                               .inputRate = VertexInputRate::VERTEX,
+                               .attributes = {{.format = GraphicsDataFormat::RG_16_FLOAT, .offset = 0}}})
+        .addVertexInputStream({.size = sizeof(vec3),
+                               .inputRate = VertexInputRate::VERTEX,
+                               .attributes = {{.format = GraphicsDataFormat::RGB_16_FLOAT, .offset = 0}}})
+        .addShader(shader, "vertMain")
+        .addShader(shader, "fragMain");
+
+    std::array<vec2, 3> vertexPositions = {vec2(0.0f, -0.5f), vec2(0.5f, 0.5f), vec2(-0.5f, 0.5f)};
+    Ref<Buffer> posBuffer =
+        global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER,
+                                             sizeof(vec2) * vertexPositions.size(), vertexPositions.data());
+    std::array<vec3, 3> vertexColors = {vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f)};
+    Ref<Buffer> colorBuffer = global::graphicsManager.createBuffer(
+        BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER, sizeof(vec3) * vertexColors.size(), vertexColors.data());
+
+    RenderPassBuilder pass;
+    pass.init(RenderPassType::GRAPHICS)
+        .addRenderTarget(window->getRenderTarget(), vec3(0.1f))
+        .setClearRenderTargets(true)
+        .setPipeline(pipeline)
+        .setCommands([&](RenderContext& context) {
+            context.bindVertexBuffers({posBuffer, colorBuffer});
+            context.draw(3, 1, 0, 0);
+        });
 
     while (global::windowManager.update())
     {
         global::timer.update();
+        global::graphicsManager.update();
 
         static u32 i = 0;
         static std::array<u32, 500> avgFps;
-
-        if (global::input.isMouseButtonDoubleClicked(MouseButton::LEFT))
-        {
-            log(LogLevel::D_INFO, "Double click!");
-        }
-
-        if (global::input.isKeyPressed(Keys::ESCAPE))
-        {
-            global::input.setCursor(static_cast<CursorType>((static_cast<u32>(global::input.getCursor()) + 1) % 15));
-        }
-
-        if (global::input.isKeyPressed(Keys::NUM_1))
-        {
-            global::input.setMouseHidden(true);
-            global::input.setMouseMode(MouseMode::LOCKED);
-        }
-
-        if (global::input.isKeyReleased(Keys::NUM_1))
-        {
-            global::input.setMouseHidden(false);
-            global::input.setMouseMode(MouseMode::NORMAL);
-        }
 
         avgFps[i++] = static_cast<u32>(1.0f / global::timer.dt());
         if (i >= 500)
@@ -73,9 +78,6 @@ int main()
             {
                 sum += fps;
             }
-
-            // log(LogLevel::D_INFO, "Elapsed: {:.5f}, Delta: {:.5f}, FPS: {}", global::timer.elapsedSeconds(),
-            //     global::timer.dt(), sum / 500);
             i = 0;
 
             if (window.valid())
@@ -85,8 +87,19 @@ int main()
             }
         }
 
+        if (window.valid())
+        {
+            RenderGraphBuilder graph;
+            graph.init().addPass("Main", pass);
+            global::graphicsManager.render(graph);
+        }
+
         global::input.update();
     }
+
+    global::resourceManager.cleanup();
+    global::graphicsManager.cleanup();
+    global::windowManager.cleanup();
 
     /*FontData font = loadTtf("assets/fonts/ManufacturingConsent-Regular.ttf");
 
@@ -142,10 +155,10 @@ int main()
 
     // Shader Resources
     WindowRect rect = window->getRect();
-    matrix4 viewProj = math::perspective(math::radians(45),
-                                         static_cast<f32>(rect.screenWidth) / static_cast<f32>(rect.screenHeight),
-                                         vec2(0.1f, 100.0f)) *
-                       math::lookAt(vec3(0.0f, 0.0f, -5.0f), vec3(0.0f), vec3(0.0f, 1.0f, 0.0f));
+    matrix4 viewProj =
+        math::perspective(math::radians(45), static_cast<f32>(rect.screenWidth) / static_cast<f32>(rect.screenHeight),
+                          vec2(0.1f, 100.0f)) *
+        math::lookAt(vec3(0.0f, 0.0f, -5.0f), vec3(0.0f), vec3(0.0f, 1.0f, 0.0f));
 
     Ref<Buffer> viewProjBuffer = global::graphicsManager.createBuffer(
         BufferType::DYNAMIC, HU_BUFFER_USAGE_CONSTANT_BUFFER, sizeof(viewProj), &viewProj);
@@ -344,7 +357,7 @@ int main()
         global::graphicsManager.update();
 
         cursorBlinkTimer.update();
-        if (cursorBlinkTimer.passedInterval(static_cast<u64>(0.5f * static_cast<f32>(Timer::SECONDS_TO_NANO))))
+        if (cursorBlinkTimer.passedInterval(static_cast<u64>(0.5f * static_cast<f32>(constants::SECONDS_TO_NANO))))
         {
             renderCursor = !renderCursor;
         }
@@ -412,16 +425,14 @@ int main()
         vec3 forward = vec3(rMat(0, 2), rMat(1, 2), rMat(2, 2));
 
         f32 eyeSpeed = 5.0f + (10.0f * static_cast<f32>(global::input.isKeyDown(Keys::SHIFT)));
-        eye += ((static_cast<f32>(global::input.isKeyDown(Keys::D)) -
-                 static_cast<f32>(global::input.isKeyDown(Keys::A))) *
-                    right +
-                (static_cast<f32>(global::input.isKeyDown(Keys::Q)) -
-                 static_cast<f32>(global::input.isKeyDown(Keys::E))) *
-                    up +
-                (static_cast<f32>(global::input.isKeyDown(Keys::S)) -
-                 static_cast<f32>(global::input.isKeyDown(Keys::W))) *
-                    forward) *
-               eyeSpeed * global::timer.dt();
+        eye +=
+            ((static_cast<f32>(global::input.isKeyDown(Keys::D)) - static_cast<f32>(global::input.isKeyDown(Keys::A))) *
+                 right +
+             (static_cast<f32>(global::input.isKeyDown(Keys::Q)) - static_cast<f32>(global::input.isKeyDown(Keys::E))) *
+                 up +
+             (static_cast<f32>(global::input.isKeyDown(Keys::S)) - static_cast<f32>(global::input.isKeyDown(Keys::W))) *
+                 forward) *
+            eyeSpeed * global::timer.dt();
 
         if (global::input.getMouseScroll() != vec2(0.0f))
         {
@@ -537,11 +548,11 @@ int main()
     }
 
     global::graphicsManager.removeTexture(texture);
-    global::graphicsManager.removeBuffer(viewProjBuffer);*/
+    global::graphicsManager.removeBuffer(viewProjBuffer);
 
-    // global::resourceManager.cleanup();
-    // global::graphicsManager.cleanup();
-    global::windowManager.cleanup();
+    global::resourceManager.cleanup();
+    global::graphicsManager.cleanup();
+    global::windowManager.cleanup();*/
 
 #ifdef DEBUG
     ReferenceCounter::reportState();

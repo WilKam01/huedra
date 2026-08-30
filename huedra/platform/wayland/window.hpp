@@ -19,8 +19,9 @@ public:
     WindowWayland(WindowWayland&& rhs) = default;
     WindowWayland& operator=(WindowWayland&& rhs) = default;
 
-    bool init(const std::string& title, const WindowInput& input, wl_shm* wlSharedMemory, wl_compositor* wlCompositor,
-              xdg_wm_base* xdgBase, zxdg_decoration_manager_v1* zxdgDecorationManager);
+    bool init(const std::string& title, const WindowInput& input, bool graphicsManagersInitialized,
+              wl_display* wlDisplay, wl_shm* wlSharedMemory, wl_compositor* wlCompositor, xdg_wm_base* xdgBase,
+              zxdg_decoration_manager_v1* zxdgDecorationManager);
     void cleanup() override;
     bool update() override;
 
@@ -36,6 +37,7 @@ public:
     void setIsMouseFocused(bool isMouseFocused) { m_isMouseFocused = isMouseFocused; }
     void setLastPointerSerial(u32 serial) { m_lastPointerSerial = serial; }
 
+    wl_display* getDisplay() { return m_display; }
     wl_surface* getSurface() { return m_mainSurface; }
     wl_surface* getCursorSurface() { return m_cursorSurface; }
     bool isMouseFocused() const { return m_isMouseFocused; }
@@ -50,6 +52,7 @@ private:
 
     bool m_isMouseFocused{false};
     u32 m_lastPointerSerial{0};
+    bool m_isGraphicsManagerInitialized{false};
 
     // Per window
     wl_surface* m_mainSurface{nullptr};
@@ -59,6 +62,7 @@ private:
     wl_surface* m_cursorSurface{nullptr};
 
     // References
+    wl_display* m_display{nullptr};
     wl_shm* m_wlSharedMemory{nullptr};
 
     static constexpr wl_surface_listener wlSurfaceListener{};

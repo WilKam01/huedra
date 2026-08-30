@@ -8,9 +8,9 @@
 
 namespace huedra {
 
-bool WindowWayland::init(const std::string& title, const WindowInput& input, wl_shm* wlSharedMemory,
-                         wl_compositor* wlCompositor, xdg_wm_base* xdgBase,
-                         zxdg_decoration_manager_v1* zxdgDecorationManager)
+bool WindowWayland::init(const std::string& title, const WindowInput& input, bool graphicsManagersInitialized,
+                         wl_display* wlDisplay, wl_shm* wlSharedMemory, wl_compositor* wlCompositor,
+                         xdg_wm_base* xdgBase, zxdg_decoration_manager_v1* zxdgDecorationManager)
 {
     WindowRect rect{};
     rect.width = input.width;
@@ -31,6 +31,8 @@ bool WindowWayland::init(const std::string& title, const WindowInput& input, wl_
 
     Window::init(title, rect);
 
+    m_isGraphicsManagerInitialized = graphicsManagersInitialized;
+    m_display = wlDisplay;
     m_wlSharedMemory = wlSharedMemory;
 
     m_mainSurface = wl_compositor_create_surface(wlCompositor);
@@ -117,7 +119,6 @@ void WindowWayland::setTitle(const std::string& title)
 {
     xdg_toplevel_set_title(m_xdgToplevel, title.c_str());
     xdg_toplevel_set_app_id(m_xdgToplevel, title.c_str());
-    wl_surface_commit(m_mainSurface);
 }
 
 void WindowWayland::setResolution(u32 width, u32 height)
@@ -131,7 +132,6 @@ void WindowWayland::setResolution(u32 width, u32 height)
     updateResolution(width, height, width, height);
 
     resize();
-    wl_surface_commit(m_mainSurface);
 }
 
 void WindowWayland::setPosition(i32 x, i32 y)
@@ -154,7 +154,8 @@ void WindowWayland::handleToplevelConfigure(void* data, xdg_toplevel* toplevel, 
         window->resize();
     }
 
-    window->updateMinimized(true);
+    // TODO: Figure out different way of checking minimized
+    // window->updateMinimized(true);
     char* state = nullptr;
     for (u32* state = static_cast<u32*>(states->data); state < static_cast<u32*>(states->data) + states->size; ++state)
     {
@@ -173,6 +174,13 @@ void WindowWayland::handleToplevelClose(void* data, xdg_toplevel* toplevel)
 void WindowWayland::resize()
 {
     WindowRect rect = getRect();
+    // No resolution set
+    if (rect.screenWidth == 0 || rect.screenHeight == 0)
+    {
+        rect.screenWidth = 1;
+        rect.screenHeight = 1;
+    }
+
     i32 stride = rect.screenWidth * 4; // RGBA components for each scanline
     i32 size = stride * rect.screenHeight;
 
@@ -200,7 +208,12 @@ void WindowWayland::resize()
 
     wl_surface_attach(m_mainSurface, buffer, 0, 0);
     wl_surface_damage_buffer(m_mainSurface, 0, 0, rect.screenWidth, rect.screenHeight);
-    wl_surface_commit(m_mainSurface);
+
+    // When graphics manager is initalized, let it handle surface rendering
+    if (!m_isGraphicsManagerInitialized)
+    {
+        wl_surface_commit(m_mainSurface);
+    }
 
     munmap(pixelData, size);
     close(fileDesc);

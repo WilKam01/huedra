@@ -79,10 +79,10 @@ void Instance::init()
     std::vector<VkExtensionProperties> extensions(extensionCount);
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
-    log(LogLevel::INFO, "available extensions:");
+    log(LogLevel::D_INFO, "available extensions:");
     for (const auto& extension : extensions)
     {
-        log(LogLevel::INFO, "    {}", extension.extensionName);
+        log(LogLevel::D_INFO, "    {}", extension.extensionName);
     }
 #endif
 

@@ -306,17 +306,27 @@ bool WindowManager::update()
         }
     }
 #elif defined(WAYLAND)
-    wl_display_dispatch_pending(wlConfig.wlDisplay);
+    while (wl_display_prepare_read(wlConfig.wlDisplay) != 0)
+    {
+        wl_display_dispatch_pending(wlConfig.wlDisplay);
+    }
+
     wl_display_flush(wlConfig.wlDisplay);
 
     struct pollfd pfd;
     pfd.fd = wl_display_get_fd(wlConfig.wlDisplay);
     pfd.events = POLLIN;
 
-    i32 ret = poll(&pfd, 1, 0);
+    int ret = poll(&pfd, 1, 0);
+
     if (ret > 0 && (pfd.revents & POLLIN))
     {
-        wl_display_dispatch(wlConfig.wlDisplay);
+        wl_display_read_events(wlConfig.wlDisplay);
+        wl_display_dispatch_pending(wlConfig.wlDisplay);
+    }
+    else
+    {
+        wl_display_cancel_read(wlConfig.wlDisplay);
     }
 
     usleep(1);
@@ -620,8 +630,9 @@ Window* WindowManager::createWindow(const std::string& title, const WindowInput&
     success = window->init(title, input);
 #elif defined(WAYLAND)
     auto* window = new WindowWayland();
-    success = window->init(title, input, wlConfig.wlSharedMemory, wlConfig.wlCompositor, wlConfig.xdgBase,
-                           wlConfig.zxdgDecorationManager);
+    success =
+        window->init(title, input, global::graphicsManager.isInitialized(), wlConfig.wlDisplay, wlConfig.wlSharedMemory,
+                     wlConfig.wlCompositor, wlConfig.xdgBase, wlConfig.zxdgDecorationManager);
 #elif defined(X11)
     // TODO: Implement
 #endif
