@@ -320,7 +320,7 @@ void WindowCocoa::setTitle(const std::string& title)
     updateTitle(title);
 }
 
-void WindowCocoa::setResolution(u32 width, u32 height)
+void WindowCocoa::setResolution(uvec2 resolution)
 {
     @autoreleasepool
     {
@@ -328,14 +328,14 @@ void WindowCocoa::setResolution(u32 width, u32 height)
         NSRect mainFrame = ::findMainFrame();
 
         WindowRect rect = getRect();
-        [m_window setFrame:NSMakeRect(rect.positionX, mainFrame.size.height - rect.positionY - frame.size.height, width,
-                                      height)
+        [m_window setFrame:NSMakeRect(rect.positionX, mainFrame.size.height - rect.positionY - frame.size.height, resolution.x,
+                                      resolution.y)
                    display:YES
                    animate:YES];
     }
 }
 
-void WindowCocoa::setPosition(i32 x, i32 y)
+void WindowCocoa::setPosition(ivec2 position)
 {
     @autoreleasepool
     {
@@ -343,7 +343,7 @@ void WindowCocoa::setPosition(i32 x, i32 y)
         NSRect mainFrame = ::findMainFrame();
 
         WindowRect rect = getRect();
-        [m_window setFrame:NSMakeRect(x, mainFrame.size.height - y - frame.size.height, rect.width, rect.height)
+        [m_window setFrame:NSMakeRect(position.x, mainFrame.size.height - position.y - frame.size.height, rect.width, rect.height)
                    display:YES
                    animate:YES];
     }

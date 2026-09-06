@@ -6,6 +6,8 @@ include(${CMAKE_SOURCE_DIR}/cmake/dependencies.cmake)
 
 project(huedra)
 
+option(X11_OVERRIDE "Force use of X11 instead of Wayland, only applicable on Linux" OFF)
+
 set(CMAKE_CXX_STANDARD 23)
 
 append_glob_recurse_files(SOURCES 
@@ -72,7 +74,7 @@ elseif(LINUX)
     ${PROJECT_SOURCE_DIR}/huedra/platform/vulkan/*.cpp 
   )
 
-  if($ENV{XDG_SESSION_TYPE} STREQUAL "wayland")
+  if($ENV{XDG_SESSION_TYPE} STREQUAL "wayland" AND NOT X11_OVERRIDE)
     message(STATUS "Using Wayland Display System")
 
     # Find include file and lib
@@ -203,18 +205,83 @@ elseif(LINUX)
     target_link_libraries(huedra PRIVATE ${SYSTEMD_LIBRARY})
 
     target_compile_definitions(huedra PRIVATE -DWAYLAND)
-    else()
-    # Fallback to X11 if available
-    if($ENV{XDG_SESSION_TYPE} STREQUAL "x11")
-      message(STATUS "Using X11 Display System")
-      append_glob_recurse_files(ADDITIONAL_SOURCES 
-        ${PROJECT_SOURCE_DIR}/huedra/platform/x11/*.cpp 
-      )
-      target_compile_definitions(huedra PRIVATE -DX11)
-      message(FATAL_ERROR "Currently not supported!")
-    else()
-      message(FATAL_ERROR "Could not determine Display System")
+  else()
+    message(STATUS "Using X11 Display System")
+    append_glob_recurse_files(ADDITIONAL_SOURCES 
+      ${PROJECT_SOURCE_DIR}/huedra/platform/x11/*.cpp 
+    )
+    target_compile_definitions(huedra PRIVATE -DX11)
+
+    # Find dependencies
+    find_package(X11 REQUIRED)
+
+    find_path(XCB_INCLUDE_DIR
+      NAMES xcb/xcb.h
+      PATHS /usr/include /usr/local/include
+    )
+
+    find_library(XCB_LIBRARY
+      NAMES xcb
+      PATHS /usr/lib /usr/local/lib /usr/lib/x86_64-linux-gnu
+    )
+
+    find_path(XKBCOMMON_INCLUDE_DIR 
+      NAMES 
+      xkbcommon/xkbcommon.h REQUIRED
+    )
+    find_library(XKBCOMMON_LIB 
+      NAMES xkbcommon REQUIRED
+    )
+
+    find_library(XCB_XKB_LIBRARY 
+      NAMES xcb-xkb 
+      PATHS /usr/lib /usr/lib64
+    )
+
+    find_library(XCB_XFIXES_LIBRARY 
+      NAMES xcb-xfixes 
+      PATHS /usr/lib /usr/lib64
+    )
+
+    find_path(XCB_CURSOR_INCLUDE_DIR 
+      NAMES xcb/xcb_cursor.h 
+      PATHS /usr/include
+    )
+    find_library(XCB_CURSOR_LIBRARY 
+      NAMES xcb-cursor 
+      PATHS /usr/lib /usr/lib64
+    )
+
+    find_path(XKB_X11_INCLUDE_DIR 
+      NAMES xkbcommon/xkbcommon-x11.h 
+      PATHS /usr/include
+    )
+    find_library(XKB_X11_LIBRARY 
+      NAMES xkbcommon-x11 
+      PATHS /usr/lib /usr/lib64
+    )
+
+    if(NOT XCB_INCLUDE_DIR OR NOT XCB_LIBRARY OR NOT XKBCOMMON_INCLUDE_DIR OR NOT XKBCOMMON_LIB OR 
+       NOT XCB_XKB_LIBRARY OR NOT XCB_XFIXES_LIBRARY OR NOT XCB_CURSOR_INCLUDE_DIR OR NOT XCB_CURSOR_LIBRARY OR
+       NOT XKB_X11_INCLUDE_DIR OR NOT XKB_X11_LIBRARY)
+      message(FATAL_ERROR "Could not find XCB (X11) dependencies")
     endif()
+
+    target_include_directories(huedra PRIVATE 
+      ${XCB_INCLUDE_DIR}
+      ${XKBCOMMON_INCLUDE_DIR}
+      ${XCB_CURSOR_INCLUDE_DIR}
+      ${XKB_X11_INCLUDE_DIR}
+    )
+
+    target_link_libraries(huedra PRIVATE 
+      ${XCB_LIBRARY}
+      ${XKBCOMMON_LIB}
+      ${XCB_XKB_LIBRARY}
+      ${XCB_XFIXES_LIBRARY}
+      ${XCB_CURSOR_LIBRARY}
+      ${XKB_X11_LIBRARY}
+    )
   endif()
 endif()
 

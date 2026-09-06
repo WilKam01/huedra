@@ -31,8 +31,8 @@ public:
     ivec2 getRelativeScreenPosition(ivec2 position) const override;
 
     void setTitle(const std::string& title) override;
-    void setResolution(u32 width, u32 height) override;
-    void setPosition(i32 x, i32 y) override;
+    void setResolution(uvec2 resolution) override;
+    void setPosition(ivec2 position) override;
 
     void setIsMouseFocused(bool isMouseFocused) { m_isMouseFocused = isMouseFocused; }
     void setLastPointerSerial(u32 serial) { m_lastPointerSerial = serial; }

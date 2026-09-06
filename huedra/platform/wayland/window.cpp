@@ -119,22 +119,16 @@ void WindowWayland::setTitle(const std::string& title)
 {
     xdg_toplevel_set_title(m_xdgToplevel, title.c_str());
     xdg_toplevel_set_app_id(m_xdgToplevel, title.c_str());
+    updateTitle(title);
 }
 
-void WindowWayland::setResolution(u32 width, u32 height)
+void WindowWayland::setResolution(uvec2 resolution)
 {
-    WindowRect rect = getRect();
-    rect.width = width;
-    rect.height = height;
-    rect.screenWidth = width;
-    rect.screenHeight = height;
-
-    updateResolution(width, height, width, height);
-
+    updateResolution(resolution.x, resolution.y, resolution.x, resolution.y);
     resize();
 }
 
-void WindowWayland::setPosition(i32 x, i32 y)
+void WindowWayland::setPosition(ivec2 position)
 {
     log(LogLevel::WARNING, "Wayland windows do not support global positioning, input position ignored.");
 }

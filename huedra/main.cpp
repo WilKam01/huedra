@@ -27,12 +27,12 @@ int main()
 {
     global::timer.init();
     global::windowManager.init();
-    global::graphicsManager.init();
+    // global::graphicsManager.init();
     global::resourceManager.init();
 
     Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720));
 
-    ShaderModule shader = global::resourceManager.loadShaderModule("assets/shaders/triangle.slang");
+    /*ShaderModule shader = global::resourceManager.loadShaderModule("assets/shaders/triangle.slang");
     PipelineBuilder pipeline;
     pipeline.init(PipelineType::GRAPHICS)
         .addVertexInputStream({.size = sizeof(vec2),
@@ -60,12 +60,12 @@ int main()
         .setCommands([&](RenderContext& context) {
             context.bindVertexBuffers({posBuffer, colorBuffer});
             context.draw(3, 1, 0, 0);
-        });
+        });*/
 
     while (global::windowManager.update())
     {
         global::timer.update();
-        global::graphicsManager.update();
+        // global::graphicsManager.update();
 
         static u32 i = 0;
         static std::array<u32, 500> avgFps;
@@ -84,21 +84,63 @@ int main()
             {
                 window->setTitle(
                     std::format("Main FPS: {}, Elapsed seconds: {:.2f}", sum / 500, global::timer.elapsedSeconds()));
+
+                if (window->isMinimized())
+                {
+                    log(LogLevel::D_INFO, "Minimized");
+                }
             }
         }
 
-        if (window.valid())
+        static CursorType selectedCursor{CursorType::DEFAULT};
+        if (global::input.isMouseButtonPressed(MouseButton::LEFT))
+        {
+            selectedCursor = static_cast<CursorType>((static_cast<u32>(selectedCursor) + 1) % 15);
+            global::input.setCursor(selectedCursor);
+        }
+
+        if (global::input.getCharacter())
+        {
+            log(LogLevel::D_INFO, "Character: {}", global::input.getCharacter());
+        }
+
+        if (global::input.isKeyPressed(Keys::ESCAPE))
+        {
+            if (global::input.getMouseMode() == MouseMode::NORMAL)
+            {
+                global::input.setMouseMode(MouseMode::LOCKED);
+            }
+            else if (global::input.getMouseMode() == MouseMode::LOCKED)
+            {
+                global::input.setMouseMode(MouseMode::CONFINED);
+            }
+            else
+            {
+                global::input.setMouseMode(MouseMode::NORMAL);
+            }
+        }
+
+        if (global::input.isKeyPressed(Keys::H))
+        {
+            global::input.setMouseHidden(true);
+        }
+        else if (global::input.isKeyReleased(Keys::H))
+        {
+            global::input.setMouseHidden(false);
+        }
+
+        /*if (window.valid())
         {
             RenderGraphBuilder graph;
             graph.init().addPass("Main", pass);
             global::graphicsManager.render(graph);
-        }
+        }*/
 
         global::input.update();
     }
 
     global::resourceManager.cleanup();
-    global::graphicsManager.cleanup();
+    // global::graphicsManager.cleanup();
     global::windowManager.cleanup();
 
     /*FontData font = loadTtf("assets/fonts/ManufacturingConsent-Regular.ttf");

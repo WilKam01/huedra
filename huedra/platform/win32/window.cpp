@@ -293,12 +293,15 @@ void WindowWin32::setTitle(const std::string& title)
     }
 }
 
-void WindowWin32::setResolution(u32 width, u32 height)
+void WindowWin32::setResolution(uvec2 resolution)
 {
-    SetWindowPos(m_handle, nullptr, 0, 0, static_cast<i32>(width), static_cast<i32>(height), SWP_NOMOVE);
+    SetWindowPos(m_handle, nullptr, 0, 0, static_cast<i32>(resolution.x), static_cast<i32>(resolution.y), SWP_NOMOVE);
 }
 
-void WindowWin32::setPosition(i32 x, i32 y) { SetWindowPos(m_handle, nullptr, x, y, 0, 0, SWP_NOSIZE); }
+void WindowWin32::setPosition(ivec2 position)
+{
+    SetWindowPos(m_handle, nullptr, position.x, position.y, 0, 0, SWP_NOSIZE);
+}
 
 Keys WindowWin32::convertKey(u32 code)
 {

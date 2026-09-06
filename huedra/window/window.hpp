@@ -37,6 +37,7 @@ struct WindowRect
 
 class Window
 {
+    friend class WindowManager;
 #ifdef VULKAN
     friend class VulkanSwapchain;
 #elif defined(METAL)
@@ -74,8 +75,8 @@ public:
 
     void setParent(Ref<Window> parent);
     virtual void setTitle(const std::string& title) = 0;
-    virtual void setResolution(u32 width, u32 height) = 0;
-    virtual void setPosition(i32 x, i32 y) = 0;
+    virtual void setResolution(uvec2 resolution) = 0;
+    virtual void setPosition(ivec2 position) = 0;
 
 protected:
     // Internal use (values updated externally by platform and/or implementation)

@@ -315,10 +315,13 @@ void WaylandConfig::keyboardKey(void* data, wl_keyboard* wl_keyboard, u32 serial
     Keys selectedKey{Keys::NONE};
     if (len > 0)
     {
-        global::input.setCharacter(buf[0]);
+        if (state == WL_KEYBOARD_KEY_STATE_PRESSED)
+        {
+            global::input.setCharacter(buf[0]);
+        }
         if (buf[0] >= 'A' && buf[0] <= 'Z' || buf[0] >= 'a' && buf[0] <= 'z')
         {
-            selectedKey = static_cast<Keys>(static_cast<u32>(Keys::A) + static_cast<u32>('a' - tolower(buf[0])));
+            selectedKey = static_cast<Keys>(static_cast<u32>(Keys::A) + static_cast<u32>(tolower(buf[0]) - 'a'));
         }
     }
 
