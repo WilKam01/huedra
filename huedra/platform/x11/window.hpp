@@ -30,8 +30,11 @@ public:
     void setPosition(ivec2 position) override;
 
     xcb_window_t get() const { return m_window; }
+    xcb_connection_t* getConnection() { return m_xcbConnection; }
 
 private:
+    std::string getXcbError(xcb_generic_error_t* error);
+
     xcb_connection_t* m_xcbConnection{nullptr};
     xcb_window_t m_window;
 };

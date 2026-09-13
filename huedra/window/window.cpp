@@ -1,5 +1,7 @@
 #include "window.hpp"
 
+#include "core/global.hpp"
+
 namespace huedra {
 
 Window::Window() { ReferenceCounter::addResource(static_cast<void*>(this)); }
@@ -33,6 +35,11 @@ ivec2 Window::getRelativePosition(ivec2 position) const { return position - ivec
 ivec2 Window::getRelativeScreenPosition(ivec2 position) const
 {
     return position - ivec2(m_rect.screenPositionX, m_rect.screenPositionY);
+}
+
+bool Window::currentlyResizing()
+{
+    return global::timer.timeElapsed() - m_lastResizeTime < 100 * constants::MILLISECONDS_TO_NANO;
 }
 
 void Window::cleanup()
@@ -79,6 +86,12 @@ void Window::updatePosition(i32 positionX, i32 positionY, i32 screenPositionX, i
 
 void Window::updateResolution(u32 width, u32 height, u32 screenWidth, u32 screenHeight)
 {
+    if (m_rect.width != width || m_rect.height != height || m_rect.screenWidth != screenWidth ||
+        m_rect.screenHeight != screenHeight)
+    {
+        m_lastResizeTime = global::timer.timeElapsed();
+    }
+
     m_rect.width = width;
     m_rect.height = height;
     m_rect.screenWidth = screenWidth;

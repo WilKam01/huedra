@@ -5,6 +5,8 @@
 #include "platform/win32/window.hpp"
 #elif defined(WAYLAND)
 #include "platform/wayland/window.hpp"
+#elif defined(X11)
+#include "platform/x11/window.hpp"
 #endif
 
 namespace huedra {
@@ -35,6 +37,18 @@ VkSurfaceKHR createSurface(Instance& instance, Window* window)
     if (vkCreateWaylandSurfaceKHR(instance.get(), &createInfo, nullptr, &surface) != VK_SUCCESS)
     {
         log(LogLevel::ERR, "Failed to create Wayland surface!");
+    }
+#elif defined(X11)
+    auto* win = static_cast<WindowX11*>(window);
+    VkXcbSurfaceCreateInfoKHR createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+    createInfo.flags = 0;
+    createInfo.connection = win->getConnection();
+    createInfo.window = win->get();
+
+    if (vkCreateXcbSurfaceKHR(instance.get(), &createInfo, nullptr, &surface) != VK_SUCCESS)
+    {
+        log(LogLevel::ERR, "Failed to create X11 surface!");
     }
 #endif
 

@@ -185,11 +185,11 @@ void MetalContext::prepareSwapchains()
     }
 }
 
-void MetalContext::setRenderGraph(RenderGraphBuilder& builder)
+bool MetalContext::setRenderGraph(RenderGraphBuilder& builder)
 {
     if (m_curGraph.getHash() == builder.getHash())
     {
-        return;
+        return true;
     }
 
     waitIdle();
@@ -338,6 +338,7 @@ void MetalContext::setRenderGraph(RenderGraphBuilder& builder)
         }
         m_passBatches[latestVersion].passes.push_back(passInfo);
     }
+    return true;
 }
 
 void MetalContext::render()

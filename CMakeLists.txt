@@ -77,6 +77,8 @@ elseif(LINUX)
   if($ENV{XDG_SESSION_TYPE} STREQUAL "wayland" AND NOT X11_OVERRIDE)
     message(STATUS "Using Wayland Display System")
 
+    target_compile_definitions(huedra PRIVATE -DWAYLAND)
+
     # Find include file and lib
     find_path(WAYLAND_CLIENT_INCLUDE_DIR
       NAMES wayland-client.h
@@ -203,8 +205,6 @@ elseif(LINUX)
 
     target_include_directories(huedra PRIVATE ${SYSTEMD_INCLUDE_DIR})
     target_link_libraries(huedra PRIVATE ${SYSTEMD_LIBRARY})
-
-    target_compile_definitions(huedra PRIVATE -DWAYLAND)
   else()
     message(STATUS "Using X11 Display System")
     append_glob_recurse_files(ADDITIONAL_SOURCES 

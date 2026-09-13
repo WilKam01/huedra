@@ -38,7 +38,7 @@ public:
     virtual void removeRenderTarget(RenderTarget* renderTarget) = 0;
 
     virtual void prepareSwapchains() = 0;
-    virtual void setRenderGraph(RenderGraphBuilder& builder) = 0;
+    virtual bool setRenderGraph(RenderGraphBuilder& builder) = 0;
     virtual void render() = 0;
 
 private:

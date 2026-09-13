@@ -168,13 +168,6 @@ void WindowWayland::handleToplevelClose(void* data, xdg_toplevel* toplevel)
 void WindowWayland::resize()
 {
     WindowRect rect = getRect();
-    // No resolution set
-    if (rect.screenWidth == 0 || rect.screenHeight == 0)
-    {
-        rect.screenWidth = 1;
-        rect.screenHeight = 1;
-    }
-
     i32 stride = rect.screenWidth * 4; // RGBA components for each scanline
     i32 size = stride * rect.screenHeight;
 

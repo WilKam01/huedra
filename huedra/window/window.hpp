@@ -9,8 +9,8 @@ namespace huedra {
 
 struct WindowInput
 {
-    u32 width{0};
-    u32 height{0};
+    u32 width{1};
+    u32 height{1};
     std::optional<i32> positionX;
     std::optional<i32> positionY;
     bool renderDepth{true};
@@ -60,6 +60,7 @@ public:
     virtual bool isWithinScreenBounds(ivec2 position, i32 margin = 0) const = 0;
     virtual ivec2 getRelativePosition(ivec2 position) const = 0;
     virtual ivec2 getRelativeScreenPosition(ivec2 position) const = 0;
+    bool currentlyResizing();
 
     std::string getTitle() const { return m_title; }
     WindowRect getRect() const { return m_rect; }
@@ -93,6 +94,7 @@ private:
     WindowRect m_rect;
     bool m_close{false};
     bool m_minimized{false};
+    i64 m_lastResizeTime{0};
 
     Ref<RenderTarget> m_renderTarget{nullptr};
 

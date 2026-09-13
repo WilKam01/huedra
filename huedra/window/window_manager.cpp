@@ -131,7 +131,6 @@ static NSCursor* getMacCursor(CursorType cursor)
 #elif defined(WAYLAND)
 static WaylandConfig wlConfig;
 #elif defined(X11)
-static i32 screenScancode{0};
 static xcb_connection_t* xcbConnection{nullptr};
 static xcb_intern_atom_reply_t* wmProtoReply{nullptr};
 static xcb_intern_atom_reply_t* wmDeleteReply{nullptr};
@@ -229,7 +228,7 @@ void WindowManager::init()
 
     wlConfig.loadCursorTheme();
 #elif defined(X11)
-    xcbConnection = xcb_connect(nullptr, &screenScancode);
+    xcbConnection = xcb_connect(nullptr, nullptr);
 
     if (xcb_connection_has_error(xcbConnection))
     {
@@ -244,11 +243,6 @@ void WindowManager::init()
 
     const xcb_setup_t* setup = xcb_get_setup(xcbConnection);
     xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
-
-    for (int i = 0; i < screenScancode; ++i)
-    {
-        xcb_screen_next(&iter);
-    }
     xcbScreen = iter.data;
 
     xcb_xkb_use_extension_cookie_t xcbXkbExtensionCookie =
@@ -1250,6 +1244,12 @@ void WindowManager::setMouseHidden(bool hidden)
 
 Window* WindowManager::createWindow(const std::string& title, const WindowInput& input)
 {
+    if (input.width == 0 || input.height == 0)
+    {
+        log(LogLevel::WARNING, "Could not create window, resolution: ({}, {}) not allowed", input.width, input.height);
+        return nullptr;
+    }
+
     Window* ret = nullptr;
     bool success = false;
 #ifdef WIN32

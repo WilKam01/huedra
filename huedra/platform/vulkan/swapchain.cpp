@@ -21,13 +21,13 @@ void VulkanSwapchain::cleanup()
 
     partialCleanup();
     m_renderTarget.cleanup();
+    vkDestroySwapchainKHR(m_device->getLogical(), m_swapchain, nullptr);
 }
 
 void VulkanSwapchain::aquireNextImage()
 {
-    if (m_window->isMinimized())
+    if (m_window->isMinimized() || m_needsRecreation)
     {
-        log(LogLevel::D_INFO, "Minimized!");
         m_renderTarget.setAvailability(false);
         return;
     }
@@ -72,15 +72,20 @@ void VulkanSwapchain::handlePresentResult(VkResult result)
 
 VkPresentModeKHR VulkanSwapchain::choosePresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
 {
+    VkPresentModeKHR selectedPresentMode = VK_PRESENT_MODE_FIFO_KHR; // Last resort
     for (const auto& availablePresentMode : availablePresentModes)
     {
         if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
         {
-            return availablePresentMode;
+            return availablePresentMode; // Highest priority
+        }
+        else if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR)
+        {
+            selectedPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; // Second option
         }
     }
 
-    return VK_PRESENT_MODE_FIFO_KHR;
+    return selectedPresentMode;
 }
 
 VkExtent2D VulkanSwapchain::chooseExtent(const VkSurfaceCapabilitiesKHR& capabilities)
@@ -112,9 +117,6 @@ void VulkanSwapchain::recreate()
 
 void VulkanSwapchain::partialCleanup()
 {
-    m_renderTarget.cleanup();
-    vkDestroySwapchainKHR(m_device->getLogical(), m_swapchain, nullptr);
-
     for (auto& semaphore : m_imageAvailableSemaphores)
     {
         vkDestroySemaphore(m_device->getLogical(), semaphore, nullptr);
@@ -147,6 +149,8 @@ void VulkanSwapchain::create()
         imageCount = surfaceSupport.capabilities.maxImageCount;
     }
 
+    VkSwapchainKHR oldSwapchain = m_swapchain;
+    VulkanRenderTarget oldRenderTarget = m_renderTarget;
     VkSwapchainCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     createInfo.surface = m_surface;
@@ -179,11 +183,17 @@ void VulkanSwapchain::create()
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     createInfo.presentMode = presentMode;
     createInfo.clipped = VK_TRUE;
-    createInfo.oldSwapchain = VK_NULL_HANDLE;
+    createInfo.oldSwapchain = oldSwapchain;
 
     if (vkCreateSwapchainKHR(m_device->getLogical(), &createInfo, nullptr, &m_swapchain) != VK_SUCCESS)
     {
         log(LogLevel::ERR, "Failed to create swap chain!");
+    }
+
+    if (oldSwapchain != nullptr)
+    {
+        oldRenderTarget.cleanup();
+        vkDestroySwapchainKHR(m_device->getLogical(), oldSwapchain, nullptr);
     }
 
     m_renderTarget.init(*m_device, *this, surfaceFormat.format, extent);

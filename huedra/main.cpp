@@ -27,24 +27,24 @@ int main()
 {
     global::timer.init();
     global::windowManager.init();
-    // global::graphicsManager.init();
+    global::graphicsManager.init();
     global::resourceManager.init();
 
     Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720));
 
-    /*ShaderModule shader = global::resourceManager.loadShaderModule("assets/shaders/triangle.slang");
+    ShaderModule shader = global::resourceManager.loadShaderModule("assets/shaders/triangle.slang");
     PipelineBuilder pipeline;
     pipeline.init(PipelineType::GRAPHICS)
         .addVertexInputStream({.size = sizeof(vec2),
                                .inputRate = VertexInputRate::VERTEX,
-                               .attributes = {{.format = GraphicsDataFormat::RG_16_FLOAT, .offset = 0}}})
+                               .attributes = {{.format = GraphicsDataFormat::RG_32_FLOAT, .offset = 0}}})
         .addVertexInputStream({.size = sizeof(vec3),
                                .inputRate = VertexInputRate::VERTEX,
-                               .attributes = {{.format = GraphicsDataFormat::RGB_16_FLOAT, .offset = 0}}})
+                               .attributes = {{.format = GraphicsDataFormat::RGB_32_FLOAT, .offset = 0}}})
         .addShader(shader, "vertMain")
         .addShader(shader, "fragMain");
 
-    std::array<vec2, 3> vertexPositions = {vec2(0.0f, -0.5f), vec2(0.5f, 0.5f), vec2(-0.5f, 0.5f)};
+    std::array<vec2, 3> vertexPositions = {vec2(0.0f, 0.5f), vec2(-0.5f, -0.5f), vec2(0.5f, -0.5f)};
     Ref<Buffer> posBuffer =
         global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER,
                                              sizeof(vec2) * vertexPositions.size(), vertexPositions.data());
@@ -60,12 +60,12 @@ int main()
         .setCommands([&](RenderContext& context) {
             context.bindVertexBuffers({posBuffer, colorBuffer});
             context.draw(3, 1, 0, 0);
-        });*/
+        });
 
     while (global::windowManager.update())
     {
         global::timer.update();
-        // global::graphicsManager.update();
+        global::graphicsManager.update();
 
         static u32 i = 0;
         static std::array<u32, 500> avgFps;
@@ -129,18 +129,18 @@ int main()
             global::input.setMouseHidden(false);
         }
 
-        /*if (window.valid())
+        if (window.valid())
         {
             RenderGraphBuilder graph;
             graph.init().addPass("Main", pass);
             global::graphicsManager.render(graph);
-        }*/
+        }
 
         global::input.update();
     }
 
     global::resourceManager.cleanup();
-    // global::graphicsManager.cleanup();
+    global::graphicsManager.cleanup();
     global::windowManager.cleanup();
 
     /*FontData font = loadTtf("assets/fonts/ManufacturingConsent-Regular.ttf");

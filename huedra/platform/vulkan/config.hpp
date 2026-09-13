@@ -4,6 +4,8 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 #elif defined(WAYLAND)
 #define VK_USE_PLATFORM_WAYLAND_KHR
+#elif defined(X11)
+#define VK_USE_PLATFORM_XCB_KHR
 #endif
 
 #include "core/types.hpp"
@@ -27,6 +29,8 @@ const static std::vector<const char*> INSTANCE_EXTENSIONS = {
     VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
 #elif defined(WAYLAND)
     VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME,
+#elif defined(X11)
+    VK_KHR_XCB_SURFACE_EXTENSION_NAME,
 #endif
 
 #ifdef DEBUG

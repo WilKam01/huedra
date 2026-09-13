@@ -328,7 +328,7 @@ void VulkanContext::prepareSwapchains()
     }
 }
 
-void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
+bool VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
 {
     if (m_curGraph.getHash() == builder.getHash())
     {
@@ -343,22 +343,41 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
         }
         if (swapchainsNeedRecreation)
         {
+            bool succededRecreation = true;
             for (auto& swapchain : m_activeSwapchains)
             {
-                swapchain->recreate();
-                swapchain->aquireNextImage();
+#ifdef X11
+                bool requirement = swapchain->needsRecreation() && swapchain->getWindow()->currentlyResizing();
+#else
+                bool requirement = swapchain->needsRecreation();
+#endif
+                if (requirement)
+                {
+                    swapchain->recreate();
+                    swapchain->aquireNextImage();
+                }
+
+                if (swapchain->needsRecreation())
+                {
+                    succededRecreation = false;
+                }
+            }
+
+            if (!succededRecreation)
+            {
+                return false;
             }
         }
         else
         {
-            return;
+            return true;
         }
     }
 
     m_curGraph = builder;
     m_device.waitIdle();
 
-    log(LogLevel::INFO, "New render graph with hash: 0x{:x}", m_curGraph.getHash());
+    log(LogLevel::D_INFO, "New render graph with hash: 0x{:x}", m_curGraph.getHash());
 
     // Destroy all previous batches
     for (auto& batch : m_passBatches)
@@ -701,6 +720,8 @@ void VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
     {
         commandBuffer.init(m_device, m_computeCommandPool, GraphicsManager::MAX_FRAMES_IN_FLIGHT);
     }
+
+    return true;
 }
 
 void VulkanContext::render()

@@ -36,10 +36,11 @@ void GraphicsManager::render(RenderGraphBuilder& builder)
     if (!builder.empty())
     {
         builder.generateHash();
-        m_context->setRenderGraph(builder);
-
-        m_context->render();
-        m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+        if (m_context->setRenderGraph(builder))
+        {
+            m_context->render();
+            m_currentFrame = (m_currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+        }
     }
 }
 

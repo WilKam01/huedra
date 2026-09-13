@@ -39,7 +39,7 @@ public:
     void removeRenderTarget(RenderTarget* renderTarget) override;
 
     void prepareSwapchains() override;
-    void setRenderGraph(RenderGraphBuilder& builder) override;
+    bool setRenderGraph(RenderGraphBuilder& builder) override;
     void render() override;
 
     VkSampler getSampler(const SamplerSettings& settings);
