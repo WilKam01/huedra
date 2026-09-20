@@ -41,7 +41,7 @@ VkCommandBuffer CommandPool::beginSingleTimeCommand()
     return commandBuffer;
 }
 
-void CommandPool::endSingleTimeCommand(VkCommandBuffer buffer)
+void CommandPool::endSingleTimeCommand(VkCommandBuffer buffer, std::vector<VkSemaphore> waitSemaphores)
 {
     vkEndCommandBuffer(buffer);
 
@@ -49,6 +49,10 @@ void CommandPool::endSingleTimeCommand(VkCommandBuffer buffer)
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &buffer;
+    submitInfo.waitSemaphoreCount = static_cast<u32>(waitSemaphores.size());
+    submitInfo.pWaitSemaphores = waitSemaphores.data();
+    std::vector<VkPipelineStageFlags> waitDstStageMasks(waitSemaphores.size(), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+    submitInfo.pWaitDstStageMask = waitDstStageMasks.data();
 
     if (m_pipeline == VK_PIPELINE_BIND_POINT_COMPUTE)
     {

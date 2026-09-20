@@ -148,7 +148,6 @@ void VulkanSwapchain::create()
     }
 
     VkSwapchainKHR oldSwapchain = m_swapchain;
-    VulkanRenderTarget oldRenderTarget = m_renderTarget;
     VkSwapchainCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     createInfo.surface = m_surface;
@@ -190,7 +189,7 @@ void VulkanSwapchain::create()
 
     if (oldSwapchain != nullptr)
     {
-        oldRenderTarget.cleanup();
+        m_renderTarget.cleanup();
         vkDestroySwapchainKHR(m_device->getLogical(), oldSwapchain, nullptr);
     }
 

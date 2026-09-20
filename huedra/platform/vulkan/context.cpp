@@ -753,6 +753,7 @@ void VulkanContext::render()
             }
 
             VkCommandBuffer transitionCommandBuffer = m_graphicsCommandPool.beginSingleTimeCommand();
+            std::vector<VkSemaphore> waitSemaphores;
 
             PipelineType pipelineType = info.pass->getPipeline().getBuilder().getType();
             for (auto& input : info.pass->getBuilder().getInputs())
@@ -765,6 +766,19 @@ void VulkanContext::render()
                     auto* texture = static_cast<VulkanTexture*>(input.texture);
                     if (texture->getLayout() != newLayout)
                     {
+                        if (texture->getRenderTarget() != nullptr &&
+                            texture->getRenderTarget()->getSwapchain() != nullptr &&
+                            !texture->getRenderTarget()->getSwapchain()->alreadyWaited() &&
+                            std::ranges::find(
+                                waitSemaphores,
+                                texture->getRenderTarget()->getSwapchain()->getImageAvailableSemaphore()) ==
+                                waitSemaphores.end())
+                        {
+                            waitSemaphores.push_back(
+                                texture->getRenderTarget()->getSwapchain()->getImageAvailableSemaphore());
+                            texture->getRenderTarget()->getSwapchain()->setAlreadyWaited();
+                        }
+
                         transitionImageLayout(transitionCommandBuffer, texture->get(), texture->getFormat(),
                                               texture->getLayout(), newLayout,
                                               vulkan_config::LAYOUT_TO_ACCESS.at(texture->getLayout()),
@@ -806,6 +820,17 @@ void VulkanContext::render()
                             break;
                         }
 
+                        if (targetInfo.renderTarget->getSwapchain() != nullptr &&
+                            !targetInfo.renderTarget->getSwapchain()->alreadyWaited() &&
+                            std::ranges::find(waitSemaphores,
+                                              targetInfo.renderTarget->getSwapchain()->getImageAvailableSemaphore()) ==
+                                waitSemaphores.end())
+                        {
+                            waitSemaphores.push_back(
+                                targetInfo.renderTarget->getSwapchain()->getImageAvailableSemaphore());
+                            targetInfo.renderTarget->getSwapchain()->setAlreadyWaited();
+                        }
+
                         transitionImageLayout(
                             transitionCommandBuffer, texture.get(), texture.getFormat(), texture.getLayout(), newLayout,
                             vulkan_config::LAYOUT_TO_ACCESS.at(texture.getLayout()),
@@ -843,6 +868,16 @@ void VulkanContext::render()
                             break;
                         }
 
+                        if (targetInfo.renderTarget->getSwapchain() != nullptr &&
+                            !targetInfo.renderTarget->getSwapchain()->alreadyWaited() &&
+                            std::ranges::find(waitSemaphores,
+                                              targetInfo.renderTarget->getSwapchain()->getImageAvailableSemaphore()) ==
+                                waitSemaphores.end())
+                        {
+                            waitSemaphores.push_back(
+                                targetInfo.renderTarget->getSwapchain()->getImageAvailableSemaphore());
+                            targetInfo.renderTarget->getSwapchain()->setAlreadyWaited();
+                        }
                         transitionImageLayout(
                             transitionCommandBuffer, texture.get(), texture.getFormat(), texture.getLayout(), newLayout,
                             vulkan_config::LAYOUT_TO_ACCESS.at(texture.getLayout()),
@@ -862,6 +897,18 @@ void VulkanContext::render()
                     auto* texture = static_cast<VulkanTexture*>(output.texture);
                     if (texture->getLayout() != newLayout)
                     {
+                        if (texture->getRenderTarget() != nullptr &&
+                            texture->getRenderTarget()->getSwapchain() != nullptr &&
+                            !texture->getRenderTarget()->getSwapchain()->alreadyWaited() &&
+                            std::ranges::find(
+                                waitSemaphores,
+                                texture->getRenderTarget()->getSwapchain()->getImageAvailableSemaphore()) ==
+                                waitSemaphores.end())
+                        {
+                            waitSemaphores.push_back(
+                                texture->getRenderTarget()->getSwapchain()->getImageAvailableSemaphore());
+                            texture->getRenderTarget()->getSwapchain()->setAlreadyWaited();
+                        }
                         transitionImageLayout(transitionCommandBuffer, texture->get(), texture->getFormat(),
                                               texture->getLayout(), newLayout,
                                               vulkan_config::LAYOUT_TO_ACCESS.at(texture->getLayout()),
@@ -874,7 +921,7 @@ void VulkanContext::render()
                 }
             }
 
-            m_graphicsCommandPool.endSingleTimeCommand(transitionCommandBuffer);
+            m_graphicsCommandPool.endSingleTimeCommand(transitionCommandBuffer, waitSemaphores);
 
             info.pass->begin(commandBuffer);
 

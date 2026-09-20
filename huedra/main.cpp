@@ -30,128 +30,7 @@ int main()
     global::graphicsManager.init();
     global::resourceManager.init();
 
-    Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720));
-
-    ShaderModule shader = global::resourceManager.loadShaderModule("assets/shaders/triangle.slang");
-    PipelineBuilder pipeline;
-    pipeline.init(PipelineType::GRAPHICS)
-        .addVertexInputStream({.size = sizeof(vec2),
-                               .inputRate = VertexInputRate::VERTEX,
-                               .attributes = {{.format = GraphicsDataFormat::RG_32_FLOAT, .offset = 0}}})
-        .addVertexInputStream({.size = sizeof(vec3),
-                               .inputRate = VertexInputRate::VERTEX,
-                               .attributes = {{.format = GraphicsDataFormat::RGB_32_FLOAT, .offset = 0}}})
-        .addShader(shader, "vertMain")
-        .addShader(shader, "fragMain");
-
-    std::array<vec2, 3> vertexPositions = {vec2(0.0f, 0.5f), vec2(-0.5f, -0.5f), vec2(0.5f, -0.5f)};
-    Ref<Buffer> posBuffer =
-        global::graphicsManager.createBuffer(BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER,
-                                             sizeof(vec2) * vertexPositions.size(), vertexPositions.data());
-    std::array<vec3, 3> vertexColors = {vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, 1.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f)};
-    Ref<Buffer> colorBuffer = global::graphicsManager.createBuffer(
-        BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER, sizeof(vec3) * vertexColors.size(), vertexColors.data());
-
-    while (global::windowManager.update())
-    {
-        global::timer.update();
-        global::graphicsManager.update();
-
-        static u32 i = 0;
-        static std::array<u32, 500> avgFps;
-
-        avgFps[i++] = static_cast<u32>(1.0f / global::timer.dt());
-        if (i >= 500)
-        {
-            u32 sum = 0;
-            for (auto& fps : avgFps)
-            {
-                sum += fps;
-            }
-            i = 0;
-
-            if (window.valid())
-            {
-                window->setTitle(
-                    std::format("Main FPS: {}, Elapsed seconds: {:.2f}", sum / 500, global::timer.elapsedSeconds()));
-
-                static bool once = false;
-                if (window->isMinimized())
-                {
-                    if (!once)
-                    {
-                        log(LogLevel::D_INFO, "Minimized");
-                        once = true;
-                    }
-                }
-                else
-                {
-                    once = false;
-                }
-            }
-        }
-
-        static CursorType selectedCursor{CursorType::DEFAULT};
-        if (global::input.isMouseButtonPressed(MouseButton::LEFT))
-        {
-            selectedCursor = static_cast<CursorType>((static_cast<u32>(selectedCursor) + 1) % 15);
-            global::input.setCursor(selectedCursor);
-        }
-
-        if (global::input.getCharacter())
-        {
-            log(LogLevel::D_INFO, "Character: {}", global::input.getCharacter());
-        }
-
-        if (global::input.isKeyPressed(Keys::ESCAPE))
-        {
-            if (global::input.getMouseMode() == MouseMode::NORMAL)
-            {
-                global::input.setMouseMode(MouseMode::LOCKED);
-            }
-            else if (global::input.getMouseMode() == MouseMode::LOCKED)
-            {
-                global::input.setMouseMode(MouseMode::CONFINED);
-            }
-            else
-            {
-                global::input.setMouseMode(MouseMode::NORMAL);
-            }
-        }
-
-        if (global::input.isKeyPressed(Keys::H))
-        {
-            global::input.setMouseHidden(true);
-        }
-        else if (global::input.isKeyReleased(Keys::H))
-        {
-            global::input.setMouseHidden(false);
-        }
-
-        if (window.valid() && window->getRenderTarget()->isAvailable())
-        {
-            RenderGraphBuilder graph;
-            RenderPassBuilder pass;
-            pass.init(RenderPassType::GRAPHICS)
-                .addRenderTarget(window->getRenderTarget(), vec3(0.1f))
-                .setClearRenderTargets(true)
-                .setPipeline(pipeline)
-                .setCommands([&](RenderContext& context) {
-                    context.bindVertexBuffers({posBuffer, colorBuffer});
-                    context.draw(3, 1, 0, 0);
-                });
-            graph.init().addPass("Main", pass);
-            global::graphicsManager.render(graph);
-        }
-
-        global::input.update();
-    }
-
-    global::resourceManager.cleanup();
-    global::graphicsManager.cleanup();
-    global::windowManager.cleanup();
-
-    /*FontData font = loadTtf("assets/fonts/ManufacturingConsent-Regular.ttf");
+    FontData font = loadTtf("assets/fonts/KaushanScript-Regular.ttf");
 
     Ref<Window> window = global::windowManager.addWindow("Main", WindowInput(1280, 720));
 
@@ -524,8 +403,8 @@ int main()
                 .addResource(ResourceAccessType::READ, viewProjBuffer, ShaderStage::VERTEX)
                 .addResource(ResourceAccessType::READ, texture, ShaderStage::FRAGMENT)
                 .setClearRenderTargets(true, global::input.isKeyActive(KeyToggles::CAPS_LOCK)
-                                                 ? RenderTargetType::COLOR_AND_DEPTH
-                                                 : RenderTargetType::DEPTH)
+                                                 ? RenderTargetType::DEPTH
+                                                 : RenderTargetType::COLOR_AND_DEPTH)
                 .setPipeline(builder)
                 .setCommands(commands);
             for (auto& gBuffer : gBuffers)
@@ -568,11 +447,6 @@ int main()
 
         global::graphicsManager.render(renderGraph);
 
-        if (global::input.isKeyActive(KeyToggles::CAPS_LOCK))
-        {
-            log(LogLevel::D_INFO, "Caps is on");
-        }
-
         static u32 i = 0;
         static std::array<u32, 500> avgFps;
 
@@ -584,14 +458,11 @@ int main()
             {
                 sum += fps;
             }
-
-            log(LogLevel::D_INFO, "Elapsed: {:.5f}, Delta: {:.5f}, FPS: {}", global::timer.elapsedSeconds(),
-                global::timer.dt(), sum / 500);
             i = 0;
-
             if (window.valid())
             {
-                window->setTitle(std::format("Main FPS: {}", sum / 500));
+                window->setTitle(
+                    std::format("Main FPS: {}, Elapsed: {:.2f}", sum / 500, global::timer.elapsedSeconds()));
             }
         }
         global::input.update();
@@ -602,7 +473,7 @@ int main()
 
     global::resourceManager.cleanup();
     global::graphicsManager.cleanup();
-    global::windowManager.cleanup();*/
+    global::windowManager.cleanup();
 
 #ifdef DEBUG
     ReferenceCounter::reportState();

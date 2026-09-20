@@ -19,7 +19,7 @@ public:
     void cleanup();
 
     VkCommandBuffer beginSingleTimeCommand();
-    void endSingleTimeCommand(VkCommandBuffer buffer);
+    void endSingleTimeCommand(VkCommandBuffer buffer, std::vector<VkSemaphore> waitSemaphores = {});
 
     VkCommandPool get() { return m_commandPool; }
 
