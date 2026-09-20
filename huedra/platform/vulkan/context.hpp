@@ -77,6 +77,7 @@ private:
     std::deque<VulkanRenderTarget> m_renderTargets;
 
     RenderGraphBuilder m_curGraph;
+    bool m_recreateCurGraph{false};
     struct PassBatch
     {
         std::vector<PassInfo> passes;

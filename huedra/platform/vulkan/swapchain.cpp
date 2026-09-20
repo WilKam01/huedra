@@ -26,19 +26,17 @@ void VulkanSwapchain::cleanup()
 
 void VulkanSwapchain::aquireNextImage()
 {
-    if (m_window->isMinimized() || m_needsRecreation)
+    if (m_window->isMinimized())
     {
         m_renderTarget.setAvailability(false);
         return;
     }
+    m_renderTarget.setAvailability(true);
 
-    if (m_alreadyAquiredFrame)
+    if (m_alreadyAquiredFrame || m_needsRecreation)
     {
-        m_renderTarget.setAvailability(true);
         return;
     }
-
-    m_renderTarget.setAvailability(false);
 
     VkResult result =
         vkAcquireNextImageKHR(m_device->getLogical(), m_swapchain, UINT64_MAX,
@@ -56,7 +54,6 @@ void VulkanSwapchain::aquireNextImage()
     {
         m_alreadyWaitedOnFrame = false;
         m_alreadyAquiredFrame = true;
-        m_renderTarget.setAvailability(true);
     }
 }
 
@@ -113,6 +110,7 @@ void VulkanSwapchain::recreate()
     partialCleanup();
     create();
     m_needsRecreation = false;
+    m_alreadyWaitedOnFrame = false;
 }
 
 void VulkanSwapchain::partialCleanup()

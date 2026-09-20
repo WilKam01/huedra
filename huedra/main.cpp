@@ -52,16 +52,6 @@ int main()
     Ref<Buffer> colorBuffer = global::graphicsManager.createBuffer(
         BufferType::STATIC, HU_BUFFER_USAGE_VERTEX_BUFFER, sizeof(vec3) * vertexColors.size(), vertexColors.data());
 
-    RenderPassBuilder pass;
-    pass.init(RenderPassType::GRAPHICS)
-        .addRenderTarget(window->getRenderTarget(), vec3(0.1f))
-        .setClearRenderTargets(true)
-        .setPipeline(pipeline)
-        .setCommands([&](RenderContext& context) {
-            context.bindVertexBuffers({posBuffer, colorBuffer});
-            context.draw(3, 1, 0, 0);
-        });
-
     while (global::windowManager.update())
     {
         global::timer.update();
@@ -85,9 +75,18 @@ int main()
                 window->setTitle(
                     std::format("Main FPS: {}, Elapsed seconds: {:.2f}", sum / 500, global::timer.elapsedSeconds()));
 
+                static bool once = false;
                 if (window->isMinimized())
                 {
-                    log(LogLevel::D_INFO, "Minimized");
+                    if (!once)
+                    {
+                        log(LogLevel::D_INFO, "Minimized");
+                        once = true;
+                    }
+                }
+                else
+                {
+                    once = false;
                 }
             }
         }
@@ -129,9 +128,18 @@ int main()
             global::input.setMouseHidden(false);
         }
 
-        if (window.valid())
+        if (window.valid() && window->getRenderTarget()->isAvailable())
         {
             RenderGraphBuilder graph;
+            RenderPassBuilder pass;
+            pass.init(RenderPassType::GRAPHICS)
+                .addRenderTarget(window->getRenderTarget(), vec3(0.1f))
+                .setClearRenderTargets(true)
+                .setPipeline(pipeline)
+                .setCommands([&](RenderContext& context) {
+                    context.bindVertexBuffers({posBuffer, colorBuffer});
+                    context.draw(3, 1, 0, 0);
+                });
             graph.init().addPass("Main", pass);
             global::graphicsManager.render(graph);
         }

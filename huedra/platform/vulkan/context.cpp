@@ -321,8 +321,11 @@ void VulkanContext::prepareSwapchains()
 {
     for (auto& swapchain : m_swapchains)
     {
-        if (!swapchain->needsRecreation())
+        swapchain->aquireNextImage();
+        if (swapchain->needsRecreation())
         {
+            m_recreateCurGraph = true;
+            swapchain->recreate();
             swapchain->aquireNextImage();
         }
     }
@@ -332,46 +335,20 @@ bool VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
 {
     if (m_curGraph.getHash() == builder.getHash())
     {
-        bool swapchainsNeedRecreation{false};
-        for (auto& swapchain : m_activeSwapchains)
+        for (const auto& swapchain : m_activeSwapchains)
         {
-            if (swapchain->needsRecreation())
+            if (swapchain->needsRecreation() || !swapchain->alreadyAquiredImage())
             {
-                swapchainsNeedRecreation = true;
-                break;
-            }
-        }
-        if (swapchainsNeedRecreation)
-        {
-            bool succededRecreation = true;
-            for (auto& swapchain : m_activeSwapchains)
-            {
-#ifdef X11
-                bool requirement = swapchain->needsRecreation() && swapchain->getWindow()->currentlyResizing();
-#else
-                bool requirement = swapchain->needsRecreation();
-#endif
-                if (requirement)
-                {
-                    swapchain->recreate();
-                    swapchain->aquireNextImage();
-                }
-
-                if (swapchain->needsRecreation())
-                {
-                    succededRecreation = false;
-                }
-            }
-
-            if (!succededRecreation)
-            {
+                // In cases where recreation of swapchain needs to be after next window update
                 return false;
             }
         }
-        else
+
+        if (!m_recreateCurGraph)
         {
             return true;
         }
+        m_recreateCurGraph = false;
     }
 
     m_curGraph = builder;
@@ -726,9 +703,6 @@ bool VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
 
 void VulkanContext::render()
 {
-    m_curGraphicsSemphoreIndex = 0;
-    m_curComputeSemphoreIndex = 0;
-
     std::vector<VkFence> fences{};
     if (m_usingGraphicsQueue)
     {
@@ -740,6 +714,9 @@ void VulkanContext::render()
     }
     vkWaitForFences(m_device.getLogical(), static_cast<u32>(fences.size()), fences.data(), VK_TRUE, UINT64_MAX);
     vkResetFences(m_device.getLogical(), static_cast<u32>(fences.size()), fences.data());
+
+    m_curGraphicsSemphoreIndex = 0;
+    m_curComputeSemphoreIndex = 0;
 
     u32 graphicsCommandBufferIndex{0};
     u32 computeCommandBufferIndex{0};

@@ -31,6 +31,7 @@ public:
     VulkanRenderTarget& getRenderTarget() { return m_renderTarget; }
     VkSemaphore getImageAvailableSemaphore() const { return m_imageAvailableSemaphores[m_semaphoreIndex]; }
     bool renderDepth() const { return m_renderDepth; }
+    bool alreadyAquiredImage() const { return m_alreadyAquiredFrame; }
     bool alreadyWaited() const { return m_alreadyWaitedOnFrame; }
     bool canPresent() const { return m_renderTarget.isAvailable(); }
     u32 getImageIndex() const { return m_imageIndex; }

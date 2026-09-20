@@ -146,17 +146,20 @@ void WindowWayland::handleToplevelConfigure(void* data, xdg_toplevel* toplevel, 
     {
         window->updateResolution(width, height, width, height);
         window->resize();
-    }
 
-    // TODO: Figure out different way of checking minimized
-    // window->updateMinimized(true);
-    char* state = nullptr;
-    for (u32* state = static_cast<u32*>(states->data); state < static_cast<u32*>(states->data) + states->size; ++state)
-    {
-        if (*state == XDG_TOPLEVEL_STATE_ACTIVATED)
+        // TODO: This is not the optimal solution due to it not being active when not in focus, find better solution
+        // Assume minimized until proven wrong
+        /*window->updateMinimized(true);
+        for (u32* state = std::bit_cast<u32*>(states->data);
+             states->size != 0 &&
+             std::bit_cast<const char*>(state) < (std::bit_cast<const char*>(states->data) + states->size);
+             state++)
         {
-            window->updateMinimized(false);
-        }
+            if (*state == XDG_TOPLEVEL_STATE_ACTIVATED)
+            {
+                window->updateMinimized(false);
+            }
+        }*/
     }
 }
 
