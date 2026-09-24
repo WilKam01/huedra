@@ -39,15 +39,15 @@ int main()
 
     if (meshes.empty())
     {
-        log(LogLevel::ERR, "meshes array is empty");
+        log::fatal("meshes array is empty");
     }
     if (meshes[0].uvs.empty())
     {
-        log(LogLevel::ERR, "Imported mesh: {} has no uv coordinates", meshes[0].name.c_str());
+        log::fatal("Imported mesh: {} has no uv coordinates", meshes[0].name.c_str());
     }
     if (meshes[0].normals.empty())
     {
-        log(LogLevel::ERR, "Imported mesh: {} has no normals", meshes[0].name.c_str());
+        log::fatal("Imported mesh: {} has no normals", meshes[0].name.c_str());
     }
 
     Ref<Buffer> positionsBuffer =

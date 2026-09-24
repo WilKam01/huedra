@@ -22,7 +22,7 @@ void VulkanRenderContext::bindVertexBuffers(std::vector<Ref<Buffer>> buffers)
 {
     if (m_renderPass->getPipelineType() != PipelineType::GRAPHICS)
     {
-        log(LogLevel::WARNING, "Could not bind vertex buffers, not using a graphics pipeline");
+        log::func::error("Could not bind vertex buffers, not using a graphics pipeline");
         return;
     }
 
@@ -32,12 +32,12 @@ void VulkanRenderContext::bindVertexBuffers(std::vector<Ref<Buffer>> buffers)
     {
         if (!buffers[i].valid())
         {
-            log(LogLevel::WARNING, "Could not bind vertex buffer: {}. Not valid", i);
+            log::func::error("Could not bind vertex buffer: {}. Not valid", i);
             return;
         }
         if ((buffers[i]->getBufferUsage() & HU_BUFFER_USAGE_VERTEX_BUFFER) == 0)
         {
-            log(LogLevel::WARNING, "Could not bind vertex buffer: {}. Buffer usage flag vertex buffer not set", i);
+            log::func::error("Could not bind vertex buffer: {}. Buffer usage flag vertex buffer not set", i);
             return;
         }
         vkBuffers[i] = static_cast<VulkanBuffer*>(buffers[i].get())->get();
@@ -50,19 +50,19 @@ void VulkanRenderContext::bindIndexBuffer(Ref<Buffer> buffer)
 {
     if (m_renderPass->getPipelineType() != PipelineType::GRAPHICS)
     {
-        log(LogLevel::WARNING, "Could not bind index buffer, not using a graphics pipeline");
+        log::func::error("Could not bind index buffer, not using a graphics pipeline");
         return;
     }
 
     if (!buffer.valid())
     {
-        log(LogLevel::WARNING, "Could not bind index buffer. Not valid");
+        log::func::error("Could not bind index buffer. Not valid");
         return;
     }
 
     if ((buffer->getBufferUsage() & HU_BUFFER_USAGE_INDEX_BUFFER) == 0)
     {
-        log(LogLevel::WARNING, "Could not bind index buffer. Buffer usage flag index buffer not set");
+        log::func::error("Could not bind index buffer. Buffer usage flag index buffer not set");
         return;
     }
 
@@ -75,22 +75,22 @@ void VulkanRenderContext::bindBuffer(Ref<Buffer> buffer, std::string_view name)
 {
     if (!buffer.valid())
     {
-        log(LogLevel::WARNING, "Could not bind buffer, reference invalid");
+        log::func::error("Could not bind buffer, reference invalid");
         return;
     }
 
     std::optional<ResourcePosition> resource = m_renderPass->getPipeline().getShaderModule().getResource(name);
     if (!resource.has_value())
     {
-        log(LogLevel::WARNING, "Could not bind buffer, no resource named \"{}\"", name);
+        log::func::error("Could not bind buffer, no resource named \"{}\"", name);
         return;
     }
 
     if (resource.value().info.type != ResourceType::CONSTANT_BUFFER &&
         resource.value().info.type != ResourceType::STRUCTURED_BUFFER)
     {
-        log(LogLevel::WARNING, "Could not bind buffer, \"{}\" is a {}", name,
-            ResourceTypeNames[static_cast<u32>(resource.value().info.type)]);
+        log::func::error("Could not bind buffer, \"{}\" is a {}", name,
+                         ResourceTypeNames[static_cast<u32>(resource.value().info.type)]);
         return;
     }
 
@@ -102,21 +102,21 @@ void VulkanRenderContext::bindTexture(Ref<Texture> texture, std::string_view nam
 {
     if (!texture.valid())
     {
-        log(LogLevel::WARNING, "Could not bind texture, reference invalid");
+        log::func::error("Could not bind texture, reference invalid");
         return;
     }
 
     std::optional<ResourcePosition> resource = m_renderPass->getPipeline().getShaderModule().getResource(name);
     if (!resource.has_value())
     {
-        log(LogLevel::WARNING, "Could not bind texture, no resource named \"{}\"", name);
+        log::func::error("Could not bind texture, no resource named \"{}\"", name);
         return;
     }
 
     if (resource.value().info.type != ResourceType::TEXTURE && resource.value().info.type != ResourceType::RW_TEXTURE)
     {
-        log(LogLevel::WARNING, "Could not bind texture, \"{}\" is a {}", name,
-            ResourceTypeNames[static_cast<u32>(resource.value().info.type)]);
+        log::func::error("Could not bind texture, \"{}\" is a {}", name,
+                         ResourceTypeNames[static_cast<u32>(resource.value().info.type)]);
         return;
     }
 
@@ -129,14 +129,14 @@ void VulkanRenderContext::bindSampler(const SamplerSettings& sampler, std::strin
     std::optional<ResourcePosition> resource = m_renderPass->getPipeline().getShaderModule().getResource(name);
     if (!resource.has_value())
     {
-        log(LogLevel::WARNING, "Could not bind sampler, no resource named \"{}\"", name);
+        log::func::error("Could not bind sampler, no resource named \"{}\"", name);
         return;
     }
 
     if (resource.value().info.type != ResourceType::SAMPLER)
     {
-        log(LogLevel::WARNING, "Could not bind sampler, \"{}\" is a {}", name,
-            ResourceTypeNames[static_cast<u32>(resource.value().info.type)]);
+        log::func::error("Could not bind sampler, \"{}\" is a {}", name,
+                         ResourceTypeNames[static_cast<u32>(resource.value().info.type)]);
         return;
     }
 
@@ -148,14 +148,14 @@ void VulkanRenderContext::setParameter(void* data, u32 size, std::string_view na
     std::optional<ParameterBinding> parameter = m_renderPass->getPipeline().getShaderModule().getParameter(name);
     if (!parameter.has_value())
     {
-        log(LogLevel::WARNING, "Could not set parameter, no parameter named \"{}\"", name);
+        log::func::error("Could not set parameter, no parameter named \"{}\"", name);
         return;
     }
 
     if (parameter.value().size != size)
     {
-        log(LogLevel::WARNING, "Could not set parameter \"{}\", got size {}, expected {}", name, size,
-            parameter.value().size);
+        log::func::error("Could not set parameter \"{}\", got size {}, expected {}", name, size,
+                         parameter.value().size);
         return;
     }
 
@@ -168,7 +168,7 @@ void VulkanRenderContext::draw(u32 vertexCount, u32 instanceCount, u32 vertexOff
 {
     if (m_renderPass->getPipelineType() != PipelineType::GRAPHICS)
     {
-        log(LogLevel::WARNING, "Could not execute draw command, not using a graphics pipeline");
+        log::func::error("Could not execute draw command, not using a graphics pipeline");
         return;
     }
 
@@ -181,13 +181,13 @@ void VulkanRenderContext::drawIndexed(u32 indexCount, u32 instanceCount, u32 ind
 {
     if (m_renderPass->getPipelineType() != PipelineType::GRAPHICS)
     {
-        log(LogLevel::WARNING, "Could not execute draw call, not using a graphics pipeline");
+        log::func::error("Could not execute draw call, not using a graphics pipeline");
         return;
     }
 
     if (!m_boundIndexBuffer)
     {
-        log(LogLevel::WARNING, "Could not execute drawIndexed command, no index buffer has been bound");
+        log::func::error("Could not execute drawIndexed command, no index buffer has been bound");
         return;
     }
 
@@ -200,7 +200,7 @@ void VulkanRenderContext::dispatchGroups(u32 groupX, u32 groupY, u32 groupZ)
 {
     if (m_renderPass->getPipelineType() != PipelineType::COMPUTE)
     {
-        log(LogLevel::WARNING, "Could not execute dispatchGroups call, not using a compute pipeline");
+        log::func::error("Could not execute dispatchGroups call, not using a compute pipeline");
         return;
     }
 
@@ -213,7 +213,7 @@ void VulkanRenderContext::dispatch(u32 x, u32 y, u32 z)
 {
     if (m_renderPass->getPipelineType() != PipelineType::COMPUTE)
     {
-        log(LogLevel::WARNING, "Could not execute dispatch call, not using a compute pipeline");
+        log::func::error("Could not execute dispatch call, not using a compute pipeline");
         return;
     }
 

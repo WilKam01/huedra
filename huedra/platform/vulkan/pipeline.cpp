@@ -29,7 +29,7 @@ void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device
     VkShaderModule shaderModule{nullptr};
     if (vkCreateShaderModule(m_device->getLogical(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to create shader module!");
+        log::func::fatal("Failed to create shader module!");
     }
 
     shaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -173,7 +173,7 @@ void VulkanPipeline::initGraphics(const PipelineBuilder& pipelineBuilder, Device
     if (vkCreateGraphicsPipelines(m_device->getLogical(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) !=
         VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to create graphics pipeline!");
+        log::func::fatal("Failed to create graphics pipeline!");
     }
 
     vkDestroyShaderModule(m_device->getLogical(), shaderModule, nullptr);
@@ -197,7 +197,7 @@ void VulkanPipeline::initCompute(const PipelineBuilder& pipelineBuilder, Device&
     VkShaderModule shaderModule{nullptr};
     if (vkCreateShaderModule(m_device->getLogical(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to create shader module!");
+        log::func::fatal("Failed to create shader module!");
     }
 
     VkPipelineShaderStageCreateInfo shaderStageInfo{};
@@ -214,7 +214,7 @@ void VulkanPipeline::initCompute(const PipelineBuilder& pipelineBuilder, Device&
     if (vkCreateComputePipelines(m_device->getLogical(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) !=
         VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to create compute pipeline!");
+        log::func::fatal("Failed to create compute pipeline!");
     }
 
     vkDestroyShaderModule(m_device->getLogical(), shaderModule, nullptr);
@@ -258,7 +258,7 @@ void VulkanPipeline::initLayout()
         if (vkCreateDescriptorSetLayout(m_device->getLogical(), &layoutInfo, nullptr, &m_descriptorLayout[i]) !=
             VK_SUCCESS)
         {
-            log(LogLevel::ERR, "Failed to create descriptor set layout!");
+            log::func::fatal("Failed to create descriptor set layout!");
         }
     }
 
@@ -293,7 +293,7 @@ void VulkanPipeline::initLayout()
 
     if (vkCreatePipelineLayout(m_device->getLogical(), &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to create pipeline layout!");
+        log::func::fatal("Failed to create pipeline layout!");
     }
 }
 

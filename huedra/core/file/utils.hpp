@@ -13,7 +13,7 @@ inline std::vector<u8> readBytes(const std::string& path)
     std::ifstream file(path, std::ios::ate | std::ios::binary);
     if (!file.is_open())
     {
-        log(LogLevel::ERR, "Failed to open file: \"{}\"!", path.c_str());
+        log::func::error("Failed to open file: \"{}\"!", path.c_str());
         return {};
     }
 
@@ -37,7 +37,7 @@ inline bool writeBytes(const std::string& path, const std::vector<u8>& bytes)
     std::ofstream file(path);
     if (!file.is_open())
     {
-        log(LogLevel::ERR, "Failed to open file: \"{}\"!", path.c_str());
+        log::func::error("Failed to open file: \"{}\"!", path.c_str());
         return false;
     }
 
@@ -57,7 +57,7 @@ inline FilePathInfo transformFilePath(const std::string& path)
     filePathInfo.extension = nameAndExtension[1];
     if (filePathInfo.extension.empty())
     {
-        log(LogLevel::WARNING, "transformFilePath(): No extension found for %s", path.c_str());
+        log::func::warn("No extension found for {}", path);
     }
 
     return filePathInfo;

@@ -209,7 +209,7 @@ bool WindowWin32::init(const std::string& title, const WindowInput& input, HINST
 
     if (m_handle == nullptr)
     {
-        log(LogLevel::WARNING, "Failed to create win32 window!");
+        log::func::error("Failed to create win32 window!");
         return false;
     }
 

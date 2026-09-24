@@ -29,7 +29,7 @@ void MetalPipeline::initGraphics(id<MTLDevice> device, const PipelineBuilder& pi
         id<MTLLibrary> library = [m_device newLibraryWithSource:source options:nil error:&error];
         if (library == nullptr && [[error localizedDescription] UTF8String] != nullptr)
         {
-            log(LogLevel::ERR, "MetalPipeline::initGraphics(): Failed to create library from source: {}",
+            log::func::error("Failed to create library from source: {}",
                 [[error localizedDescription] UTF8String]);
             return;
         }
@@ -86,7 +86,7 @@ void MetalPipeline::initGraphics(id<MTLDevice> device, const PipelineBuilder& pi
         m_renderPipeline = [m_device newRenderPipelineStateWithDescriptor:desc error:&error];
         if (m_renderPipeline == nullptr && [[error localizedDescription] UTF8String] != nullptr)
         {
-            log(LogLevel::ERR, "MetalPipeline::initGraphics(): Failed to create pipeline state: {}",
+            log::func::error("Failed to create pipeline state: {}",
                 [[error localizedDescription] UTF8String]);
             return;
         }
@@ -117,7 +117,7 @@ void MetalPipeline::initCompute(id<MTLDevice> device, const PipelineBuilder& pip
         id<MTLLibrary> library = [m_device newLibraryWithSource:source options:nil error:&error];
         if (library == nullptr && [[error localizedDescription] UTF8String] != nullptr)
         {
-            log(LogLevel::ERR, "MetalPipeline::initCompute(): Failed to create library from source: {}",
+            log::func::error("Failed to create library from source: {}",
                 [[error localizedDescription] UTF8String]);
             return;
         }
@@ -129,7 +129,7 @@ void MetalPipeline::initCompute(id<MTLDevice> device, const PipelineBuilder& pip
         m_computePipeline = [m_device newComputePipelineStateWithFunction:computeFunction error:&error];
         if (m_computePipeline == nullptr && [[error localizedDescription] UTF8String] != nullptr)
         {
-            log(LogLevel::ERR, "MetalPipeline::initCompute(): Failed to create pipeline state: {}",
+            log::func::error("Failed to create pipeline state: {}",
                 [[error localizedDescription] UTF8String]);
             return;
         }

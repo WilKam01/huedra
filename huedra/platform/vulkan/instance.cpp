@@ -12,24 +12,22 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBits
                                              const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                                              void* /*pUserData*/)
 {
-    LogLevel level{LogLevel::INFO};
     switch (messageSeverity)
     {
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-        level = LogLevel::INFO;
+        log::info(pCallbackData->pMessage);
         break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-        level = LogLevel::WARNING;
+        log::warn(pCallbackData->pMessage);
         break;
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-        level = LogLevel::ERR;
+        log::error(pCallbackData->pMessage);
         break;
     default:
         break;
     }
 
-    log(level, pCallbackData->pMessage);
     return VK_FALSE;
 }
 } // namespace
@@ -38,7 +36,7 @@ void Instance::init()
 {
     if (vulkan_config::ENABLE_VALIDATION_LAYERS && !checkValidationLayerSupport())
     {
-        log(LogLevel::ERR, "Requested validation layers not available!");
+        log::func::fatal("Requested validation layers not available!");
     }
 
     VkApplicationInfo appInfo{VK_STRUCTURE_TYPE_APPLICATION_INFO};
@@ -69,7 +67,7 @@ void Instance::init()
 
     if (vkCreateInstance(&createInfo, nullptr, &m_instance) != VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to create vulkan instance!");
+        log::func::fatal("Failed to create vulkan instance!");
     }
 
 #ifdef DEBUG
@@ -79,10 +77,10 @@ void Instance::init()
     std::vector<VkExtensionProperties> extensions(extensionCount);
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
 
-    log(LogLevel::D_INFO, "available extensions:");
+    log::debug("Available Vulkan extensions:");
     for (const auto& extension : extensions)
     {
-        log(LogLevel::D_INFO, "    {}", extension.extensionName);
+        log::debug("    {}", extension.extensionName);
     }
 #endif
 
@@ -93,7 +91,7 @@ void Instance::init()
 
         if (createDebugUtilsMessengerEXT(&debugCreateInfo, nullptr, &m_debugMessenger) != VK_SUCCESS)
         {
-            log(LogLevel::ERR, "Failed to set up vulkan debug messenger!");
+            log::func::fatal("Failed to set up vulkan debug messenger!");
         }
     }
 }

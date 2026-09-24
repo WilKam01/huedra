@@ -39,7 +39,7 @@ void VulkanBuffer::init(Device& device, BufferType type, u64 size, BufferUsageFl
     {
         if (vkCreateBuffer(device.getLogical(), &createInfo, nullptr, &buffer) != VK_SUCCESS)
         {
-            log(LogLevel::ERR, "Failed to create buffer!");
+            log::func::fatal("Failed to create buffer!");
         }
     }
 
@@ -62,7 +62,7 @@ void VulkanBuffer::init(Device& device, BufferType type, u64 size, BufferUsageFl
     {
         if (vkAllocateMemory(device.getLogical(), &memAlloc, nullptr, &memory) != VK_SUCCESS)
         {
-            log(LogLevel::ERR, "Failed to allocate memory to buffer!");
+            log::func::fatal("Failed to allocate memory to buffer!");
         }
     }
 
@@ -72,7 +72,7 @@ void VulkanBuffer::init(Device& device, BufferType type, u64 size, BufferUsageFl
         {
             if (map(i))
             {
-                log(LogLevel::ERR, "Failed to map buffer!");
+                log::func::fatal("Failed to map buffer!");
             }
             memcpy(m_mapped[i], data, size);
             if ((memoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
@@ -92,7 +92,7 @@ void VulkanBuffer::init(Device& device, BufferType type, u64 size, BufferUsageFl
     {
         if (vkBindBufferMemory(m_device->getLogical(), m_buffers[i], m_memories[i], 0) != VK_SUCCESS)
         {
-            log(LogLevel::ERR, "Failed to bind buffer to memory!");
+            log::func::fatal("Failed to bind buffer to memory!");
         }
         if (type == BufferType::DYNAMIC)
         {
@@ -118,13 +118,13 @@ void VulkanBuffer::write(void* data, u64 size)
 {
     if (getType() == BufferType::STATIC)
     {
-        log(LogLevel::WARNING, "VulkanBuffer::write(): Could not write to buffer, buffer is static");
+        log::func::error("Could not write to buffer, buffer is static");
         return;
     }
 
     if (m_mapped[global::graphicsManager.getCurrentFrame()] == nullptr)
     {
-        log(LogLevel::WARNING, "Could not write to buffer, memory is not mapped, therefore unaccessible");
+        log::func::error("Could not write to buffer, memory is not mapped, therefore unaccessible");
         return;
     }
     std::memcpy(m_mapped[global::graphicsManager.getCurrentFrame()], data, size);
@@ -134,13 +134,13 @@ void VulkanBuffer::read(void* data, u64 size)
 {
     if (getType() == BufferType::STATIC)
     {
-        log(LogLevel::WARNING, "VulkanBuffer::read(): Could not read buffer data, buffer is static");
+        log::func::error("Could not read buffer data, buffer is static");
         return;
     }
 
     if (m_mapped[global::graphicsManager.getCurrentFrame()] == nullptr)
     {
-        log(LogLevel::WARNING, "Could not read from buffer, memory is not mapped, therefore unaccessible");
+        log::func::error("Could not read from buffer, memory is not mapped, therefore unaccessible");
         return;
     }
     std::memcpy(data, m_mapped[global::graphicsManager.getCurrentFrame()], size);

@@ -24,7 +24,7 @@ VkSurfaceKHR createSurface(Instance& instance, Window* window)
 
     if (vkCreateWin32SurfaceKHR(instance.get(), &createInfo, nullptr, &surface) != VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to create Win32 surface!");
+        log::func::fatal("Failed to create Win32 surface!");
     }
 #elif defined(WAYLAND)
     auto* win = static_cast<WindowWayland*>(window);
@@ -36,7 +36,7 @@ VkSurfaceKHR createSurface(Instance& instance, Window* window)
 
     if (vkCreateWaylandSurfaceKHR(instance.get(), &createInfo, nullptr, &surface) != VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to create Wayland surface!");
+        log::func::fatal("Failed to create Wayland surface!");
     }
 #elif defined(X11)
     auto* win = static_cast<WindowX11*>(window);
@@ -48,7 +48,7 @@ VkSurfaceKHR createSurface(Instance& instance, Window* window)
 
     if (vkCreateXcbSurfaceKHR(instance.get(), &createInfo, nullptr, &surface) != VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to create X11 surface!");
+        log::func::fatal("Failed to create X11 surface!");
     }
 #endif
 

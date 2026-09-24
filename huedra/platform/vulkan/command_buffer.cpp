@@ -17,7 +17,7 @@ void CommandBuffer::init(Device& device, CommandPool& commandPool, u32 size)
 
     if (vkAllocateCommandBuffers(device.getLogical(), &allocInfo, m_commandBuffers.data()) != VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to allocate command buffers!");
+        log::func::fatal("Failed to allocate command buffers!");
     }
 }
 
@@ -38,7 +38,7 @@ void CommandBuffer::begin(u64 index)
 
     if (vkBeginCommandBuffer(m_commandBuffers[index], &beginInfo) != VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to begin recording command buffer!\nIndex: {}", index);
+        log::func::fatal("Failed to begin recording command buffer, index: {}", index);
     }
 }
 
@@ -46,7 +46,7 @@ void CommandBuffer::end(u64 index)
 {
     if (vkEndCommandBuffer(m_commandBuffers[index]) != VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to end command buffer!");
+        log::func::fatal("Failed to end command buffer!");
     }
 }
 

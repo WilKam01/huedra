@@ -26,7 +26,7 @@ bool WindowX11::init(const std::string& title, const WindowInput& input, xcb_con
     error = xcb_request_check(m_xcbConnection, cookie);
     if (error != nullptr)
     {
-        log(LogLevel::ERR, "Failed to create XCB window: {}", getXcbError(error));
+        log::func::error("Failed to create XCB window: {}", getXcbError(error));
         return false;
     }
 
@@ -34,7 +34,7 @@ bool WindowX11::init(const std::string& title, const WindowInput& input, xcb_con
     error = xcb_request_check(m_xcbConnection, cookie);
     if (error != nullptr)
     {
-        log(LogLevel::ERR, "Failed to map XCB window: {}", getXcbError(error));
+        log::func::error("Failed to map XCB window: {}", getXcbError(error));
         return false;
     }
 
@@ -43,7 +43,7 @@ bool WindowX11::init(const std::string& title, const WindowInput& input, xcb_con
     error = xcb_request_check(m_xcbConnection, cookie);
     if (error != nullptr)
     {
-        log(LogLevel::ERR, "Failed to replace name on XCB window: {}", getXcbError(error));
+        log::func::error("Failed to replace name on XCB window: {}", getXcbError(error));
         return false;
     }
 
@@ -54,7 +54,7 @@ bool WindowX11::init(const std::string& title, const WindowInput& input, xcb_con
         error = xcb_request_check(m_xcbConnection, cookie);
         if (error != nullptr)
         {
-            log(LogLevel::ERR, "Failed to set proto and/or delete reply on XCB window: {}", getXcbError(error));
+            log::func::error("Failed to set proto and/or delete reply on XCB window: {}", getXcbError(error));
             return false;
         }
     }
@@ -111,7 +111,7 @@ void WindowX11::setTitle(const std::string& title)
     xcb_generic_error_t* error = xcb_request_check(m_xcbConnection, cookie);
     if (error != nullptr)
     {
-        log(LogLevel::ERR, "Failed to change window title: {}", getXcbError(error));
+        log::func::warn("Failed to change window title: {}", getXcbError(error));
     }
     xcb_flush(m_xcbConnection);
     updateTitle(title);
@@ -125,7 +125,7 @@ void WindowX11::setResolution(uvec2 resolution)
     xcb_generic_error_t* error = xcb_request_check(m_xcbConnection, cookie);
     if (error != nullptr)
     {
-        log(LogLevel::ERR, "Failed to change window resolution: {}", getXcbError(error));
+        log::func::warn("Failed to change window resolution: {}", getXcbError(error));
     }
     xcb_flush(m_xcbConnection);
 }
@@ -138,7 +138,7 @@ void WindowX11::setPosition(ivec2 position)
     xcb_generic_error_t* error = xcb_request_check(m_xcbConnection, cookie);
     if (error != nullptr)
     {
-        log(LogLevel::ERR, "Failed to change window position: {}", getXcbError(error));
+        log::func::warn("Failed to change window position: {}", getXcbError(error));
     }
     xcb_flush(m_xcbConnection);
 }

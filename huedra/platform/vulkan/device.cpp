@@ -29,7 +29,7 @@ u32 Device::findMemoryType(u32 typeBits, VkMemoryPropertyFlags properties)
         }
     }
 
-    log(LogLevel::ERR, "Failed to find suitable memory type!");
+    log::func::fatal("Failed to find suitable memory type!");
     return 0;
 }
 
@@ -98,7 +98,7 @@ VkFormat Device::findDepthFormat()
         }
     }
 
-    log(LogLevel::ERR, "Failed to find supported depth format!");
+    log::func::fatal("Failed to find supported depth format!");
     return VK_FORMAT_UNDEFINED;
 }
 
@@ -111,12 +111,12 @@ void Device::pickPhysicalDevice(Instance& instance, VkSurfaceKHR surface)
     std::vector<VkPhysicalDevice> devices(count);
     vkEnumeratePhysicalDevices(instance.get(), &count, devices.data());
 
-    log(LogLevel::D_INFO, "Physical Devices: ");
+    log::debug("Physical Devices: ");
     for (const auto& device : devices)
     {
         VkPhysicalDeviceProperties deviceProperties;
         vkGetPhysicalDeviceProperties(device, &deviceProperties);
-        log(LogLevel::D_INFO, "    {}", deviceProperties.deviceName);
+        log::debug("    {}", deviceProperties.deviceName);
     }
 
     for (const auto& device : devices)
@@ -127,14 +127,14 @@ void Device::pickPhysicalDevice(Instance& instance, VkSurfaceKHR surface)
             m_msaaSamples = getMaxUsableSampleCount();
             VkPhysicalDeviceProperties deviceProperties;
             vkGetPhysicalDeviceProperties(device, &deviceProperties);
-            log(LogLevel::D_INFO, "Found suitable physical device: {}", deviceProperties.deviceName);
+            log::debug("Found suitable physical device: {}", deviceProperties.deviceName);
             break;
         }
     }
 
     if (m_physicalDevice == VK_NULL_HANDLE)
     {
-        log(LogLevel::ERR, "Failed to find suitable GPU!");
+        log::func::fatal("Failed to find suitable GPU!");
     }
 }
 
@@ -149,7 +149,7 @@ bool Device::isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface)
         if (vkGetPhysicalDeviceSurfaceSupportKHR(device, indices.graphicsFamily.value(), surface, &result) !=
             VK_SUCCESS)
         {
-            log(LogLevel::ERR, "Failed to check physical device graphics surface support");
+            log::func::fatal("Failed to check physical device graphics surface support");
         }
         surfaceSupported = result == VK_TRUE;
     }
@@ -158,7 +158,7 @@ bool Device::isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface)
         VkBool32 result{VK_FALSE};
         if (vkGetPhysicalDeviceSurfaceSupportKHR(device, indices.computeFamily.value(), surface, &result) != VK_SUCCESS)
         {
-            log(LogLevel::ERR, "Failed to check physical device compute surface support");
+            log::func::fatal("Failed to check physical device compute surface support");
         }
         surfaceSupported = result == VK_TRUE;
     }
@@ -167,7 +167,7 @@ bool Device::isDeviceSuitable(VkPhysicalDevice device, VkSurfaceKHR surface)
         VkBool32 result{VK_FALSE};
         if (vkGetPhysicalDeviceSurfaceSupportKHR(device, indices.presentFamily.value(), surface, &result) != VK_SUCCESS)
         {
-            log(LogLevel::ERR, "Failed to check physical device graphics surface support");
+            log::func::fatal("Failed to check physical device graphics surface support");
         }
         surfaceSupported = result == VK_TRUE;
     }
@@ -289,7 +289,7 @@ void Device::createLogicalDevice(VkSurfaceKHR surface)
 
     if (vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device) != VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to create logical device!");
+        log::func::fatal("Failed to create logical device!");
     }
 
     vkGetDeviceQueue(m_device, m_graphicsQueueuFamilyIndex, 0, &m_graphicsQueue);

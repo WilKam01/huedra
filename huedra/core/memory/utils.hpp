@@ -42,7 +42,7 @@ constexpr void parseToBytes(u8* bytes, T value, std::endian desiredEndian)
     std::memcpy(bytes, &value, sizeof(T));
 }
 
-// LSB: Least Significant BIt
+// LSB: Least Significant Bit
 constexpr u32 readBits(const u8* bytes, u32 startBit, u32 length, bool lsbFirst = true)
 {
     u32 result = 0;
@@ -86,22 +86,21 @@ constexpr std::vector<u8> inflate(const u8* bytes)
     u8 compressionMethod = readBits(&cmf, 0, 4);
     if (compressionMethod != 8) // "deflate" method
     {
-        log(LogLevel::WARNING, "inflate(): Incorrect compression method used: {} (should be 8)", compressionMethod);
+        log::func::error("Incorrect compression method used: {} (should be 8)", compressionMethod);
         return {};
     }
 
     u8 compressionInfo = readBits(&cmf, 4, 4);
     if (compressionInfo > 7) // compression info = log2(windowSize) - 8
     {
-        log(LogLevel::WARNING, "inflate(): Compression info used: {} is too large (should be 7 or less)",
-            compressionInfo);
+        log::func::error("Compression info used: {} is too large (should be 7 or less)", compressionInfo);
         return {};
     }
 
     u8 flags = bytes[index + 1];
     if ((cmf * 256 + flags) % 31 != 0) // Has to be multiple of 31
     {
-        log(LogLevel::WARNING, "inflate(): cmf and flags 16-bit representation is not a multiple of 31");
+        log::func::error("cmf and flags 16-bit representation is not a multiple of 31");
         return {};
     }
 
@@ -145,7 +144,7 @@ constexpr std::vector<u8> inflate(const u8* bytes)
             u16 nLen = parseFromBytes<u16>(&bytes[index + offset + 2], std::endian::little);
             if (len != ~nLen)
             {
-                log(LogLevel::WARNING, "inflate(): len/nLen in uncompressed data block is invalid/corrupt");
+                log::func::error("len/nLen in uncompressed data block is invalid/corrupt");
                 return {};
             }
 
@@ -232,9 +231,8 @@ constexpr std::vector<u8> inflate(const u8* bytes)
                     }
                     else
                     {
-                        log(LogLevel::WARNING,
-                            "inflate(): symbol read of dynamic huffman codes is invalid: {}, should be [0, 18]",
-                            symbol);
+                        log::func::error("symbol read of dynamic huffman codes is invalid: {}, should be [0, 18]",
+                                         symbol);
                         return {};
                     }
                 }
@@ -281,7 +279,7 @@ constexpr std::vector<u8> inflate(const u8* bytes)
         }
         else
         {
-            log(LogLevel::WARNING, "inflate(): Block Type is {} is undefined/reserved", blockType);
+            log::func::error("Block Type is {} is undefined/reserved", blockType);
             return {};
         }
     }
@@ -354,8 +352,7 @@ constexpr std::vector<u8> inflate(const u8* bytes)
     u32 adler32 = parseFromBytes<u32>(&bytes[index + (bits / 8) + 1], std::endian::big);
     if (s2 * 65536 + s1 != adler32)
     {
-        log(LogLevel::WARNING, "inflate(): ADLER32: {} is not accurate (calculated value: {})", adler32,
-            (s2 * 65536) + s1);
+        log::func::warn("ADLER32: {} is not accurate (calculated value: {})", adler32, (s2 * 65536) + s1);
     }
 #endif
 

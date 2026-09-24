@@ -67,14 +67,12 @@ bool WaylandConfig::loadCursorTheme()
             }
             else
             {
-                log(LogLevel::WARNING, "Wayland D-bus: Could not resolve cursor theme, error code: {}",
-                    strerror(-readResult));
+                log::func::warn("D-bus: Could not resolve cursor theme, error code: {}", strerror(-readResult));
             }
         }
         else
         {
-            log(LogLevel::WARNING,
-                "Wayland D-bus: Could not reach cursor-theme on org.freedesktop.portal.Desktop service");
+            log::func::warn("D-bus: Could not reach cursor-theme on org.freedesktop.portal.Desktop service");
         }
 
         sd_bus_message_unref(reply);
@@ -113,7 +111,7 @@ bool WaylandConfig::loadCursorTheme()
         wlCursorTheme = wl_cursor_theme_load(cursorTheme.c_str(), cursorSize, wlSharedMemory);
         if (!wlCursorTheme)
         {
-            log(LogLevel::WARNING, "Wayland: Could not load system theme, using default instead");
+            log::func::warn("Could not load system theme, using default instead");
             wlCursorTheme = wl_cursor_theme_load(nullptr, 24, wlSharedMemory);
         }
 
@@ -154,7 +152,7 @@ void WaylandConfig::updateCursor(bool override)
 
     if (!wlCursorTheme || !wlPointer)
     {
-        log(LogLevel::WARNING, "Wayland: cursor theme or pointer objects not available");
+        log::func::warn("Wayland: cursor theme or pointer objects not available");
         return;
     }
 
@@ -168,8 +166,8 @@ void WaylandConfig::updateCursor(bool override)
         wl_cursor_theme_get_cursor(wlCursorTheme, cursorTypeNames[static_cast<u32>(global::input.getCursor())].data());
     if (!cursor)
     {
-        log(LogLevel::WARNING, "Wayland: could not find cursor: {}",
-            cursorTypeNames[static_cast<u32>(global::input.getCursor())]);
+        log::func::error("Wayland: could not find cursor: {}",
+                         cursorTypeNames[static_cast<u32>(global::input.getCursor())]);
         return;
     }
 
@@ -587,7 +585,7 @@ void WaylandConfig::handleRegistry(void* data, wl_registry* registry, u32 name, 
             wl_registry_bind(registry, name, &wl_compositor_interface, WAYLAND_COMPOSITOR_BIND_VERSION));
         if (!config->wlCompositor)
         {
-            log(LogLevel::ERR, "Could not bind wayland compositor from handleRegistry call!");
+            log::func::fatal("Could not bind wayland compositor from handleRegistry call!");
         }
     }
     else if (strcmp(interface, wl_shm_interface.name) == 0)
@@ -596,7 +594,7 @@ void WaylandConfig::handleRegistry(void* data, wl_registry* registry, u32 name, 
             wl_registry_bind(registry, name, &wl_shm_interface, WAYLAND_SHARED_MEMORY_BIND_VERSION));
         if (!config->wlSharedMemory)
         {
-            log(LogLevel::ERR, "Could not bind wayland shared memory from handleRegistry call!");
+            log::func::fatal("Could not bind wayland shared memory from handleRegistry call!");
         }
     }
     else if (strcmp(interface, xdg_wm_base_interface.name) == 0)
@@ -605,7 +603,7 @@ void WaylandConfig::handleRegistry(void* data, wl_registry* registry, u32 name, 
             static_cast<xdg_wm_base*>(wl_registry_bind(registry, name, &xdg_wm_base_interface, XDG_SHELL_BIND_VERSION));
         if (!config->xdgBase)
         {
-            log(LogLevel::ERR, "Could not bind xdg shell from handleRegistry call!");
+            log::func::fatal("Could not bind xdg shell from handleRegistry call!");
         }
         xdg_wm_base_add_listener(config->xdgBase, &pingListener, NULL);
     }
@@ -615,7 +613,7 @@ void WaylandConfig::handleRegistry(void* data, wl_registry* registry, u32 name, 
             registry, name, &zxdg_decoration_manager_v1_interface, ZXDG_DECORATION_MANAGER_BIND_VERSION));
         if (!config->zxdgDecorationManager)
         {
-            log(LogLevel::ERR, "Could not bind zxdg decoration manager from handleRegistry call!");
+            log::func::fatal("Could not bind zxdg decoration manager from handleRegistry call!");
         }
     }
     else if (strcmp(interface, wl_seat_interface.name) == 0)
@@ -624,7 +622,7 @@ void WaylandConfig::handleRegistry(void* data, wl_registry* registry, u32 name, 
             static_cast<wl_seat*>(wl_registry_bind(registry, name, &wl_seat_interface, WAYLAND_SEAT_BIND_VERSION));
         if (!config->wlSeat)
         {
-            log(LogLevel::ERR, "Could not bind wayland seat from handleRegistry call!");
+            log::func::fatal("Could not bind wayland seat from handleRegistry call!");
         }
         wl_seat_add_listener(config->wlSeat, &seatListener, data);
     }
@@ -634,7 +632,7 @@ void WaylandConfig::handleRegistry(void* data, wl_registry* registry, u32 name, 
             wl_registry_bind(registry, name, &wp_pointer_warp_v1_interface, WP_POINTER_WARP_BIND_VERSION));
         if (!config->wpPointerWarp)
         {
-            log(LogLevel::ERR, "Could not bind wp pointer warp from handleRegistry call!");
+            log::func::fatal("Could not bind wp pointer warp from handleRegistry call!");
         }
     }
     else if (strcmp(interface, zwp_relative_pointer_manager_v1_interface.name) == 0)
@@ -643,7 +641,7 @@ void WaylandConfig::handleRegistry(void* data, wl_registry* registry, u32 name, 
             registry, name, &zwp_relative_pointer_manager_v1_interface, ZWP_RELATIVE_POINTER_MANAGER_BIND_VERSION));
         if (!config->zwpRelativePointerManager)
         {
-            log(LogLevel::ERR, "Could not bind zwp relative pointer manager from handleRegistry call!");
+            log::func::fatal("Could not bind zwp relative pointer manager from handleRegistry call!");
         }
     }
     else if (strcmp(interface, zwp_pointer_constraints_v1_interface.name) == 0)
@@ -652,7 +650,7 @@ void WaylandConfig::handleRegistry(void* data, wl_registry* registry, u32 name, 
             registry, name, &zwp_pointer_constraints_v1_interface, ZWP_POINTER_CONSTRAINTS_BIND_VERSION));
         if (!config->zwpPointerConstraints)
         {
-            log(LogLevel::ERR, "Could not bind zwp pointer contraints from handleRegistry call!");
+            log::func::fatal("Could not bind zwp pointer contraints from handleRegistry call!");
         }
     }
 }

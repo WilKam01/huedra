@@ -48,7 +48,7 @@ void VulkanSwapchain::aquireNextImage()
     }
     else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
     {
-        log(LogLevel::ERR, "Failed to acquire swap chain image!");
+        log::func::fatal("Failed to acquire swap chain image!");
     }
     else
     {
@@ -132,7 +132,7 @@ void VulkanSwapchain::create()
     {
         if (vkCreateSemaphore(m_device->getLogical(), &semaphoreInfo, nullptr, &semaphore) != VK_SUCCESS)
         {
-            log(LogLevel::ERR, "Failed to create swap chain synchronization objects!");
+            log::func::fatal("Failed to create swap chain synchronization objects!");
         }
     }
 
@@ -184,7 +184,7 @@ void VulkanSwapchain::create()
 
     if (vkCreateSwapchainKHR(m_device->getLogical(), &createInfo, nullptr, &m_swapchain) != VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to create swap chain!");
+        log::func::fatal("Failed to create swap chain!");
     }
 
     if (oldSwapchain != nullptr)

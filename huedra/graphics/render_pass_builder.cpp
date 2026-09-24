@@ -22,25 +22,25 @@ RenderPassBuilder& RenderPassBuilder::setPipeline(const PipelineBuilder& pipelin
 {
     if (pipeline.empty())
     {
-        log(LogLevel::WARNING, "RenderPassBuilder: pipeline invalid, is empty");
+        log::func::error("Pipeline invalid, is empty");
         return *this;
     }
 
     if (m_type == RenderPassType::GRAPHICS && pipeline.getType() != PipelineType::GRAPHICS)
     {
-        log(LogLevel::WARNING, "RenderPassBuilder: pipeline invalid, not a graphics pipeline");
+        log::func::error("Pipeline invalid, not a graphics pipeline");
         return *this;
     }
 
     if (m_type == RenderPassType::COMPUTE && pipeline.getType() != PipelineType::COMPUTE)
     {
-        log(LogLevel::WARNING, "RenderPassBuilder: pipeline invalid, not a compute pipeline");
+        log::func::error("Pipeline invalid, not a compute pipeline");
         return *this;
     }
 
     if (m_type == RenderPassType::GRAPHICS && !pipeline.getShaderStages().contains(ShaderStage::VERTEX))
     {
-        log(LogLevel::WARNING, "RenderPassBuilder: graphics pipeline invalid, no vertex shader present");
+        log::func::error("Graphics pipeline invalid, no vertex shader present");
         return *this;
     }
 
@@ -66,7 +66,7 @@ RenderPassBuilder& RenderPassBuilder::addResource(ResourceAccessType access, Ref
 {
     if (!buffer.valid())
     {
-        log(LogLevel::WARNING, "RenderPassBuilder: buffer invalid");
+        log::func::error("Buffer invalid");
         return *this;
     }
 
@@ -94,7 +94,7 @@ RenderPassBuilder& RenderPassBuilder::addResource(ResourceAccessType access, Ref
 {
     if (!texture.valid())
     {
-        log(LogLevel::WARNING, "RenderPassBuilder: texture invalid");
+        log::func::error("Texture invalid");
         return *this;
     }
 
@@ -121,13 +121,13 @@ RenderPassBuilder& RenderPassBuilder::addRenderTarget(Ref<RenderTarget> renderTa
 {
     if (!renderTarget.valid() || !renderTarget->isAvailable())
     {
-        log(LogLevel::WARNING, "RenderPassBuilder: render target not available");
+        log::func::error("Render target not available");
         return *this;
     }
 
     if (m_type != RenderPassType::GRAPHICS)
     {
-        log(LogLevel::WARNING, "RenderPassBuilder: could not add render target to non graphics render pass");
+        log::func::error("Could not add render target to non graphics render pass");
         return *this;
     }
 
@@ -138,8 +138,8 @@ RenderPassBuilder& RenderPassBuilder::addRenderTarget(Ref<RenderTarget> renderTa
             m_renderTargetUse == RenderTargetType::DEPTH && !renderTarget->usesDepth() ||
             m_renderTargetUse == RenderTargetType::COLOR_AND_DEPTH)
         {
-            log(LogLevel::WARNING,
-                R"(RenderPassBuilder: could not add render target to render pass. Type "{}" is not supported for target use "{}")",
+            log::func::error(
+                R"(Could not add render target to render pass. Type "{}" is not supported for target use "{}")",
                 RenderTargetTypeNames[static_cast<u32>(renderTarget->getType())],
                 RenderTargetTypeNames[static_cast<u32>(m_renderTargetUse)]);
             return *this;

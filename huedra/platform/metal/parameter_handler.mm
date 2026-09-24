@@ -92,9 +92,8 @@ void MetalParameterHandler::writeBuffer(MetalBuffer& buffer, u32 set, u32 bindin
 {
     if (!m_argBuffers.contains(set))
     {
-        log(LogLevel::WARNING,
-            "MetalParameterHandler::writeBuffer(): Could not set buffer to argument buffer, set {} is not an argument "
-            "buffer",
+        log::func::error(
+            "Could not set buffer to argument buffer, set {} is not an argument buffer",
             set);
         return;
     }
@@ -103,9 +102,8 @@ void MetalParameterHandler::writeBuffer(MetalBuffer& buffer, u32 set, u32 bindin
         (m_argBuffers[set].types[binding] != ResourceType::CONSTANT_BUFFER &&
          m_argBuffers[set].types[binding] != ResourceType::STRUCTURED_BUFFER))
     {
-        log(LogLevel::WARNING,
-            "MetalParameterHandler::writeBuffer(): Could not set buffer to argument buffer, binding {} is not "
-            "valid",
+        log::func::error(
+            "Could not set buffer to argument buffer, binding {} is not valid",
             binding);
         return;
     }
@@ -130,9 +128,8 @@ void MetalParameterHandler::writeTexture(MetalTexture& texture, u32 set, u32 bin
 {
     if (!m_argBuffers.contains(set))
     {
-        log(LogLevel::WARNING,
-            "MetalParameterHandler::writeTexture(): Could not set texture to argument buffer, set {} is not an "
-            "argument buffer",
+        log::func::error(
+            "Could not set texture to argument buffer, set {} is not an argument buffer",
             set);
         return;
     }
@@ -140,8 +137,8 @@ void MetalParameterHandler::writeTexture(MetalTexture& texture, u32 set, u32 bin
     if (binding >= m_argBuffers[set].types.size() || (m_argBuffers[set].types[binding] != ResourceType::TEXTURE &&
                                                       m_argBuffers[set].types[binding] != ResourceType::RW_TEXTURE))
     {
-        log(LogLevel::WARNING,
-            "MetalParameterHandler::writeTexture(): Could not set texture to argument buffer, binding {} is not valid",
+        log::func::error(
+            "Could not set texture to argument buffer, binding {} is not valid",
             binding);
         return;
     }
@@ -166,17 +163,16 @@ void MetalParameterHandler::writeSampler(id<MTLSamplerState> sampler, u32 set, u
 {
     if (!m_argBuffers.contains(set))
     {
-        log(LogLevel::WARNING,
-            "MetalParameterHandler::writeSampler(): Could not set sampler to argument buffer, set {} is not an "
-            "argument buffer",
+        log::func::error(
+            "Could not set sampler to argument buffer, set {} is not an argument buffer",
             set);
         return;
     }
 
     if (binding >= m_argBuffers[set].types.size() || m_argBuffers[set].types[binding] != ResourceType::SAMPLER)
     {
-        log(LogLevel::WARNING,
-            "MetalParameterHandler::writeSampler(): Could not set sampler to argument buffer, binding {} is not valid",
+        log::func::error(
+            "Could not set sampler to argument buffer, binding {} is not valid",
             binding);
         return;
     }

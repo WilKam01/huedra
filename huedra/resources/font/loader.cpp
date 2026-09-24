@@ -78,9 +78,9 @@ FontData loadTtf(const std::string& path)
 
     if (header.type != CommonFontHeader::Type::TRUE_TYPE)
     {
-        log(LogLevel::WARNING, "loadTtf(): Invalid font type, expected {}, but got {}",
-            CommonFontHeader::TypeNames[static_cast<u32>(CommonFontHeader::Type::TRUE_TYPE)],
-            CommonFontHeader::TypeNames[static_cast<u32>(header.type)]);
+        log::func::error("Invalid font type, expected {}, but got {}",
+                         CommonFontHeader::TypeNames[static_cast<u32>(CommonFontHeader::Type::TRUE_TYPE)],
+                         CommonFontHeader::TypeNames[static_cast<u32>(header.type)]);
         return {};
     }
 
@@ -113,7 +113,7 @@ FontData loadTtf(const std::string& path)
     {
         if (!tables.contains(std::string(required)))
         {
-            log(LogLevel::WARNING, "loadTtf(): Missing table name in file: {}", required);
+            log::func::error("Missing table name in file: {}", required);
             return {};
         }
     }
@@ -199,14 +199,14 @@ FontData loadTtf(const std::string& path)
 
     if (selectedSubtableOffset == 0)
     {
-        log(LogLevel::WARNING, "loadTtf(): Did not find suitable encoding in \"cmap\" table");
+        log::func::error("Did not find suitable encoding in \"cmap\" table");
         return {};
     }
 
     u16 format = parseFromBytes<u16>(&bytes[tables["cmap"].offset + selectedSubtableOffset], std::endian::big);
     if (format != 4 && format != 6 && format != 12 && format != 13)
     {
-        log(LogLevel::WARNING, "loadTtf(): Selected subtable format: {} is not supported", format);
+        log::func::error("Selected subtable format: {} is not supported", format);
         return {};
     }
 
@@ -456,8 +456,7 @@ FontData loadTtf(const std::string& path)
 
                 if (!static_cast<bool>(readBits(std::bit_cast<u8*>(&flags), ARGS_ARE_XY_VALUES, 1)))
                 {
-                    log(LogLevel::WARNING,
-                        "loadTtf(): Font not supported, compound glyph using xy points instead of offset");
+                    log::func::error("Font not supported, compound glyph using xy points instead of offset");
                     return {};
                 }
 

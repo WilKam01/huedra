@@ -55,8 +55,8 @@ ShaderModule SlangContext::createModule(const std::string& name, const std::stri
                                                          diagnositicBlob.writeRef());
     if (diagnositicBlob != nullptr)
     {
-        log(LogLevel::WARNING, "createModule(): load module from string error:\n{}",
-            std::bit_cast<const char*>(diagnositicBlob->getBufferPointer()));
+        log::func::error("Load module from string error:\n{}",
+                         std::bit_cast<const char*>(diagnositicBlob->getBufferPointer()));
     }
     if (shaderModule == nullptr)
     {
@@ -66,7 +66,7 @@ ShaderModule SlangContext::createModule(const std::string& name, const std::stri
     i32 entryPointCount = shaderModule->getDefinedEntryPointCount();
     if (entryPointCount == 0)
     {
-        log(LogLevel::WARNING, "createModule(): Could not find any entry points");
+        log::func::error("Could not find any entry points");
         return {};
     }
 
@@ -84,8 +84,8 @@ ShaderModule SlangContext::createModule(const std::string& name, const std::stri
         componentTypes.data(), componentTypes.size(), composedProgram.writeRef(), diagnositicBlob.writeRef());
     if (SLANG_FAILED(result))
     {
-        log(LogLevel::WARNING, "createModule(): create composite component type error: {}",
-            std::bit_cast<const char*>(diagnositicBlob->getBufferPointer()));
+        log::func::error("Create composite component type error: {}",
+                         std::bit_cast<const char*>(diagnositicBlob->getBufferPointer()));
         return {};
     }
 
@@ -120,8 +120,8 @@ CompiledShaderModule SlangContext::compileAndLinkModules(const std::map<ShaderSt
         componentTypes.data(), componentTypes.size(), composedProgram.writeRef(), diagnositicBlob.writeRef());
     if (SLANG_FAILED(result))
     {
-        log(LogLevel::WARNING, "compileAndLinkModules(): create composite component type error: {}",
-            std::bit_cast<const char*>(diagnositicBlob->getBufferPointer()));
+        log::func::error("Create composite component type error: {}",
+                         std::bit_cast<const char*>(diagnositicBlob->getBufferPointer()));
         return {};
     }
 
@@ -129,8 +129,7 @@ CompiledShaderModule SlangContext::compileAndLinkModules(const std::map<ShaderSt
     result = composedProgram->link(linkedProgram.writeRef(), diagnositicBlob.writeRef());
     if (SLANG_FAILED(result))
     {
-        log(LogLevel::WARNING, "compileAndLinkModules(): link error: {}",
-            std::bit_cast<const char*>(diagnositicBlob->getBufferPointer()));
+        log::func::error("Link error: {}", std::bit_cast<const char*>(diagnositicBlob->getBufferPointer()));
         return {};
     }
 
@@ -138,8 +137,8 @@ CompiledShaderModule SlangContext::compileAndLinkModules(const std::map<ShaderSt
     result = linkedProgram->getTargetCode(0, codeBlob.writeRef(), diagnositicBlob.writeRef());
     if (SLANG_FAILED(result))
     {
-        log(LogLevel::WARNING, "compileAndLinkModules(): get target point code error: {}",
-            std::bit_cast<const char*>(diagnositicBlob->getBufferPointer()));
+        log::func::error("Get target point code error: {}",
+                         std::bit_cast<const char*>(diagnositicBlob->getBufferPointer()));
         return {};
     }
 

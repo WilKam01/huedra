@@ -197,13 +197,13 @@ void WindowManager::init()
     wlConfig.wlDisplay = wl_display_connect(nullptr);
     if (!wlConfig.wlDisplay)
     {
-        log(LogLevel::ERR, "Could not connect wlDisplay!");
+        log::func::fatal("Could not connect wlDisplay!");
     }
 
     wlConfig.wlRegistry = wl_display_get_registry(wlConfig.wlDisplay);
     if (!wlConfig.wlRegistry)
     {
-        log(LogLevel::ERR, "Could not get wlRegistry!");
+        log::func::fatal("Could not get wlRegistry!");
     }
     wl_registry_add_listener(wlConfig.wlRegistry, &wlConfig.registryListener, &wlConfig);
     wl_display_roundtrip(wlConfig.wlDisplay);
@@ -211,7 +211,7 @@ void WindowManager::init()
     wlConfig.xkbContext = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
     if (!wlConfig.xkbContext)
     {
-        log(LogLevel::ERR, "Could not create xkb context!");
+        log::func::fatal("Could not create xkb context!");
     }
 
     xkb_keymap* keymap = xkb_keymap_new_from_names(wlConfig.xkbContext, nullptr, XKB_KEYMAP_COMPILE_NO_FLAGS);
@@ -232,7 +232,7 @@ void WindowManager::init()
 
     if (xcb_connection_has_error(xcbConnection))
     {
-        log(LogLevel::ERR, "Failed to connect to X server via XCB");
+        log::func::fatal("Failed to connect to X server via XCB");
     }
 
     xcb_intern_atom_cookie_t wmProtoCookie = xcb_intern_atom(xcbConnection, 1, 12, "WM_PROTOCOLS");
@@ -252,14 +252,14 @@ void WindowManager::init()
 
     if (!xcbXkbExtensionReply || !xcbXkbExtensionReply->supported)
     {
-        log(LogLevel::ERR, "X11 server does not support XKB -> X11");
+        log::func::fatal("X11 server does not support XKB -> X11");
     }
     free(xcbXkbExtensionReply);
 
     i32 deviceId = xkb_x11_get_core_keyboard_device_id(xcbConnection);
     if (deviceId == -1)
     {
-        log(LogLevel::ERR, "Could not find system primary keyboard layout");
+        log::func::fatal("Could not find system primary keyboard layout");
     }
 
     xkbContext = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
@@ -288,7 +288,7 @@ void WindowManager::init()
 
     if (xcb_cursor_context_new(xcbConnection, xcbScreen, &xcbCursorContext) < 0)
     {
-        log(LogLevel::ERR, "Could not create xcb cursor context");
+        log::func::fatal("Could not create xcb cursor context");
     }
 #endif
 }
@@ -926,8 +926,7 @@ bool WindowManager::update()
     {
         if (!wlConfig.zwpPointerConstraints || !wlConfig.wlPointer)
         {
-            log(LogLevel::WARNING,
-                "Wayland: Could not lock mouse, either pointer constraints or pointer object are not available");
+            log::func::error("Could not lock mouse, either pointer constraints or pointer object are not available");
             wlConfig.mouseLocked = true; // Stop spam
         }
         else
@@ -954,8 +953,7 @@ bool WindowManager::update()
     {
         if (!wlConfig.zwpPointerConstraints || !wlConfig.wlPointer)
         {
-            log(LogLevel::WARNING,
-                "Wayland: Could not confine mouse, either pointer constraints or pointer object are not available");
+            log::func::error("Could not confine mouse, either pointer constraints or pointer object are not available");
             wlConfig.mouseConfined = true; // Stop spam
         }
         else
@@ -1108,7 +1106,7 @@ Ref<Window> WindowManager::addWindow(const std::string& title, const WindowInput
     }
     else
     {
-        log(LogLevel::WARNING, "Failed to create window!");
+        log::func::error("Failed to create window!");
     }
 
     return Ref<Window>(window);
@@ -1126,19 +1124,19 @@ void WindowManager::setMousePosition(ivec2 pos)
 #elif defined(WAYLAND)
     if (!wlConfig.wpPointerWarp || !wlConfig.wlPointer)
     {
-        log(LogLevel::WARNING, "Wayland: wp pointer warp or pointer objects not initialized");
+        log::func::error("Wayland: wp pointer warp or pointer objects not initialized");
         return;
     }
 
     if (!wlConfig.lastMouseSelectedWindow)
     {
-        log(LogLevel::WARNING, "Wayland: not possible to set mouse position with not relative to a window");
+        log::func::warn("Wayland: not possible to set mouse position with not relative to a window");
         return;
     }
 
     if (!wlConfig.lastMouseSelectedWindow->isWithinBounds(pos))
     {
-        log(LogLevel::WARNING, "Wayland: not possible to set mouse position outside of window bounds");
+        log::func::warn("Wayland: not possible to set mouse position outside of window bounds");
         return;
     }
 
@@ -1214,7 +1212,7 @@ void WindowManager::setCursor(CursorType cursor)
     }
     else
     {
-        log(LogLevel::WARNING, "X11, Could not find cursor: {}", cursorTypeNames[static_cast<u32>(cursor)]);
+        log::func::error("X11, Could not find cursor: {}", cursorTypeNames[static_cast<u32>(cursor)]);
     }
 #endif
 }
@@ -1246,7 +1244,7 @@ Window* WindowManager::createWindow(const std::string& title, const WindowInput&
 {
     if (input.width == 0 || input.height == 0)
     {
-        log(LogLevel::WARNING, "Could not create window, resolution: ({}, {}) not allowed", input.width, input.height);
+        log::func::error("Could not create window, resolution: ({}, {}) not allowed", input.width, input.height);
         return nullptr;
     }
 

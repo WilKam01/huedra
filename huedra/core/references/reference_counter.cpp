@@ -37,10 +37,10 @@ void ReferenceCounter::reportState()
 {
     if (!getRefs().empty())
     {
-        log(LogLevel::WARNING, "ReferenceCounter: found {} resources not removed", getRefs().size());
+        log::func::warn("Found {} resources not removed", getRefs().size());
         for (auto& [ptr, refs] : getRefs())
         {
-            log(LogLevel::WARNING, "Address: 0x{:x} | getRefs() alive: {}", *static_cast<u64*>(ptr), refs.size());
+            log::func::warn("Address: 0x{:x} | getRefs() alive: {}", *static_cast<u64*>(ptr), refs.size());
         }
     }
 }
@@ -51,7 +51,7 @@ bool ReferenceCounter::addRef(void* resource, RefBase* ref)
     {
         ref->setInvalid();
 #ifdef DEBUG
-        log(LogLevel::WARNING, "ReferenceCounter: addref() failed to find resource");
+        log::func::warn("addref() failed to find resource");
 #endif
         return false;
     }

@@ -64,7 +64,7 @@ constexpr Matrix<T, 2, 2> invert(const Matrix<T, 2, 2>& matrix)
     T det = determinant(matrix);
     if (abs(det) < std::numeric_limits<T>::epsilon())
     {
-        log(LogLevel::WARNING, "Could not invert 2x2 matrix, determinant = 0");
+        log::func::error("Could not invert 2x2 matrix, determinant = 0");
         return matrix;
     }
 
@@ -77,7 +77,7 @@ constexpr Matrix<T, 3, 3> invert(const Matrix<T, 3, 3>& matrix)
     T det = determinant(matrix);
     if (abs(det) < std::numeric_limits<T>::epsilon())
     {
-        log(LogLevel::WARNING, "Could not invert 3x3 matrix, determinant = 0");
+        log::func::error("Could not invert 3x3 matrix, determinant = 0");
         return matrix;
     }
 
@@ -103,7 +103,7 @@ constexpr Matrix<T, 4, 4> invert(const Matrix<T, 4, 4>& matrix)
     T det = determinant(matrix);
     if (abs(det) < std::numeric_limits<T>::epsilon())
     {
-        log(LogLevel::WARNING, "Could not invert 4x4 matrix, determinant = 0");
+        log::func::error("Could not invert 4x4 matrix, determinant = 0");
         return matrix;
     }
 

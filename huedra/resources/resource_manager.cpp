@@ -44,7 +44,7 @@ std::vector<MeshData>& ResourceManager::loadMeshData(const std::string& path)
         }
         else
         {
-            log(LogLevel::WARNING, "loadMeshData(): extension \"{}\" not supported", info.extension.c_str());
+            log::func::warn("Extension \"{}\" not supported", info.extension.c_str());
             return m_missingMeshData;
         }
     }
@@ -70,7 +70,7 @@ TextureData& ResourceManager::loadTextureData(const std::string& path, TexelChan
         }
         else
         {
-            log(LogLevel::WARNING, "loadTextureData(): extension \"{}\" not supported", info.extension.c_str());
+            log::func::warn("Extension \"{}\" not supported", info.extension.c_str());
             return m_missingTextureData;
         }
     }
@@ -92,7 +92,7 @@ ShaderModule& ResourceManager::loadShaderModule(const std::string& path)
         FilePathInfo info = transformFilePath(path);
         if (info.extension != "slang")
         {
-            log(LogLevel::ERR, "loadShaderModule(): extension {} not supported", info.extension.c_str());
+            log::func::fatal("Extension {} not supported", info.extension.c_str());
             return m_missingShaderModule;
         }
 
@@ -101,7 +101,7 @@ ShaderModule& ResourceManager::loadShaderModule(const std::string& path)
             global::graphicsManager.createShaderModule(info.dirPath + "/" + info.fileName, bytes.data(), bytes.size());
         if (shaderModule.getSlangModule() == nullptr)
         {
-            log(LogLevel::ERR, "loadShaderModule(): Could not create shader module");
+            log::func::fatal("Could not create shader module");
         }
         m_shaders.insert(std::pair<u64, ShaderModule>(hash, shaderModule));
     }

@@ -16,7 +16,7 @@ void CommandPool::init(Device& device, VkPipelineBindPoint pipeline)
 
     if (vkCreateCommandPool(device.getLogical(), &poolInfo, nullptr, &m_commandPool) != VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to create command pool!");
+        log::func::fatal("Failed to create command pool!");
     }
 }
 

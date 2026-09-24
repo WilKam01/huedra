@@ -48,13 +48,13 @@ Ref<Buffer> GraphicsManager::createBuffer(BufferType type, u32 usage, u64 size, 
 {
     if (usage == HU_BUFFER_USAGE_UNDEFINED)
     {
-        log(LogLevel::WARNING, "Could not create buffer, buffer usage is undefined");
+        log::func::error("Could not create buffer, buffer usage is undefined");
         return Ref<Buffer>(nullptr);
     }
 
     if (size == 0)
     {
-        log(LogLevel::WARNING, "Could not create buffer, size is 0");
+        log::func::error("Could not create buffer, size is 0");
         return Ref<Buffer>(nullptr);
     }
 
@@ -65,17 +65,17 @@ Ref<Texture> GraphicsManager::createTexture(const TextureData& textureData)
 {
     if (textureData.width == 0 || textureData.height == 0)
     {
-        log(LogLevel::WARNING, "Could not create texture, width and height can't be 0");
+        log::func::error("Could not create texture, width and height can't be 0");
         return Ref<Texture>(nullptr);
     }
     if (textureData.format == GraphicsDataFormat::UNDEFINED)
     {
-        log(LogLevel::WARNING, "Could not create texture, format has be defined");
+        log::func::error("Could not create texture, format has be defined");
         return Ref<Texture>(nullptr);
     }
     if (textureData.texelSize == 0 || textureData.texels.empty())
     {
-        log(LogLevel::WARNING, "Could not create texture, invalid texture data provided");
+        log::func::error("Could not create texture, invalid texture data provided");
         return Ref<Texture>(nullptr);
     }
     return Ref<Texture>(m_context->createTexture(textureData));
@@ -86,12 +86,12 @@ Ref<RenderTarget> GraphicsManager::createRenderTarget(RenderTargetType type, Gra
 {
     if (width == 0 || height == 0)
     {
-        log(LogLevel::WARNING, "Could not create render target, width and height can't be 0");
+        log::func::error("Could not create render target, width and height can't be 0");
         return Ref<RenderTarget>(nullptr);
     }
     if (format == GraphicsDataFormat::UNDEFINED)
     {
-        log(LogLevel::WARNING, "Could not create render target, format has be defined");
+        log::func::error("Could not create render target, format has be defined");
         return Ref<RenderTarget>(nullptr);
     }
 
@@ -120,7 +120,7 @@ void GraphicsManager::removeBuffer(Ref<Buffer> buffer)
 {
     if (!buffer.valid())
     {
-        log(LogLevel::WARNING, "Could not remove buffer, ref is invalid");
+        log::func::warn("Could not remove buffer, ref is invalid");
         return;
     }
 
@@ -131,7 +131,7 @@ void GraphicsManager::removeTexture(Ref<Texture> texture)
 {
     if (!texture.valid())
     {
-        log(LogLevel::WARNING, "Could not remove texture, ref is invalid");
+        log::func::warn("Could not remove texture, ref is invalid");
         return;
     }
 
@@ -142,7 +142,7 @@ void GraphicsManager::removeRenderTarget(Ref<RenderTarget> renderTarget)
 {
     if (!renderTarget.valid())
     {
-        log(LogLevel::WARNING, "Could not remove render target, ref is invalid");
+        log::func::warn("Could not remove render target, ref is invalid");
         return;
     }
 

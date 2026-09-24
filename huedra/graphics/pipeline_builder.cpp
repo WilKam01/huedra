@@ -20,22 +20,21 @@ PipelineBuilder& PipelineBuilder::addShader(ShaderModule& shaderModule, const st
     ShaderStage stage = shaderModule.getShaderStage(entryPointName);
     if (stage == ShaderStage::NONE)
     {
-        log(LogLevel::WARNING, "PipelineBuilder::addShader(): Could not find entryPoint \"{}\" in module: {}",
-            entryPointName.c_str(), shaderModule.getName().c_str());
+        log::func::warn("Could not find entryPoint \"{}\" in module: {}", entryPointName.c_str(),
+                        shaderModule.getName().c_str());
         return *this;
     }
 
     if (m_type == PipelineType::COMPUTE && stage != ShaderStage::COMPUTE)
     {
-        log(LogLevel::WARNING, "PipelineBuilder.addShader(): Could not add non compute shader to compute pipoeline");
+        log::func::error("Could not add non compute shader to compute pipeline");
         return *this;
     }
 
     if (m_shaderStages.contains(stage))
     {
         m_shaderStages[stage] = {.shaderModule = &shaderModule, .entryPointName = entryPointName};
-        log(LogLevel::WARNING, "¨PipelineBuilder::addShader(): {} shader overwritten",
-            ShaderStageNames[static_cast<u64>(stage)]);
+        log::func::warn("{} shader overwritten", ShaderStageNames[static_cast<u64>(stage)].data());
         return *this;
     }
 
@@ -48,7 +47,7 @@ PipelineBuilder& PipelineBuilder::addVertexInputStream(const VertexInputStream& 
 {
     if (m_type != PipelineType::GRAPHICS)
     {
-        log(LogLevel::WARNING, "PipelineBuilder::addVertexInputStream() used on non Graphics pipeline");
+        log::func::error("used on non Graphics pipeline");
         return *this;
     }
     m_vertexStreams.push_back(inputStream);
@@ -59,7 +58,7 @@ PipelineBuilder& PipelineBuilder::setPrimitive(PrimitiveType type, PrimitiveLayo
 {
     if (m_type != PipelineType::GRAPHICS)
     {
-        log(LogLevel::WARNING, "PipelineBuilder::setPrimitive() used on non Graphics pipeline");
+        log::func::error("used on non Graphics pipeline");
         return *this;
     }
     m_primitiveType = type;

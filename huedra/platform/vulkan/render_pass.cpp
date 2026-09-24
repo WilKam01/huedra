@@ -81,7 +81,7 @@ void VulkanRenderPass::createFramebuffers()
 
         if (vkCreateFramebuffer(m_device->getLogical(), &framebufferInfo, nullptr, &m_framebuffers[i]) != VK_SUCCESS)
         {
-            log(LogLevel::ERR, "Failed to create render target framebuffer!");
+            log::func::fatal("Failed to create render target framebuffer!");
         }
     }
 }
@@ -266,7 +266,7 @@ void VulkanRenderPass::createRenderPass()
 
     if (vkCreateRenderPass(m_device->getLogical(), &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to create render pass!");
+        log::func::fatal("Failed to create render pass!");
     }
 }
 

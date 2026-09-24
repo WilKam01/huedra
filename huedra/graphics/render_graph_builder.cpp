@@ -17,25 +17,25 @@ RenderGraphBuilder& RenderGraphBuilder::addPass(const std::string& name, const R
 {
     if (m_passes.contains(name))
     {
-        log(LogLevel::WARNING, "Could not add render pass, {} already exists", name.c_str());
+        log::func::warn("Could not add render pass, {} already exists", name.c_str());
         return *this;
     }
 
     if (pass.empty())
     {
-        log(LogLevel::WARNING, "Could not add render pass, is empty");
+        log::func::error("Could not add render pass, is empty");
         return *this;
     }
 
     if (!pass.getCommands())
     {
-        log(LogLevel::WARNING, "Could not add render pass, no commands set");
+        log::func::error("Could not add render pass, no commands set");
         return *this;
     }
 
     if (pass.getType() == RenderPassType::GRAPHICS && pass.getRenderTargets().empty())
     {
-        log(LogLevel::WARNING, "Could not add graphics render pass without any render targets");
+        log::func::error("Could not add graphics render pass without any render targets");
         return *this;
     }
 

@@ -59,7 +59,7 @@ void MetalRenderContext::bindVertexBuffers(std::vector<Ref<Buffer>> buffers)
 {
     if (m_pipeline->getBuilder().getType() != PipelineType::GRAPHICS)
     {
-        log(LogLevel::WARNING, "Could not bind vertex buffers, not using a graphics pipeline");
+        log::func::error("Could not bind vertex buffers, not using a graphics pipeline");
         return;
     }
 
@@ -69,12 +69,12 @@ void MetalRenderContext::bindVertexBuffers(std::vector<Ref<Buffer>> buffers)
     {
         if (!buffers[i].valid())
         {
-            log(LogLevel::WARNING, "Could not bind vertex buffer: {}. Not valid", i);
+            log::func::error("Could not bind vertex buffer: {}. Not valid", i);
             return;
         }
         if ((buffers[i]->getBufferUsage() & HU_BUFFER_USAGE_VERTEX_BUFFER) == 0)
         {
-            log(LogLevel::WARNING, "Could not bind vertex buffer: {}. Buffer usage flag vertex buffer not set", i);
+            log::func::error("Could not bind vertex buffer: {}. Buffer usage flag vertex buffer not set", i);
             return;
         }
         metalBuffers[i] = static_cast<MetalBuffer*>(buffers[i].get())->get();
@@ -89,19 +89,19 @@ void MetalRenderContext::bindIndexBuffer(Ref<Buffer> buffer)
 {
     if (m_pipeline->getBuilder().getType() != PipelineType::GRAPHICS)
     {
-        log(LogLevel::WARNING, "Could not bind index buffer, not using a graphics pipeline");
+        log::func::error("Could not bind index buffer, not using a graphics pipeline");
         return;
     }
 
     if (!buffer.valid())
     {
-        log(LogLevel::WARNING, "Could not bind index buffer. Not valid");
+        log::func::error("Could not bind index buffer. Not valid");
         return;
     }
 
     if ((buffer->getBufferUsage() & HU_BUFFER_USAGE_INDEX_BUFFER) == 0)
     {
-        log(LogLevel::WARNING, "Could not bind index buffer. Buffer usage flag index buffer not set");
+        log::func::error("Could not bind index buffer. Buffer usage flag index buffer not set");
         return;
     }
 
@@ -112,21 +112,21 @@ void MetalRenderContext::bindBuffer(Ref<Buffer> buffer, std::string_view name)
 {
     if (!buffer.valid())
     {
-        log(LogLevel::WARNING, "Could not bind buffer, reference invalid");
+        log::func::error("Could not bind buffer, reference invalid");
         return;
     }
 
     std::optional<ResourcePosition> resource = m_pipeline->getShaderModule().getResource(name);
     if (!resource.has_value())
     {
-        log(LogLevel::WARNING, "Could not bind buffer, no resource named \"{}\"", name);
+        log::func::error("Could not bind buffer, no resource named \"{}\"", name);
         return;
     }
 
     if (resource.value().info.type != ResourceType::CONSTANT_BUFFER &&
         resource.value().info.type != ResourceType::STRUCTURED_BUFFER)
     {
-        log(LogLevel::WARNING, "Could not bind buffer, \"{}\" is a {}", name,
+        log::func::error("Could not bind buffer, \"{}\" is a {}", name,
             ResourceTypeNames[static_cast<u32>(resource.value().info.type)]);
         return;
     }
@@ -203,20 +203,20 @@ void MetalRenderContext::bindTexture(Ref<Texture> texture, std::string_view name
 {
     if (!texture.valid())
     {
-        log(LogLevel::WARNING, "Could not bind texture, reference invalid");
+        log::func::error("Could not bind texture, reference invalid");
         return;
     }
 
     std::optional<ResourcePosition> resource = m_pipeline->getShaderModule().getResource(name);
     if (!resource.has_value())
     {
-        log(LogLevel::WARNING, "Could not bind texture, no resource named \"{}\"", name);
+        log::func::error("Could not bind texture, no resource named \"{}\"", name);
         return;
     }
 
     if (resource.value().info.type != ResourceType::TEXTURE && resource.value().info.type != ResourceType::RW_TEXTURE)
     {
-        log(LogLevel::WARNING, "Could not bind texture, \"{}\" is a {}", name,
+        log::func::error("Could not bind texture, \"{}\" is a {}", name,
             ResourceTypeNames[static_cast<u32>(resource.value().info.type)]);
         return;
     }
@@ -283,13 +283,13 @@ void MetalRenderContext::bindSampler(const SamplerSettings& sampler, std::string
     std::optional<ResourcePosition> resource = m_pipeline->getShaderModule().getResource(name);
     if (!resource.has_value())
     {
-        log(LogLevel::WARNING, "Could not bind sampler, no resource named \"{}\"", name);
+        log::func::error("Could not bind sampler, no resource named \"{}\"", name);
         return;
     }
 
     if (resource.value().info.type != ResourceType::SAMPLER)
     {
-        log(LogLevel::WARNING, "Could not bind sampler, \"{}\" is a {}", name,
+        log::func::error("Could not bind sampler, \"{}\" is a {}", name,
             ResourceTypeNames[static_cast<u32>(resource.value().info.type)]);
         return;
     }
@@ -337,13 +337,13 @@ void MetalRenderContext::setParameter(void* data, u32 size, std::string_view nam
     std::optional<ParameterBinding> parameter = m_pipeline->getShaderModule().getParameter(name);
     if (!parameter.has_value())
     {
-        log(LogLevel::WARNING, "Could not set parameter, no parameter named \"{}\"", name);
+        log::func::error("Could not set parameter, no parameter named \"{}\"", name);
         return;
     }
 
     if (parameter.value().size != size)
     {
-        log(LogLevel::WARNING, "Could not set parameter \"{}\", got size {}, expected {}", name, size,
+        log::func::error("Could not set parameter \"{}\", got size {}, expected {}", name, size,
             parameter.value().size);
         return;
     }
@@ -355,7 +355,7 @@ void MetalRenderContext::draw(u32 vertexCount, u32 instanceCount, u32 vertexOffs
 {
     if (m_pipeline->getBuilder().getType() != PipelineType::GRAPHICS)
     {
-        log(LogLevel::WARNING, "Could not execute draw command, not using a graphics pipeline");
+        log::func::error("Could not execute draw command, not using a graphics pipeline");
         return;
     }
 
@@ -373,13 +373,13 @@ void MetalRenderContext::drawIndexed(u32 indexCount, u32 instanceCount, u32 inde
 {
     if (m_pipeline->getBuilder().getType() != PipelineType::GRAPHICS)
     {
-        log(LogLevel::WARNING, "Could not execute drawIndexed call, not using a graphics pipeline");
+        log::func::error("Could not execute drawIndexed call, not using a graphics pipeline");
         return;
     }
 
     if (m_boundIndexBuffer == nil)
     {
-        log(LogLevel::WARNING, "Could not execute drawIndexed command, no index buffer has been bound");
+        log::func::error("Could not execute drawIndexed command, no index buffer has been bound");
         return;
     }
 
@@ -400,7 +400,7 @@ void MetalRenderContext::dispatchGroups(u32 groupX, u32 groupY, u32 groupZ)
 {
     if (m_pipeline->getBuilder().getType() != PipelineType::COMPUTE)
     {
-        log(LogLevel::WARNING, "Could not execute dispatchGroups call, not using a compute pipeline");
+        log::func::error("Could not execute dispatchGroups call, not using a compute pipeline");
         return;
     }
 
@@ -416,7 +416,7 @@ void MetalRenderContext::dispatch(u32 x, u32 y, u32 z)
 {
     if (m_pipeline->getBuilder().getType() != PipelineType::COMPUTE)
     {
-        log(LogLevel::WARNING, "Could not execute dispatch call, not using a compute pipeline");
+        log::func::error("Could not execute dispatch call, not using a compute pipeline");
         return;
     }
 

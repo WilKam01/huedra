@@ -22,7 +22,7 @@ void MetalContext::init()
     m_device = MTLCreateSystemDefaultDevice();
     if (m_device == nullptr)
     {
-        log(LogLevel::ERR, "Could not create Metal device");
+        log::func::fatal("Could not create Metal device");
     }
     m_commandQueue = [m_device newCommandQueue];
 
@@ -195,7 +195,7 @@ bool MetalContext::setRenderGraph(RenderGraphBuilder& builder)
     waitIdle();
     m_curGraph = builder;
 
-    log(LogLevel::INFO, "New render graph with hash: 0x{:x}", m_curGraph.getHash());
+    log::debug("New render graph with hash: 0x{:x}", m_curGraph.getHash());
 
     for (auto& batch : m_passBatches)
     {

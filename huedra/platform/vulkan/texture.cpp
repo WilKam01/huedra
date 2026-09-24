@@ -121,7 +121,7 @@ VkFormat VulkanTexture::findFormat(TextureType type, GraphicsDataFormat format)
         return vkFormat;
     }
 
-    log(LogLevel::ERR, "Failed to find supported format!");
+    log::func::fatal("Failed to find supported format!");
     return VK_FORMAT_UNDEFINED;
 }
 
@@ -146,7 +146,7 @@ void VulkanTexture::createImages(VkImageTiling tiling, VkImageUsageFlags usage, 
 
         if (vkCreateImage(m_device->getLogical(), &imageInfo, nullptr, &m_images[i]) != VK_SUCCESS)
         {
-            log(LogLevel::ERR, "Failed to create image!");
+            log::func::fatal("Failed to create image!");
         }
 
         VkMemoryRequirements memRequirements;
@@ -159,7 +159,7 @@ void VulkanTexture::createImages(VkImageTiling tiling, VkImageUsageFlags usage, 
 
         if (vkAllocateMemory(m_device->getLogical(), &allocInfo, nullptr, &m_memories[i]) != VK_SUCCESS)
         {
-            log(LogLevel::ERR, "Failed to allocate image memory!");
+            log::func::fatal("Failed to allocate image memory!");
         }
 
         vkBindImageMemory(m_device->getLogical(), m_images[i], m_memories[i], 0);
@@ -183,7 +183,7 @@ void VulkanTexture::createImageViews(VkImageAspectFlags aspectFlags)
 
         if (vkCreateImageView(m_device->getLogical(), &viewInfo, nullptr, &m_imageViews[i]) != VK_SUCCESS)
         {
-            log(LogLevel::ERR, "Failed to create image view!");
+            log::func::fatal("Failed to create image view!");
         }
     }
 }

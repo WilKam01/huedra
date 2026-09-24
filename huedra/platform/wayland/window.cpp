@@ -26,7 +26,7 @@ bool WindowWayland::init(const std::string& title, const WindowInput& input, boo
 
     if (input.positionX.has_value() || input.positionY.has_value())
     {
-        log(LogLevel::WARNING, "Wayland windows do not support global positioning, input position ignored.");
+        log::func::warn("Wayland windows do not support global positioning, input position ignored.");
     }
 
     Window::init(title, rect);
@@ -38,28 +38,28 @@ bool WindowWayland::init(const std::string& title, const WindowInput& input, boo
     m_mainSurface = wl_compositor_create_surface(wlCompositor);
     if (!m_mainSurface)
     {
-        log(LogLevel::ERR, "Could not create wayland surface!");
+        log::func::fatal("Could not create wayland surface!");
     }
     wl_surface_add_listener(m_mainSurface, &wlSurfaceListener, this);
 
     m_cursorSurface = wl_compositor_create_surface(wlCompositor);
     if (!m_cursorSurface)
     {
-        log(LogLevel::ERR, "Could not create wayland cursor surface!");
+        log::func::fatal("Could not create wayland cursor surface!");
     }
     wl_surface_add_listener(m_cursorSurface, &wlSurfaceListener, this);
 
     m_xdgSurface = xdg_wm_base_get_xdg_surface(xdgBase, m_mainSurface);
     if (!m_xdgSurface)
     {
-        log(LogLevel::ERR, "Could not get xdg surface!");
+        log::func::fatal("Could not get xdg surface!");
     }
     xdg_surface_add_listener(m_xdgSurface, &xdgSurfaceListener, this);
 
     m_xdgToplevel = xdg_surface_get_toplevel(m_xdgSurface);
     if (!m_xdgToplevel)
     {
-        log(LogLevel::ERR, "Could not get xdg toplevel!");
+        log::func::fatal("Could not get xdg toplevel!");
     }
     xdg_toplevel_add_listener(m_xdgToplevel, &xdgToplevelListener, this);
 
@@ -130,7 +130,7 @@ void WindowWayland::setResolution(uvec2 resolution)
 
 void WindowWayland::setPosition(ivec2 position)
 {
-    log(LogLevel::WARNING, "Wayland windows do not support global positioning, input position ignored.");
+    log::func::warn("Wayland windows do not support global positioning, input position ignored.");
 }
 
 void WindowWayland::handleSurfaceConfigure(void* data, xdg_surface* shellSurface, u32 serial)
@@ -177,13 +177,13 @@ void WindowWayland::resize()
     i32 fileDesc = memfd_create("wayland-shm-buffer", MFD_CLOEXEC);
     if (fileDesc < 0)
     {
-        log(LogLevel::ERR, "Could not create wayland-shm-buffer in RAM!");
+        log::func::fatal("Could not create wayland-shm-buffer in RAM!");
     }
 
     if (ftruncate(fileDesc, size) < 0)
     {
         close(fileDesc);
-        log(LogLevel::ERR, "Could not trunctate wayland-shm-buffer file to desired size ({})", size);
+        log::func::fatal("Could not trunctate wayland-shm-buffer file to desired size ({})", size);
     }
 
     u32* pixelData = std::bit_cast<u32*>(mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fileDesc, 0));

@@ -303,7 +303,7 @@ JsonObject parseJson(const std::vector<u8>& bytes)
     if (bytes.empty() || static_cast<char>(bytes.front()) != '{' || closeIndex == bytes.size() ||
         static_cast<char>(bytes[closeIndex]) != '}')
     {
-        log(LogLevel::WARNING, "parseJson(): json data is not encapsulated by an object => {{ ... }}");
+        log::func::error("json data is not encapsulated by an object => {{ ... }}");
         return {};
     }
 
@@ -370,8 +370,8 @@ JsonObject parseJson(const std::vector<u8>& bytes)
                     }
                     break;
                     default:
-                        log(LogLevel::WARNING, "parseJson(): ({}, {}) Unexpected control character: \'{}\'", line,
-                            i - lineStart, static_cast<char>(bytes[i]));
+                        log::func::error("({}, {}) Unexpected control character: \'{}\'", line, i - lineStart,
+                                         static_cast<char>(bytes[i]));
                         return {};
                     }
                 }
@@ -382,8 +382,7 @@ JsonObject parseJson(const std::vector<u8>& bytes)
             }
             if (static_cast<char>(bytes[i]) != '\"')
             {
-                log(LogLevel::WARNING, "parseJson(): ({}, {}) Could not find closing \" for string/identifier", line,
-                    i - lineStart);
+                log::func::error("({}, {}) Could not find closing \" for string/identifier", line, i - lineStart);
                 return {};
             }
 
@@ -409,8 +408,8 @@ JsonObject parseJson(const std::vector<u8>& bytes)
 
             default:
                 char expected = states.back() == State::IDENTIFIER_SET ? ':' : ',';
-                log(LogLevel::WARNING, R"(parseJson(): ({}, {}) Found unexpected string value: "{}", expected '{}')",
-                    line, i - lineStart, str.c_str(), expected);
+                log::func::error(R"(({}, {}) Found unexpected string value: "{}", expected '{}')", line, i - lineStart,
+                                 str, expected);
                 return {};
             }
             break;
@@ -419,8 +418,7 @@ JsonObject parseJson(const std::vector<u8>& bytes)
         case ':': // assignment to member
             if (states.back() != State::IDENTIFIER_SET)
             {
-                log(LogLevel::WARNING, "parseJson(): ({}, {}) Unexpected \':\', no identifier defined", line,
-                    i - lineStart);
+                log::func::error("({}, {}) Unexpected \':\', no identifier defined", line, i - lineStart);
                 return {};
             }
             states.back() = State::ASSIGNMENT_SET;
@@ -438,9 +436,8 @@ JsonObject parseJson(const std::vector<u8>& bytes)
             }
             else
             {
-                log(LogLevel::WARNING,
-                    "parseJson(): ({}, {}) Unexpected \',\', no value has been set in identifier or array", line,
-                    i - lineStart);
+                log::func::error("({}, {}) Unexpected \',\', no value has been set in identifier or array", line,
+                                 i - lineStart);
                 return {};
             }
             break;
@@ -461,8 +458,7 @@ JsonObject parseJson(const std::vector<u8>& bytes)
             }
             else
             {
-                log(LogLevel::WARNING, "parseJson(): ({}, {}) Unexpected \'[\', no identifier or array defined", line,
-                    i - lineStart);
+                log::func::error("({}, {}) Unexpected \'[\', no identifier or array defined", line, i - lineStart);
                 return {};
             }
             break;
@@ -483,7 +479,7 @@ JsonObject parseJson(const std::vector<u8>& bytes)
             }
             else
             {
-                log(LogLevel::WARNING, "parseJson(): ({}, {}) Unexpected \']\'", line, i - lineStart);
+                log::func::error("({}, {}) Unexpected \']\'", line, i - lineStart);
                 return {};
             }
             break;
@@ -504,8 +500,7 @@ JsonObject parseJson(const std::vector<u8>& bytes)
             }
             else
             {
-                log(LogLevel::WARNING, "parseJson(): ({}, {}) Unexpected \'{{\', no identifier or array defined", line,
-                    i - lineStart);
+                log::func::error("({}, {}) Unexpected \'{{\', no identifier or array defined", line, i - lineStart);
                 return {};
             }
             break;
@@ -526,7 +521,7 @@ JsonObject parseJson(const std::vector<u8>& bytes)
             }
             else
             {
-                log(LogLevel::WARNING, "parseJson(): ({}, {}) Unexpected \'}}\'", line, i - lineStart);
+                log::func::error("({}, {}) Unexpected \'}}\'", line, i - lineStart);
                 return {};
             }
             break;
@@ -550,8 +545,8 @@ JsonObject parseJson(const std::vector<u8>& bytes)
             {
                 if (states.back() != State::ASSIGNMENT_SET)
                 {
-                    log(LogLevel::WARNING, "parseJson(): ({}, {}) Unexpected character: \'{}\'", line, i - lineStart,
-                        static_cast<char>(bytes[i]));
+                    log::func::error("({}, {}) Unexpected character: \'{}\'", line, i - lineStart,
+                                     static_cast<char>(bytes[i]));
                     return {};
                 }
 
@@ -575,8 +570,7 @@ JsonObject parseJson(const std::vector<u8>& bytes)
                 }
                 else
                 {
-                    log(LogLevel::WARNING, "parseJson(): ({}, {}) Unexpected keyword: \"{}\"", line, i - lineStart,
-                        buf.c_str());
+                    log::func::error("({}, {}) Unexpected keyword: \"{}\"", line, i - lineStart, buf);
                     return {};
                 }
                 --i;
@@ -607,8 +601,8 @@ JsonObject parseJson(const std::vector<u8>& bytes)
             }
             else
             {
-                log(LogLevel::WARNING, "parseJson(): ({}, {}) Unexpected character: \'{}\'", line, i - lineStart,
-                    static_cast<char>(bytes[i]));
+                log::func::error("({}, {}) Unexpected character: \'{}\'", line, i - lineStart,
+                                 static_cast<char>(bytes[i]));
                 return {};
             }
 
@@ -619,7 +613,7 @@ JsonObject parseJson(const std::vector<u8>& bytes)
                 type = JsonValueType::FLOAT;
                 if (static_cast<char>(bytes[i]) < '0' || static_cast<char>(bytes[i]) > '9')
                 {
-                    log(LogLevel::WARNING, "parseJson(): ({}, {}) No number defined in fraction", line, i - lineStart);
+                    log::func::error("({}, {}) No number defined in fraction", line, i - lineStart);
                     return {};
                 }
                 while (static_cast<char>(bytes[i]) >= '0' && static_cast<char>(bytes[i]) <= '9')
@@ -640,7 +634,7 @@ JsonObject parseJson(const std::vector<u8>& bytes)
 
                 if (static_cast<char>(bytes[i]) < '0' || static_cast<char>(bytes[i]) > '9')
                 {
-                    log(LogLevel::WARNING, "parseJson(): ({}, {}) No number defined in exponent", line, i - lineStart);
+                    log::func::error("({}, {}) No number defined in exponent", line, i - lineStart);
                     return {};
                 }
                 while (static_cast<char>(bytes[i]) >= '0' && static_cast<char>(bytes[i]) <= '9')
@@ -686,9 +680,8 @@ JsonObject parseJson(const std::vector<u8>& bytes)
             }
             else
             {
-                log(LogLevel::WARNING,
-                    "parseJson(): ({}, {}) Unexpected number: {}, not setting identifier/array value", line,
-                    i - lineStart, buf.c_str());
+                log::func::error("({}, {}) Unexpected number: {}, not setting identifier/array value", line,
+                                 i - lineStart, buf);
                 return {};
             }
             break;

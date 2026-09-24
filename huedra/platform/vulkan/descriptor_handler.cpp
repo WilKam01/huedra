@@ -58,7 +58,7 @@ void DescriptorHandler::bindSets(VkCommandBuffer commandBuffer)
     {
         if (m_sets[i].instances.empty() || m_sets[i].curIndex >= m_sets[i].instances.size())
         {
-            log(LogLevel::WARNING, "Could not bind sets, set {} has not been set", i);
+            log::func::error("Could not bind sets, set {} has not been set", i);
             return;
         }
         descriptors[i] = m_sets[i].instances[m_sets[i].curIndex];
@@ -73,14 +73,14 @@ void DescriptorHandler::writeBuffer(VulkanBuffer& buffer, u32 set, u32 binding)
 {
     if (set >= m_sets.size())
     {
-        log(LogLevel::WARNING, "Could not write buffer, set {} out of bounds ({} defined)", set, m_sets.size());
+        log::func::error("Could not write buffer, set {} out of bounds ({} defined)", set, m_sets.size());
         return;
     }
 
     if (binding >= m_sets[set].bindingTypes.size())
     {
-        log(LogLevel::WARNING, "Could not write buffer, binding {} out of bounds ({} defined)", binding,
-            m_sets[set].bindingTypes.size());
+        log::func::error("Could not write buffer, binding {} out of bounds ({} defined)", binding,
+                         m_sets[set].bindingTypes.size());
         return;
     }
 
@@ -111,14 +111,14 @@ void DescriptorHandler::writeTexture(VulkanTexture& texture, u32 set, u32 bindin
 {
     if (set >= m_sets.size())
     {
-        log(LogLevel::WARNING, "Could not write texture, set {} out of bounds ({} defined)", set, m_sets.size());
+        log::func::error("Could not write texture, set {} out of bounds ({} defined)", set, m_sets.size());
         return;
     }
 
     if (binding >= m_sets[set].bindingTypes.size())
     {
-        log(LogLevel::WARNING, "Could not write texture, binding {} out of bounds ({} defined)", binding,
-            m_sets[set].bindingTypes.size());
+        log::func::error("Could not write texture, binding {} out of bounds ({} defined)", binding,
+                         m_sets[set].bindingTypes.size());
         return;
     }
 
@@ -148,14 +148,14 @@ void DescriptorHandler::writeSampler(VkSampler sampler, u32 set, u32 binding)
 {
     if (set >= m_sets.size())
     {
-        log(LogLevel::WARNING, "Could not write sampler, set {} out of bounds ({} defined)", set, m_sets.size());
+        log::func::error("Could not write sampler, set {} out of bounds ({} defined)", set, m_sets.size());
         return;
     }
 
     if (binding >= m_sets[set].bindingTypes.size())
     {
-        log(LogLevel::WARNING, "Could not write sampler, binding {} out of bounds ({} defined)", binding,
-            m_sets[set].bindingTypes.size());
+        log::func::error("Could not write sampler, binding {} out of bounds ({} defined)", binding,
+                         m_sets[set].bindingTypes.size());
         return;
     }
 
@@ -193,7 +193,7 @@ VkDescriptorSet DescriptorHandler::createDescriptorSet(u32 set)
 
     if (vkAllocateDescriptorSets(m_device->getLogical(), &allocInfo, &descriptor) != VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to allocate descriptor set!");
+        log::func::fatal("Failed to allocate descriptor set!");
     }
 
     return descriptor;

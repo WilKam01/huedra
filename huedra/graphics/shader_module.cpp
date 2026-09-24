@@ -69,7 +69,7 @@ void ShaderModule::init(Slang::ComPtr<slang::IModule> shaderModule,
     m_slangEntryPoints = entryPoints;
     m_entryPoints.resize(m_slangEntryPoints.size());
 
-    log(LogLevel::D_INFO, "Full name {}", m_fullName.c_str());
+    log::func::debug("Full name {}", m_fullName.c_str());
 
     for (u64 i = 0; i < m_entryPoints.size(); ++i)
     {
@@ -308,9 +308,8 @@ void CompiledShaderModule::addParameterBlockRangesVulkan(ShaderStage stage, slan
 
         if (nameIndex >= descriptorNames.size())
         {
-            log(LogLevel::D_INFO,
-                "addParameterBlockRangesVulkan(): Current name index is outside of descriptor names range ({} >= {})",
-                nameIndex, descriptorNames.size());
+            log::func::error("Current name index is outside of descriptor names range ({} >= {})", nameIndex,
+                             descriptorNames.size());
             return;
         }
         ResourceBinding resource;
@@ -344,18 +343,15 @@ void CompiledShaderModule::addParameterBlockRangesVulkan(ShaderStage stage, slan
             // Type should be a struct
             if (fieldCount == 0)
             {
-                log(LogLevel::WARNING,
-                    "addParameterBlockRangesVulkan(): Parameter block \"{}\" is not a struct and will be ignored",
-                    subObjectNames[nameIndex++]);
+                log::func::error("Parameter block \"{}\" is not a struct and will be ignored",
+                                 subObjectNames[nameIndex++]);
                 continue;
             }
 
             if (nameIndex >= subObjectNames.size())
             {
-                log(LogLevel::D_INFO,
-                    "addParameterBlockRangesVulkan(): Current name index is outside of subobject names names range ({} "
-                    ">= {})",
-                    nameIndex, subObjectNames.size());
+                log::func::error("Current name index is outside of subobject names names range ({} >= {})", nameIndex,
+                                 subObjectNames.size());
                 return;
             }
             m_resources.emplace_back();
@@ -443,10 +439,7 @@ void CompiledShaderModule::addParametersMetal(ShaderStage stage, const std::stri
         // Type should be a struct
         if (fieldCount == 0)
         {
-            log(LogLevel::WARNING,
-                "CompiledShaderModule::addParametersMetal(): Parameter block \"{}\" is not a "
-                "struct and will be ignored",
-                varLayout->getName());
+            log::func::warn("Parameter block \"{}\" is not a struct and will be ignored", varLayout->getName());
             break;
         }
 

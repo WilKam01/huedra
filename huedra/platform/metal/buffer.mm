@@ -48,7 +48,7 @@ void MetalBuffer::write(void* data, u64 size)
 {
     if (getType() == BufferType::STATIC)
     {
-        log(LogLevel::WARNING, "MetalBuffer::write(): Could not write to buffer, buffer is static");
+        log::func::error("Could not write to buffer, buffer is static");
         return;
     }
 
@@ -59,7 +59,7 @@ void MetalBuffer::read(void* data, u64 size)
 {
     if (getType() == BufferType::STATIC)
     {
-        log(LogLevel::WARNING, "MetalBuffer::read(): Could not read to buffer, buffer is static");
+        log::func::error("Could not read to buffer, buffer is static");
         return;
     }
 

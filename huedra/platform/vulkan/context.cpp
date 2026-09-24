@@ -58,7 +58,7 @@ void VulkanContext::init()
             vkCreateSemaphore(m_device.getLogical(), &semaphoreInfo, nullptr, &m_computeSyncSemaphores[1][i]) !=
                 VK_SUCCESS)
         {
-            log(LogLevel::ERR, "Failed to create render fences and semaphores!");
+            log::func::fatal("Failed to create render fences and semaphores!");
         }
     }
 
@@ -232,7 +232,7 @@ Texture* VulkanContext::createTexture(const TextureData& textureData)
 
     if (vkCreateImage(m_device.getLogical(), &imageInfo, nullptr, &image) != VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to create image!");
+        log::func::fatal("Failed to create image!");
     }
 
     VkMemoryRequirements memRequirements;
@@ -246,7 +246,7 @@ Texture* VulkanContext::createTexture(const TextureData& textureData)
 
     if (vkAllocateMemory(m_device.getLogical(), &allocInfo, nullptr, &memory) != VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to allocate image memory!");
+        log::func::fatal("Failed to allocate image memory!");
     }
 
     vkBindImageMemory(m_device.getLogical(), image, memory, 0);
@@ -354,7 +354,7 @@ bool VulkanContext::setRenderGraph(RenderGraphBuilder& builder)
     m_curGraph = builder;
     m_device.waitIdle();
 
-    log(LogLevel::D_INFO, "New render graph with hash: 0x{:x}", m_curGraph.getHash());
+    log::debug("New render graph with hash: 0x{:x}", m_curGraph.getHash());
 
     // Destroy all previous batches
     for (auto& batch : m_passBatches)
@@ -1020,7 +1020,7 @@ void VulkanContext::createDescriptorHandlers(const RenderPassBuilder& builder, P
 
     if (vkCreateDescriptorPool(m_device.getLogical(), &poolInfo, nullptr, &passInfo.descriptorPool) != VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to create descriptor pool!");
+        log::func::fatal("Failed to create descriptor pool!");
     }
 
     passInfo.descriptorHandlers.resize(GraphicsManager::MAX_FRAMES_IN_FLIGHT);
@@ -1089,7 +1089,7 @@ void VulkanContext::createSampler(const SamplerSettings& settings)
     VkSampler sampler{};
     if (vkCreateSampler(m_device.getLogical(), &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to create sampler!");
+        log::func::fatal("Failed to create sampler!");
     }
     m_samplers.push_back({.settings = settings, .sampler = sampler});
 }
@@ -1154,7 +1154,7 @@ void VulkanContext::submitGraphicsQueue(std::vector<CommandBuffer> commandBuffer
 
     if (vkQueueSubmit(m_device.getGraphicsQueue(), 1, &submitInfo, fence) != VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to submit graphics queue!");
+        log::func::fatal("Failed to submit graphics queue!");
     }
 
     m_curGraphicsSemphoreIndex = 1 - m_curGraphicsSemphoreIndex;
@@ -1220,7 +1220,7 @@ void VulkanContext::submitComputeQueue(std::vector<CommandBuffer> commandBuffers
 
     if (vkQueueSubmit(m_device.getComputeQueue(), 1, &submitInfo, fence) != VK_SUCCESS)
     {
-        log(LogLevel::ERR, "Failed to submit compute queue!");
+        log::func::fatal("Failed to submit compute queue!");
     }
 
     m_curComputeSemphoreIndex = 1 - m_curComputeSemphoreIndex;
@@ -1263,7 +1263,7 @@ void VulkanContext::presentSwapchains()
 
     if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR && result != VK_ERROR_OUT_OF_DATE_KHR)
     {
-        log(LogLevel::ERR, "Failed to present swap chain images!");
+        log::func::fatal("Failed to present swapchain images!");
     }
 
     u32 index = 0;
