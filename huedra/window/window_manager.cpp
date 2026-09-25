@@ -93,7 +93,7 @@ static NSCursor* getMacCursor(CursorType cursor)
 {
     static u32 frame = 0;
     // 30Hz fixed interval
-    frame += static_cast<u32>(cursorAnimationTimer.passedInterval(Timer::SECONDS_TO_NANO / 30));
+    frame += static_cast<u32>(cursorAnimationTimer.passedInterval(constants::SECONDS_TO_NANO / 30));
     switch (cursor)
     {
     case CursorType::DEFAULT:
