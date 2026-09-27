@@ -377,27 +377,27 @@ std::vector<MeshData> loadGltf(const std::string& path, JsonObject& json,
             {
                 bytes = readAccessor(primitive["indices"].asUint(), "SCALAR", 1, ComponentType::UINT16, 2);
                 std::vector<u16> bytes16 =
-                    std::vector<u16>(std::bit_cast<u16*>(bytes.data()), std::bit_cast<u16*>(&bytes[bytes.size() - 1]));
+                    std::vector<u16>(std::bit_cast<u16*>(bytes.data()), std::bit_cast<u16*>(&bytes[bytes.size()]));
                 meshData.indices = std::vector<u32>(bytes16.begin(), bytes16.end());
             }
             else if (indexType == ComponentType::UINT32)
             {
                 bytes = readAccessor(primitive["indices"].asUint(), "SCALAR", 1, ComponentType::UINT32, 4);
                 meshData.indices =
-                    std::vector<u32>(std::bit_cast<u32*>(bytes.data()), std::bit_cast<u32*>(&bytes[bytes.size() - 1]));
+                    std::vector<u32>(std::bit_cast<u32*>(bytes.data()), std::bit_cast<u32*>(&bytes[bytes.size()]));
             }
 
             if (attribute.hasMember("NORMAL", JsonValueType::UINT))
             {
                 bytes = readAccessor(attribute["NORMAL"].asUint(), "VEC3", 3, ComponentType::FLOAT, 4);
-                meshData.normals = std::vector<vec3>(std::bit_cast<vec3*>(bytes.data()),
-                                                     std::bit_cast<vec3*>(&bytes[bytes.size() - 1]));
+                meshData.normals =
+                    std::vector<vec3>(std::bit_cast<vec3*>(bytes.data()), std::bit_cast<vec3*>(&bytes[bytes.size()]));
             }
             if (attribute.hasMember("TEXCOORD_0", JsonValueType::UINT))
             {
                 bytes = readAccessor(attribute["TEXCOORD_0"].asUint(), "VEC2", 2, ComponentType::FLOAT, 4);
-                meshData.uvs = std::vector<vec2>(std::bit_cast<vec2*>(bytes.data()),
-                                                 std::bit_cast<vec2*>(&bytes[bytes.size() - 1]));
+                meshData.uvs =
+                    std::vector<vec2>(std::bit_cast<vec2*>(bytes.data()), std::bit_cast<vec2*>(&bytes[bytes.size()]));
             }
         }
     }
