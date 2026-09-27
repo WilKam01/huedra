@@ -11,7 +11,7 @@ enum class Level
     DEBUG_,
     INFO,
     WARNING,
-    ERROR,
+    ERR,
     FATAL,
 };
 
@@ -46,7 +46,7 @@ struct internal
         case Level::WARNING:
             levelStr = "WARNING";
             break;
-        case Level::ERROR:
+        case Level::ERR:
             levelStr = "ERROR";
             break;
         case Level::FATAL:
@@ -132,7 +132,7 @@ struct internal
 LOG_IMPL(debug, DEBUG_)
 LOG_IMPL(info, INFO)
 LOG_IMPL(warn, WARNING)
-LOG_IMPL(error, ERROR)
+LOG_IMPL(error, ERR)
 LOG_IMPL(fatal, FATAL)
 
 #undef LOG_IMPL
