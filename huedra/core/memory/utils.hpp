@@ -35,6 +35,20 @@ constexpr T parseFromBytes(const u8* bytes, std::endian origEndian)
 }
 
 template <typename T>
+constexpr std::vector<T> parseFromBytes(const u8* bytes, u64 size)
+{
+    if (size % sizeof(T) != 0)
+    {
+        log::func::error("Conversion not possible, size ({}) does not end up in whole {} vector", size,
+                         typeid(T).name());
+        return {};
+    }
+    std::vector<T> vec(size / sizeof(T));
+    std::memcpy(vec.data(), bytes, size);
+    return vec;
+}
+
+template <typename T>
     requires(std::is_integral_v<T>)
 constexpr void parseToBytes(u8* bytes, T value, std::endian desiredEndian)
 {

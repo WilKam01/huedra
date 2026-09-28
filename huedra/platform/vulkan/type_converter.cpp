@@ -11,6 +11,8 @@ VkPipelineBindPoint convertPipelineType(PipelineType type)
     case PipelineType::COMPUTE:
         return VK_PIPELINE_BIND_POINT_COMPUTE;
     };
+
+    return VK_PIPELINE_BIND_POINT_GRAPHICS;
 }
 
 VkShaderStageFlagBits convertShaderStage(PipelineType type, ShaderStage shaderStage)
@@ -236,6 +238,8 @@ VkFormat convertDataFormat(GraphicsDataFormat format)
     case GraphicsDataFormat::RGBA_64_FLOAT:
         return VK_FORMAT_R64G64B64A64_SFLOAT;
     }
+
+    return VK_FORMAT_UNDEFINED;
 }
 
 VkVertexInputRate convertVertexInputRate(VertexInputRate inputRate)
@@ -247,6 +251,8 @@ VkVertexInputRate convertVertexInputRate(VertexInputRate inputRate)
     case VertexInputRate::INSTANCE:
         return VK_VERTEX_INPUT_RATE_INSTANCE;
     }
+
+    return VK_VERTEX_INPUT_RATE_VERTEX;
 }
 
 VkBufferUsageFlagBits convertBufferUsage(BufferUsageFlags usage)
