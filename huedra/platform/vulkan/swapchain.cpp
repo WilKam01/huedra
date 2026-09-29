@@ -18,10 +18,7 @@ void VulkanSwapchain::init(Window* window, Device& device, VkSurfaceKHR surface,
 void VulkanSwapchain::cleanup()
 {
     m_device->waitIdle();
-
     partialCleanup();
-    m_renderTarget.cleanup();
-    vkDestroySwapchainKHR(m_device->getLogical(), m_swapchain, nullptr);
 }
 
 void VulkanSwapchain::aquireNextImage()
@@ -115,6 +112,9 @@ void VulkanSwapchain::recreate()
 
 void VulkanSwapchain::partialCleanup()
 {
+    m_renderTarget.cleanup();
+    vkDestroySwapchainKHR(m_device->getLogical(), m_swapchain, nullptr);
+
     for (auto& semaphore : m_imageAvailableSemaphores)
     {
         vkDestroySemaphore(m_device->getLogical(), semaphore, nullptr);
@@ -180,17 +180,11 @@ void VulkanSwapchain::create()
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     createInfo.presentMode = presentMode;
     createInfo.clipped = VK_TRUE;
-    createInfo.oldSwapchain = oldSwapchain;
+    createInfo.oldSwapchain = VK_NULL_HANDLE;
 
     if (vkCreateSwapchainKHR(m_device->getLogical(), &createInfo, nullptr, &m_swapchain) != VK_SUCCESS)
     {
         log::func::fatal("Failed to create swap chain!");
-    }
-
-    if (oldSwapchain != nullptr)
-    {
-        m_renderTarget.cleanup();
-        vkDestroySwapchainKHR(m_device->getLogical(), oldSwapchain, nullptr);
     }
 
     m_renderTarget.init(*m_device, *this, surfaceFormat.format, extent);
