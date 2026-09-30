@@ -13,6 +13,7 @@
 #include "math/matrix.hpp"
 #include "math/matrix_projection.hpp"
 #include "math/matrix_transform.hpp"
+#include "math/quaternion.hpp"
 #include "math/vec2.hpp"
 #include "math/vec3.hpp"
 #include "resources/font/data.hpp"
@@ -29,6 +30,11 @@ int main()
     global::windowManager.init();
     global::graphicsManager.init();
     global::resourceManager.init();
+
+    log::info("vec: {:.3f}, {:.2f}, {:.1f}", vec2(1.23456, 3.44567), vec3(1.312313),
+              vec4(1.23456, 3.44567, 4.55, 500.493));
+    log::info("quaternion: {}", Quaternion(1.2345, vec3(3.2102)).str());
+    log::info("matrix: {}", matrix3(std::array<f32, 9>{1.0, 2.3, 4.56, 7.8910}).str());
 
     FontData font = loadTtf("assets/fonts/KaushanScript-Regular.ttf");
 

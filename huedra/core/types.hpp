@@ -4,6 +4,7 @@
 #include <array>
 #include <cstdint>
 #include <deque>
+#include <format>
 #include <limits>
 #include <map>
 #include <memory>

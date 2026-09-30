@@ -82,6 +82,33 @@ public:
     T operator()(u64 row, u64 column) const { return m_elements[column][row]; }
     T& operator()(u64 row, u64 column) { return m_elements[column][row]; }
 
+    T operator[](u64 row, u64 column) const { return m_elements[column][row]; }
+    T& operator[](u64 row, u64 column) { return m_elements[column][row]; }
+
+    operator std::string() const
+    {
+        std::string str;
+        for (u64 i = 0; i < C; ++i)
+        {
+            std::string elemStr;
+            for (u64 j = 0; j < R; ++j)
+            {
+                elemStr += std::to_string(m_elements[i][j]);
+                if (j != R - 1)
+                {
+                    elemStr += ", ";
+                }
+            }
+            str += std::format("({})", elemStr);
+            if (i != C - 1)
+            {
+                str += ", ";
+            }
+        }
+        return std::format("({})", str);
+    }
+    std::string str() const { return std::string(*this); }
+
     constexpr Matrix<T, R, C> operator+(T scalar)
     {
         Matrix<T, R, C> matrix(m_elements);
@@ -216,3 +243,57 @@ using dmatrix3 = Matrix<f64, 3, 3>;
 using dmatrix4 = Matrix<f64, 4, 4>;
 
 } // namespace huedra
+
+template <typename T, huedra::u64 R, huedra::u64 C>
+struct std::formatter<huedra::Matrix<T, R, C>>
+{
+    std::string_view fmtSpec;
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        auto it = ctx.begin();
+        auto end = ctx.end();
+
+        while (it != end && *it != '}')
+        {
+            ++it;
+        }
+
+        if (ctx.begin() != it)
+        {
+            fmtSpec = std::string_view(ctx.begin(), it);
+        }
+
+        return it;
+    }
+
+    auto format(const huedra::Matrix<T, R, C>& matrix, std::format_context& ctx) const
+    {
+        std::string elemFmt = "{}";
+        if (!fmtSpec.empty())
+        {
+            elemFmt = "{" + std::string(1, ':') + std::string(fmtSpec) + "}";
+        }
+        auto out = ctx.out();
+        out = std::format_to(out, "(");
+        for (huedra::u64 i = 0; i < C; ++i)
+        {
+            out = std::format_to(out, "(");
+            for (huedra::u64 j = 0; j < R; ++j)
+            {
+                T val = matrix[j, i];
+                out = std::vformat_to(out, elemFmt, std::make_format_args(val));
+                if (j != R - 1)
+                {
+                    out = std::format_to(out, ", ");
+                }
+            }
+            out = std::format_to(out, ")");
+            if (i != C - 1)
+            {
+                out = std::format_to(out, ", ");
+            }
+        }
+
+        return std::format_to(out, ")");
+    }
+};

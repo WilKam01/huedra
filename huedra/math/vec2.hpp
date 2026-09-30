@@ -43,6 +43,9 @@ public:
     T operator[](u64 index) const { return data[index]; }
     T& operator[](u64 index) { return data[index]; }
 
+    operator std::string() const { return std::format("({}, {})", x, y); }
+    std::string str() const { return std::format("({}, {})", x, y); }
+
     // No better option than using macros for easy operator overloading
     // NOLINTBEGIN(cppcoreguidelines-macro-usage)
 #define VEC_OP(OP)                                                                                      \
@@ -119,3 +122,41 @@ using i64vec2 = Vec2<i64>;
 using u64vec2 = Vec2<u64>;
 
 } // namespace huedra
+
+template <typename T>
+struct std::formatter<huedra::Vec2<T>>
+{
+    std::string_view fmtSpec;
+    constexpr auto parse(std::format_parse_context& ctx)
+    {
+        auto it = ctx.begin();
+        auto end = ctx.end();
+
+        while (it != end && *it != '}')
+        {
+            ++it;
+        }
+
+        if (ctx.begin() != it)
+        {
+            fmtSpec = std::string_view(ctx.begin(), it);
+        }
+
+        return it;
+    }
+
+    auto format(const huedra::Vec2<T>& vec, std::format_context& ctx) const
+    {
+        std::string elemFmt = "{}";
+        if (!fmtSpec.empty())
+        {
+            elemFmt = "{" + std::string(1, ':') + std::string(fmtSpec) + "}";
+        }
+        auto out = ctx.out();
+        out = std::format_to(out, "(");
+        out = std::vformat_to(out, elemFmt, std::make_format_args(vec.x));
+        out = std::format_to(out, ", ");
+        out = std::vformat_to(out, elemFmt, std::make_format_args(vec.y));
+        return std::format_to(out, ")");
+    }
+};
