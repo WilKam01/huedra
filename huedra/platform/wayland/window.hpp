@@ -19,8 +19,8 @@ public:
     WindowWayland(WindowWayland&& rhs) = default;
     WindowWayland& operator=(WindowWayland&& rhs) = default;
 
-    bool init(const std::string& title, const WindowInput& input, bool graphicsManagersInitialized,
-              wl_display* wlDisplay, wl_shm* wlSharedMemory, wl_compositor* wlCompositor, xdg_wm_base* xdgBase,
+    bool init(std::string_view title, const WindowInput& input, bool graphicsManagersInitialized, wl_display* wlDisplay,
+              wl_shm* wlSharedMemory, wl_compositor* wlCompositor, xdg_wm_base* xdgBase,
               zxdg_decoration_manager_v1* zxdgDecorationManager);
     void cleanup() override;
     bool update() override;
@@ -30,7 +30,7 @@ public:
     ivec2 getRelativePosition(ivec2 position) const override;
     ivec2 getRelativeScreenPosition(ivec2 position) const override;
 
-    void setTitle(const std::string& title) override;
+    void setTitle(std::string_view title) override;
     void setResolution(uvec2 resolution) override;
     void setPosition(ivec2 position) override;
 

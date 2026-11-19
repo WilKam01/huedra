@@ -4,10 +4,10 @@
 
 namespace huedra {
 
-std::vector<MeshData> loadObj(const std::string& path);
+std::vector<MeshData> loadObj(std::string_view path);
 
-std::vector<MeshData> loadGltf(const std::string& path);
+std::vector<MeshData> loadGltf(std::string_view path);
 
-std::vector<MeshData> loadGlb(const std::string& path);
+std::vector<MeshData> loadGlb(std::string_view path);
 
-}
+} // namespace huedra

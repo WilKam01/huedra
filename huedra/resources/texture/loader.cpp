@@ -7,7 +7,7 @@
 
 namespace huedra {
 
-TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
+TextureData loadPng(std::string_view path, TexelChannelFormat desiredFormat)
 {
     TextureData textureData;
     std::vector<u8> bytes = readBytes(path);
@@ -47,7 +47,7 @@ TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat)
     constexpr u64 pngSignature = 0x89504e470d0a1a0a; // 137, 80, 78, 71, 13, 10, 26, 10
     if (parseFromBytes<u64>(bytes.data(), std::endian::big) != pngSignature)
     {
-        log::func::error("{} does not have a valid png signature", path.c_str());
+        log::func::error("{} does not have a valid png signature", path);
         return textureData;
     }
 

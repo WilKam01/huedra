@@ -17,7 +17,7 @@ void ResourceManager::cleanup()
     m_textureDatas.clear();
 }
 
-std::vector<MeshData>& ResourceManager::loadMeshData(const std::string& path)
+std::vector<MeshData>& ResourceManager::loadMeshData(std::string_view path)
 {
     u64 hash = constants::FNV_OFFSET;
     auto combineHash = [&hash](u64 val) { hash ^= val * constants::FNV_PRIME; };
@@ -51,7 +51,7 @@ std::vector<MeshData>& ResourceManager::loadMeshData(const std::string& path)
     return m_meshDatas[hash];
 }
 
-TextureData& ResourceManager::loadTextureData(const std::string& path, TexelChannelFormat channelFormat)
+TextureData& ResourceManager::loadTextureData(std::string_view path, TexelChannelFormat channelFormat)
 {
     u64 hash = constants::FNV_OFFSET;
     auto combineHash = [&hash](u64 val) { hash ^= val * constants::FNV_PRIME; };
@@ -77,7 +77,7 @@ TextureData& ResourceManager::loadTextureData(const std::string& path, TexelChan
     return m_textureDatas[hash];
 }
 
-ShaderModule& ResourceManager::loadShaderModule(const std::string& path)
+ShaderModule& ResourceManager::loadShaderModule(std::string_view path)
 {
     u64 hash = constants::FNV_OFFSET;
     auto combineHash = [&hash](u64 val) { hash ^= val * constants::FNV_PRIME; };

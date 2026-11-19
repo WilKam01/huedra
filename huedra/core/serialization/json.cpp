@@ -71,21 +71,14 @@ JsonValue& JsonValue::operator=(bool value)
     return *this;
 }
 
-JsonValue& JsonValue::operator=(const std::string& value)
-{
-    m_type = JsonValueType::STRING;
-    m_value = value;
-    return *this;
-}
-
-JsonValue& JsonValue::operator=(const char* value)
+JsonValue& JsonValue::operator=(std::string_view value)
 {
     m_type = JsonValueType::STRING;
     m_value = std::string(value);
     return *this;
 }
 
-JsonValue& JsonValue::operator=(const std::string_view& value)
+JsonValue& JsonValue::operator=(const char* value)
 {
     m_type = JsonValueType::STRING;
     m_value = std::string(value);
@@ -203,7 +196,7 @@ JsonValue& JsonValue::operator[](u64 index)
     return arr[index];
 }
 
-JsonValue& JsonValue::operator[](const std::string& identifier)
+JsonValue& JsonValue::operator[](std::string_view identifier)
 {
     static JsonValue invalid;
     if (m_type == JsonValueType::NIL)
@@ -264,27 +257,27 @@ JsonObject& JsonObject::operator=(JsonObject&& rhs)
     return *this;
 }
 
-JsonValue& JsonObject::operator[](const std::string& identifier)
+JsonValue& JsonObject::operator[](std::string_view identifier)
 {
-    if (!m_members.contains(identifier))
+    if (!m_members.contains(identifier.data()))
     {
         JsonValue value;
         value.setParent(this);
         m_members.insert(std::pair<std::string, JsonValue>(identifier, value));
-        m_keys.push_back(identifier);
+        m_keys.push_back(std::string(identifier));
     }
-    return m_members.at(identifier);
+    return m_members.at(identifier.data());
 }
 
-bool JsonObject::hasMember(const std::string& identifier) const { return m_members.contains(identifier); }
+bool JsonObject::hasMember(std::string_view identifier) const { return m_members.contains(identifier.data()); }
 
-bool JsonObject::hasMember(const std::string& identifier, JsonValueType type) const
+bool JsonObject::hasMember(std::string_view identifier, JsonValueType type) const
 {
-    if (!m_members.contains(identifier))
+    if (!m_members.contains(identifier.data()))
     {
         return false;
     }
-    return m_members.at(identifier).getType() == type;
+    return m_members.at(identifier.data()).getType() == type;
 }
 
 JsonObject parseJson(const std::vector<u8>& bytes)
@@ -394,14 +387,14 @@ JsonObject parseJson(const std::vector<u8>& bytes)
                 break;
 
             case State::ASSIGNMENT_SET:
-                *curValues.back() = str;
+                *curValues.back() = std::string(str);
                 states.back() = State::VALUE_SET;
                 break;
 
             case State::IN_ARRAY:
             case State::ARRAY_COMMA_SET: {
                 JsonValue& val = curArrays.back()->emplace_back();
-                val = str;
+                val = std::string(str);
                 states.back() = State::ARRAY_VALUE_SET;
                 break;
             }

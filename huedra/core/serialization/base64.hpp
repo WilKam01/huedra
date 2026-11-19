@@ -4,6 +4,6 @@
 
 namespace huedra {
 
-std::vector<u8> decodeBase64(const std::string& base64);
+std::vector<u8> decodeBase64(std::string_view base64);
 
 } // namespace huedra

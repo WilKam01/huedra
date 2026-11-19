@@ -20,7 +20,7 @@ public:
     void init();
     void cleanup();
 
-    ShaderModule createModule(const std::string& name, const std::string& source);
+    ShaderModule createModule(std::string_view name, std::string_view source);
     CompiledShaderModule compileAndLinkModules(const std::map<ShaderStage, ShaderInput>& inputs);
 
 private:

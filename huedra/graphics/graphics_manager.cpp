@@ -98,7 +98,7 @@ Ref<RenderTarget> GraphicsManager::createRenderTarget(RenderTargetType type, Gra
     return Ref<RenderTarget>(m_context->createRenderTarget(type, format, width, height));
 }
 
-ShaderModule GraphicsManager::createShaderModule(const std::string& name, const u8* sourceCode, u64 sourceCodeLength)
+ShaderModule GraphicsManager::createShaderModule(std::string_view name, const u8* sourceCode, u64 sourceCodeLength)
 {
     // Need to create string from source for null termination
     std::string sourceString(std::bit_cast<const char*>(sourceCode),
@@ -106,7 +106,7 @@ ShaderModule GraphicsManager::createShaderModule(const std::string& name, const 
     return m_slangContext.createModule(name, sourceString);
 }
 
-ShaderModule GraphicsManager::createShaderModule(const std::string& name, std::string& sourceString)
+ShaderModule GraphicsManager::createShaderModule(std::string_view name, std::string& sourceString)
 {
     return m_slangContext.createModule(name, sourceString);
 }

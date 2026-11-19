@@ -3,7 +3,7 @@
 
 namespace huedra {
 
-bool WindowX11::init(const std::string& title, const WindowInput& input, xcb_connection_t* xcbConnection,
+bool WindowX11::init(std::string_view title, const WindowInput& input, xcb_connection_t* xcbConnection,
                      xcb_screen_t* xcbScreen, xcb_intern_atom_reply_t* wmProtoReply,
                      xcb_intern_atom_reply_t* wmDeleteReply)
 {
@@ -39,7 +39,7 @@ bool WindowX11::init(const std::string& title, const WindowInput& input, xcb_con
     }
 
     cookie = xcb_change_property_checked(m_xcbConnection, XCB_PROP_MODE_REPLACE, m_window, XCB_ATOM_WM_NAME,
-                                         XCB_ATOM_STRING, 8, title.length(), title.c_str());
+                                         XCB_ATOM_STRING, 8, title.length(), title.data());
     error = xcb_request_check(m_xcbConnection, cookie);
     if (error != nullptr)
     {
@@ -103,11 +103,11 @@ ivec2 WindowX11::getRelativePosition(ivec2 position) const { return position - g
 
 ivec2 WindowX11::getRelativeScreenPosition(ivec2 position) const { return position - getScreenPosition(); }
 
-void WindowX11::setTitle(const std::string& title)
+void WindowX11::setTitle(std::string_view title)
 {
     xcb_void_cookie_t cookie =
         xcb_change_property_checked(m_xcbConnection, XCB_PROP_MODE_REPLACE, m_window, XCB_ATOM_WM_NAME, XCB_ATOM_STRING,
-                                    8, title.length(), title.c_str());
+                                    8, title.length(), title.data());
     xcb_generic_error_t* error = xcb_request_check(m_xcbConnection, cookie);
     if (error != nullptr)
     {

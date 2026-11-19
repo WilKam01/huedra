@@ -33,8 +33,8 @@ public:
 
     Slang::ComPtr<slang::IModule> getSlangModule() const { return m_module; }
 
-    ShaderStage getShaderStage(const std::string& entryPointName) const;
-    Slang::ComPtr<slang::IEntryPoint> getSlangEntryPoint(const std::string& entryPointName) const;
+    ShaderStage getShaderStage(std::string_view entryPointName) const;
+    Slang::ComPtr<slang::IEntryPoint> getSlangEntryPoint(std::string_view entryPointName) const;
 
 private:
     Slang::ComPtr<slang::IModule> m_module;
@@ -85,17 +85,16 @@ public:
 
 private:
     void addParameterBlockRangesVulkan(ShaderStage stage, slang::TypeLayoutReflection* typeLayout,
-                                       const std::string& namePrefix,
+                                       std::string_view namePrefix,
                                        const std::vector<std::string_view>& descriptorNames,
                                        const std::vector<std::string_view>& subObjectNames, u32 setIndex);
     void findParameterNamesVulkan(slang::VariableLayoutReflection* varLayout,
                                   std::vector<std::string_view>& descriptorNames,
                                   std::vector<std::string_view>& subObjectNames, bool isEntryPointParameters = false);
 
-    void addParametersMetal(ShaderStage stage, const std::string& namePrefix,
-                            slang::VariableLayoutReflection* varLayout, slang::TypeLayoutReflection* typeLayout,
-                            bool isEntryPointParameters = false);
-    void addResourcesMetal(ShaderStage stage, const std::string& name, ResourceType type,
+    void addParametersMetal(ShaderStage stage, std::string_view namePrefix, slang::VariableLayoutReflection* varLayout,
+                            slang::TypeLayoutReflection* typeLayout, bool isEntryPointParameters = false);
+    void addResourcesMetal(ShaderStage stage, std::string_view name, ResourceType type,
                            slang::ParameterCategory category);
 
     std::vector<u8> m_code;

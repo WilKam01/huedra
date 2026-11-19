@@ -4,6 +4,6 @@
 
 namespace huedra {
 
-FontData loadTtf(const std::string& path);
+FontData loadTtf(std::string_view path);
 
 }

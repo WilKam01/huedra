@@ -19,7 +19,7 @@ public:
     PipelineBuilder& operator=(PipelineBuilder&& rhs) = default;
 
     PipelineBuilder& init(PipelineType type);
-    PipelineBuilder& addShader(ShaderModule& shaderModule, const std::string& entryPointName);
+    PipelineBuilder& addShader(ShaderModule& shaderModule, std::string_view entryPointName);
     PipelineBuilder& addVertexInputStream(const VertexInputStream& inputStream);
 
     // Default: TRIANGLE and TRIANGLE_LIST

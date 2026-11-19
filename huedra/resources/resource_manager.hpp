@@ -21,9 +21,9 @@ public:
     void init();
     void cleanup();
 
-    std::vector<MeshData>& loadMeshData(const std::string& path);
-    TextureData& loadTextureData(const std::string& path, TexelChannelFormat channelFormat);
-    ShaderModule& loadShaderModule(const std::string& path);
+    std::vector<MeshData>& loadMeshData(std::string_view path);
+    TextureData& loadTextureData(std::string_view path, TexelChannelFormat channelFormat);
+    ShaderModule& loadShaderModule(std::string_view path);
 
 private:
     std::vector<MeshData> m_missingMeshData;

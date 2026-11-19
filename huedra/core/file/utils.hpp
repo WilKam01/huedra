@@ -8,12 +8,12 @@
 
 namespace huedra {
 
-inline std::vector<u8> readBytes(const std::string& path)
+inline std::vector<u8> readBytes(std::string_view path)
 {
-    std::ifstream file(path, std::ios::ate | std::ios::binary);
+    std::ifstream file(path.data(), std::ios::ate | std::ios::binary);
     if (!file.is_open())
     {
-        log::func::error("Failed to open file: \"{}\"!", path.c_str());
+        log::func::error("Failed to open file: \"{}\"!", path);
         return {};
     }
 
@@ -32,12 +32,12 @@ inline std::vector<u8> readBytes(const std::string& path)
     return buffer;
 }
 
-inline bool writeBytes(const std::string& path, const std::vector<u8>& bytes)
+inline bool writeBytes(std::string_view path, const std::vector<u8>& bytes)
 {
-    std::ofstream file(path);
+    std::ofstream file(path.data());
     if (!file.is_open())
     {
-        log::func::error("Failed to open file: \"{}\"!", path.c_str());
+        log::func::error("Failed to open file: \"{}\"!", path);
         return false;
     }
 
@@ -46,7 +46,7 @@ inline bool writeBytes(const std::string& path, const std::vector<u8>& bytes)
     return true;
 }
 
-inline FilePathInfo transformFilePath(const std::string& path)
+inline FilePathInfo transformFilePath(std::string_view path)
 {
     FilePathInfo filePathInfo{};
     std::array<std::string, 2> split = splitLastByChars(path, "/\\");

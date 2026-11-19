@@ -5,10 +5,10 @@
 
 namespace huedra {
 
-inline std::vector<std::string> splitByChar(const std::string& str, char delim)
+inline std::vector<std::string> splitByChar(std::string_view str, char delim)
 {
     std::vector<std::string> tokens;
-    std::stringstream ss(str);
+    std::stringstream ss(str.data());
     std::string token;
 
     while (std::getline(ss, token, delim))
@@ -19,7 +19,7 @@ inline std::vector<std::string> splitByChar(const std::string& str, char delim)
     return tokens;
 }
 
-inline std::vector<std::string> splitByChars(const std::string& str, const std::string& delims)
+inline std::vector<std::string> splitByChars(std::string_view str, std::string_view delims)
 {
     std::vector<std::string> tokens;
     u32 i = 0;
@@ -39,7 +39,7 @@ inline std::vector<std::string> splitByChars(const std::string& str, const std::
 
         if (anyDelim && len != 0)
         {
-            tokens.push_back(str.substr(start, len));
+            tokens.push_back(std::string(str.substr(start, len)));
             start += len + 1;
             len = 0;
         }
@@ -53,14 +53,14 @@ inline std::vector<std::string> splitByChars(const std::string& str, const std::
     // Add remainder (if any)
     if (len != 0)
     {
-        tokens.push_back(str.substr(start, len));
+        tokens.push_back(std::string(str.substr(start, len)));
     }
 
     return tokens;
 }
 
 // Splits only string by the first instance of delim
-inline std::array<std::string, 2> splitFirstByChar(const std::string& str, char delim)
+inline std::array<std::string, 2> splitFirstByChar(std::string_view str, char delim)
 {
     std::array<std::string, 2> tokens;
     u64 i = 0;
@@ -83,7 +83,7 @@ inline std::array<std::string, 2> splitFirstByChar(const std::string& str, char 
 }
 
 // Splits only string by the first instance of delim
-inline std::array<std::string, 2> splitFirstByChars(const std::string& str, const std::string& delims)
+inline std::array<std::string, 2> splitFirstByChars(std::string_view str, std::string_view delims)
 {
     std::array<std::string, 2> tokens;
     u64 i = 0;
@@ -120,7 +120,7 @@ inline std::array<std::string, 2> splitFirstByChars(const std::string& str, cons
 }
 
 // Splits only string by the last instance of delim
-inline std::array<std::string, 2> splitLastByChar(const std::string& str, char delim)
+inline std::array<std::string, 2> splitLastByChar(std::string_view str, char delim)
 {
     std::array<std::string, 2> tokens;
     u64 i = str.length() - 1;
@@ -143,7 +143,7 @@ inline std::array<std::string, 2> splitLastByChar(const std::string& str, char d
 }
 
 // Splits only string by the last instance of delim
-inline std::array<std::string, 2> splitLastByChars(const std::string& str, const std::string& delims)
+inline std::array<std::string, 2> splitLastByChars(std::string_view str, std::string_view delims)
 {
     std::array<std::string, 2> tokens;
     u64 i = str.length() - 1;

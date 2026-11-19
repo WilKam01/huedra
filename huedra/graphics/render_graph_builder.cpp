@@ -13,11 +13,11 @@ RenderGraphBuilder& RenderGraphBuilder::init()
     return *this;
 }
 
-RenderGraphBuilder& RenderGraphBuilder::addPass(const std::string& name, const RenderPassBuilder& pass)
+RenderGraphBuilder& RenderGraphBuilder::addPass(std::string_view name, const RenderPassBuilder& pass)
 {
-    if (m_passes.contains(name))
+    if (m_passes.contains(name.data()))
     {
-        log::func::warn("Could not add render pass, {} already exists", name.c_str());
+        log::func::warn("Could not add render pass, {} already exists", name);
         return *this;
     }
 
@@ -40,7 +40,7 @@ RenderGraphBuilder& RenderGraphBuilder::addPass(const std::string& name, const R
     }
 
     m_passes.insert(std::pair<std::string, RenderPassBuilder>(name, pass));
-    m_passKeys.push_back(name);
+    m_passKeys.push_back(std::string(name));
     return *this;
 }
 

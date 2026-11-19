@@ -35,9 +35,9 @@ public:
     JsonObject& operator=(const JsonObject& rhs);
     JsonObject& operator=(JsonObject&& rhs);
 
-    JsonValue& operator[](const std::string& identifier);
-    bool hasMember(const std::string& identifier) const;
-    bool hasMember(const std::string& identifier, JsonValueType type) const;
+    JsonValue& operator[](std::string_view identifier);
+    bool hasMember(std::string_view identifier) const;
+    bool hasMember(std::string_view identifier, JsonValueType type) const;
 
     std::vector<std::string> getMembers() const { return m_keys; }
 
@@ -76,9 +76,8 @@ public:
     JsonValue& operator=(u64 value);
     JsonValue& operator=(f64 value);
     JsonValue& operator=(bool value);
-    JsonValue& operator=(const std::string& value);
+    JsonValue& operator=(std::string_view value);
     JsonValue& operator=(const char* value);
-    JsonValue& operator=(const std::string_view& value);
     JsonValue& operator=(const JsonArray& values);
     JsonValue& operator=(const JsonObject& value);
 
@@ -97,9 +96,9 @@ public:
         return (*this)[static_cast<u64>(index)];
     }
 
-    JsonValue& operator[](u64 index);                     // Only ARRAY type
-    JsonValue& operator[](const std::string& identifier); // Only OBJECT type
-    JsonValue& operator[](const char* str);               // Only OBJECT type
+    JsonValue& operator[](u64 index);                   // Only ARRAY type
+    JsonValue& operator[](std::string_view identifier); // Only OBJECT type
+    JsonValue& operator[](const char* str);             // Only OBJECT type
 
     JsonValueType getType() const { return m_type; }
     JsonObject* getParent() const { return m_parent; }

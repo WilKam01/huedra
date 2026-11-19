@@ -45,14 +45,14 @@ void SlangContext::init()
 
 void SlangContext::cleanup() {}
 
-ShaderModule SlangContext::createModule(const std::string& name, const std::string& source)
+ShaderModule SlangContext::createModule(std::string_view name, std::string_view source)
 {
     Slang::ComPtr<slang::IBlob> diagnositicBlob;
     Slang::ComPtr<slang::IModule> shaderModule;
     ShaderModule shader;
 
-    shaderModule = m_session->loadModuleFromSourceString(name.c_str(), (name + ".slang").c_str(), source.c_str(),
-                                                         diagnositicBlob.writeRef());
+    shaderModule = m_session->loadModuleFromSourceString(name.data(), (std::string(name) + ".slang").c_str(),
+                                                         source.data(), diagnositicBlob.writeRef());
     if (diagnositicBlob != nullptr)
     {
         log::func::error("Load module from string error:\n{}",

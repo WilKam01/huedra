@@ -15,12 +15,12 @@ PipelineBuilder& PipelineBuilder::init(PipelineType type)
     return *this;
 }
 
-PipelineBuilder& PipelineBuilder::addShader(ShaderModule& shaderModule, const std::string& entryPointName)
+PipelineBuilder& PipelineBuilder::addShader(ShaderModule& shaderModule, std::string_view entryPointName)
 {
     ShaderStage stage = shaderModule.getShaderStage(entryPointName);
     if (stage == ShaderStage::NONE)
     {
-        log::func::warn("Could not find entryPoint \"{}\" in module: {}", entryPointName.c_str(),
+        log::func::warn("Could not find entryPoint \"{}\" in module: {}", entryPointName,
                         shaderModule.getName().c_str());
         return *this;
     }
@@ -33,13 +33,13 @@ PipelineBuilder& PipelineBuilder::addShader(ShaderModule& shaderModule, const st
 
     if (m_shaderStages.contains(stage))
     {
-        m_shaderStages[stage] = {.shaderModule = &shaderModule, .entryPointName = entryPointName};
-        log::func::warn("{} shader overwritten", ShaderStageNames[static_cast<u64>(stage)].data());
+        m_shaderStages[stage] = {.shaderModule = &shaderModule, .entryPointName = std::string(entryPointName)};
+        log::func::warn("{} shader overwritten", ShaderStageNames[static_cast<u64>(stage)]);
         return *this;
     }
 
-    m_shaderStages.insert(
-        std::pair<ShaderStage, ShaderInput>(stage, {.shaderModule = &shaderModule, .entryPointName = entryPointName}));
+    m_shaderStages.insert(std::pair<ShaderStage, ShaderInput>(
+        stage, {.shaderModule = &shaderModule, .entryPointName = std::string(entryPointName)}));
     return *this;
 }
 

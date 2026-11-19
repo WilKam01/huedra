@@ -18,7 +18,7 @@ public:
     WindowWin32(WindowWin32&& rhs) = default;
     WindowWin32& operator=(WindowWin32&& rhs) = default;
 
-    bool init(const std::string& title, const WindowInput& input, HINSTANCE instance);
+    bool init(std::string_view title, const WindowInput& input, HINSTANCE instance);
     void cleanup() override;
     bool update() override;
 
@@ -27,7 +27,7 @@ public:
     ivec2 getRelativePosition(ivec2 position) const override;
     ivec2 getRelativeScreenPosition(ivec2 position) const override;
 
-    void setTitle(const std::string& title) override;
+    void setTitle(std::string_view title) override;
     void setResolution(uvec2 resolution) override;
     void setPosition(ivec2 position) override;
 

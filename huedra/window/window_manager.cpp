@@ -1091,7 +1091,7 @@ void WindowManager::cleanup()
 #endif
 }
 
-Ref<Window> WindowManager::addWindow(const std::string& title, const WindowInput& input, Ref<Window> parent)
+Ref<Window> WindowManager::addWindow(std::string_view title, const WindowInput& input, Ref<Window> parent)
 {
     Window* window = createWindow(title, input);
 
@@ -1240,7 +1240,7 @@ void WindowManager::setMouseHidden(bool hidden)
 #endif
 }
 
-Window* WindowManager::createWindow(const std::string& title, const WindowInput& input)
+Window* WindowManager::createWindow(std::string_view title, const WindowInput& input)
 {
     if (input.width == 0 || input.height == 0)
     {

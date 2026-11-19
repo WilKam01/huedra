@@ -5,6 +5,6 @@
 
 namespace huedra {
 
-TextureData loadPng(const std::string& path, TexelChannelFormat desiredFormat);
+TextureData loadPng(std::string_view path, TexelChannelFormat desiredFormat);
 
 } // namespace huedra

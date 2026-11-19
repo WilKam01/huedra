@@ -8,7 +8,7 @@ Window::Window() { ReferenceCounter::addResource(static_cast<void*>(this)); }
 
 Window::~Window() { ReferenceCounter::removeResource(static_cast<void*>(this)); }
 
-void Window::init(const std::string& title, WindowRect rect)
+void Window::init(std::string_view title, WindowRect rect)
 {
     m_title = title;
     m_rect = rect;
@@ -74,7 +74,7 @@ void Window::setParent(Ref<Window> parent)
     }
 }
 
-void Window::updateTitle(const std::string& title) { m_title = title; }
+void Window::updateTitle(std::string_view title) { m_title = title; }
 
 void Window::updatePosition(i32 positionX, i32 positionY, i32 screenPositionX, i32 screenPositionY)
 {

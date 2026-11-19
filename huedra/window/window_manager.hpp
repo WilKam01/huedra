@@ -37,7 +37,7 @@ public:
 
     Ref<Window> getFocusedWindow() { return Ref<Window>(m_focusedWindow); }
 
-    Ref<Window> addWindow(const std::string& title, const WindowInput& input, Ref<Window> parent = Ref<Window>());
+    Ref<Window> addWindow(std::string_view title, const WindowInput& input, Ref<Window> parent = Ref<Window>());
 
 private:
     void setMousePosition(ivec2 pos);
@@ -47,7 +47,7 @@ private:
     void setFocusedWindow(Window* window) { m_focusedWindow = window; }
 
     // Create platform specific window
-    Window* createWindow(const std::string& title, const WindowInput& input);
+    Window* createWindow(std::string_view title, const WindowInput& input);
 
     std::vector<Window*> m_windows;
     Window* m_focusedWindow{nullptr};

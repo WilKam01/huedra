@@ -52,7 +52,7 @@ public:
     Window(Window&& rhs) = default;
     Window& operator=(Window&& rhs) = default;
 
-    void init(const std::string& title, WindowRect rect);
+    void init(std::string_view title, WindowRect rect);
     virtual void cleanup();
     virtual bool update() = 0;
 
@@ -75,13 +75,13 @@ public:
     uvec2 getScreenSize() const { return {m_rect.screenWidth, m_rect.screenHeight}; }
 
     void setParent(Ref<Window> parent);
-    virtual void setTitle(const std::string& title) = 0;
+    virtual void setTitle(std::string_view title) = 0;
     virtual void setResolution(uvec2 resolution) = 0;
     virtual void setPosition(ivec2 position) = 0;
 
 protected:
     // Internal use (values updated externally by platform and/or implementation)
-    void updateTitle(const std::string& title);
+    void updateTitle(std::string_view title);
     void updatePosition(i32 positionX, i32 positionY, i32 screenPositionX, i32 screenPositionY);
     void updateResolution(u32 width, u32 height, u32 screenWidth, u32 screenHeight);
     void updateMinimized(bool isMinimized);

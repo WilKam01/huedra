@@ -15,7 +15,7 @@ public:
     WindowX11(WindowX11&& rhs) = default;
     WindowX11& operator=(WindowX11&& rhs) = default;
 
-    bool init(const std::string& title, const WindowInput& input, xcb_connection_t* xcbConnection,
+    bool init(std::string_view title, const WindowInput& input, xcb_connection_t* xcbConnection,
               xcb_screen_t* xcbScreen, xcb_intern_atom_reply_t* wmProtoReply, xcb_intern_atom_reply_t* wmDeleteReply);
     void cleanup() override;
     bool update() override;
@@ -25,7 +25,7 @@ public:
     ivec2 getRelativePosition(ivec2 position) const override;
     ivec2 getRelativeScreenPosition(ivec2 position) const override;
 
-    void setTitle(const std::string& title) override;
+    void setTitle(std::string_view title) override;
     void setResolution(uvec2 resolution) override;
     void setPosition(ivec2 position) override;
 

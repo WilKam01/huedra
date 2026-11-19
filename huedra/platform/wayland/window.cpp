@@ -8,7 +8,7 @@
 
 namespace huedra {
 
-bool WindowWayland::init(const std::string& title, const WindowInput& input, bool graphicsManagersInitialized,
+bool WindowWayland::init(std::string_view title, const WindowInput& input, bool graphicsManagersInitialized,
                          wl_display* wlDisplay, wl_shm* wlSharedMemory, wl_compositor* wlCompositor,
                          xdg_wm_base* xdgBase, zxdg_decoration_manager_v1* zxdgDecorationManager)
 {
@@ -115,7 +115,7 @@ ivec2 WindowWayland::getRelativeScreenPosition(ivec2 position) const
     return ivec2(0);
 }
 
-void WindowWayland::setTitle(const std::string& title)
+void WindowWayland::setTitle(std::string_view title)
 {
     xdg_toplevel_set_title(m_xdgToplevel, title.c_str());
     xdg_toplevel_set_app_id(m_xdgToplevel, title.c_str());

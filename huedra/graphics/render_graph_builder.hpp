@@ -25,13 +25,13 @@ public:
     RenderGraphBuilder& operator=(RenderGraphBuilder&& rhs) = default;
 
     RenderGraphBuilder& init();
-    RenderGraphBuilder& addPass(const std::string& name, const RenderPassBuilder& pass);
+    RenderGraphBuilder& addPass(std::string_view name, const RenderPassBuilder& pass);
 
     u64 generateHash();
 
     bool empty() const { return m_passes.empty(); }
     u64 getHash() const { return m_hash; }
-    const RenderPassBuilder& getRenderPass(const std::string& key) const { return m_passes.at(key); }
+    const RenderPassBuilder& getRenderPass(std::string_view key) const { return m_passes.at(key.data()); }
     const std::vector<std::string>& getRenderPassNames() const { return m_passKeys; }
 
 private:

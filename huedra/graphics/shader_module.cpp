@@ -78,7 +78,7 @@ void ShaderModule::init(Slang::ComPtr<slang::IModule> shaderModule,
     }
 }
 
-ShaderStage ShaderModule::getShaderStage(const std::string& entryPointName) const
+ShaderStage ShaderModule::getShaderStage(std::string_view entryPointName) const
 {
     auto it = std::ranges::find_if(m_entryPoints,
                                    [entryPointName](const EntryPoint& entry) { return entry.name == entryPointName; });
@@ -90,10 +90,10 @@ ShaderStage ShaderModule::getShaderStage(const std::string& entryPointName) cons
     return ShaderStage::NONE;
 }
 
-Slang::ComPtr<slang::IEntryPoint> ShaderModule::getSlangEntryPoint(const std::string& entryPointName) const
+Slang::ComPtr<slang::IEntryPoint> ShaderModule::getSlangEntryPoint(std::string_view entryPointName) const
 {
     Slang::ComPtr<slang::IEntryPoint> entryPoint;
-    m_module->findEntryPointByName(entryPointName.c_str(), entryPoint.writeRef());
+    m_module->findEntryPointByName(entryPointName.data(), entryPoint.writeRef());
     return entryPoint;
 }
 
@@ -280,7 +280,7 @@ JsonObject CompiledShaderModule::getJson() const
 }
 
 void CompiledShaderModule::addParameterBlockRangesVulkan(ShaderStage stage, slang::TypeLayoutReflection* typeLayout,
-                                                         const std::string& namePrefix,
+                                                         std::string_view namePrefix,
                                                          const std::vector<std::string_view>& descriptorNames,
                                                          const std::vector<std::string_view>& subObjectNames,
                                                          u32 setIndex)
@@ -288,7 +288,7 @@ void CompiledShaderModule::addParameterBlockRangesVulkan(ShaderStage stage, slan
     if (typeLayout->getSize() > 0)
     {
         ResourceBinding resource;
-        resource.name = namePrefix + "<misc>";
+        resource.name = std::string(namePrefix) + "<misc>";
         resource.shaderStage = stage;
         resource.type = ResourceType::CONSTANT_BUFFER;
         m_resources[setIndex].push_back(resource);
@@ -313,7 +313,7 @@ void CompiledShaderModule::addParameterBlockRangesVulkan(ShaderStage stage, slan
             return;
         }
         ResourceBinding resource;
-        resource.name = namePrefix + std::string(descriptorNames[nameIndex++]);
+        resource.name = std::string(namePrefix) + std::string(descriptorNames[nameIndex++]);
         resource.shaderStage = stage;
         resource.type = convertSlangResourceType(bindingType);
         m_resources[setIndex].push_back(resource);
@@ -355,7 +355,7 @@ void CompiledShaderModule::addParameterBlockRangesVulkan(ShaderStage stage, slan
                 return;
             }
             m_resources.emplace_back();
-            std::string prefix = namePrefix + std::string(subObjectNames[nameIndex++]) + ".";
+            std::string prefix = std::string(namePrefix) + std::string(subObjectNames[nameIndex++]) + ".";
             addParameterBlockRangesVulkan(stage, elementLayout, prefix, descNames, subObjNames, m_resources.size() - 1);
         }
         break;
@@ -364,7 +364,7 @@ void CompiledShaderModule::addParameterBlockRangesVulkan(ShaderStage stage, slan
                 typeLayout->getBindingRangeLeafTypeLayout(bindingRangeIndex)->getElementTypeLayout();
 
             ParameterBinding parameter;
-            parameter.name = namePrefix + std::string(subObjectNames[nameIndex++]);
+            parameter.name = std::string(namePrefix) + std::string(subObjectNames[nameIndex++]);
             parameter.shaderStage = stage;
             parameter.offset = m_nextParameterOffset;
             parameter.size = static_cast<u32>(elementTypeLayout->getSize());
@@ -404,7 +404,7 @@ void CompiledShaderModule::findParameterNamesVulkan(slang::VariableLayoutReflect
     }
 }
 
-void CompiledShaderModule::addParametersMetal(ShaderStage stage, const std::string& namePrefix,
+void CompiledShaderModule::addParametersMetal(ShaderStage stage, std::string_view namePrefix,
                                               slang::VariableLayoutReflection* varLayout,
                                               slang::TypeLayoutReflection* typeLayout, bool isEntryPointParameters)
 {
@@ -417,7 +417,7 @@ void CompiledShaderModule::addParametersMetal(ShaderStage stage, const std::stri
         // Type is a struct
         if (fieldCount != 0)
         {
-            std::string prefix = namePrefix + std::string(varLayout->getName()) + ".";
+            std::string prefix = std::string(namePrefix) + std::string(varLayout->getName()) + ".";
             for (u32 i = 0; i < fieldCount; ++i)
             {
                 addParametersMetal(stage, prefix, varLayout->getTypeLayout()->getFieldByIndex(i),
@@ -429,7 +429,7 @@ void CompiledShaderModule::addParametersMetal(ShaderStage stage, const std::stri
     case slang::BindingType::Texture:
     case slang::BindingType::MutableTexture:
     case slang::BindingType::Sampler: {
-        addResourcesMetal(stage, namePrefix + varLayout->getName(),
+        addResourcesMetal(stage, std::string(namePrefix) + varLayout->getName(),
                           convertSlangResourceType(varLayout->getTypeLayout()->getBindingRangeType(0)),
                           varLayout->getCategory());
     }
@@ -445,7 +445,7 @@ void CompiledShaderModule::addParametersMetal(ShaderStage stage, const std::stri
 
         m_resources.emplace_back();    // Add set for argument buffer
         m_metalBuffers.emplace_back(); // Add set for argument buffer
-        std::string prefix = namePrefix + std::string(varLayout->getName()) + ".";
+        std::string prefix = std::string(namePrefix) + std::string(varLayout->getName()) + ".";
         for (u32 i = 0; i < fieldCount; ++i)
         {
             addParametersMetal(stage, prefix, varLayout->getTypeLayout()->getElementTypeLayout()->getFieldByIndex(i),
@@ -504,10 +504,12 @@ void CompiledShaderModule::addParametersMetal(ShaderStage stage, const std::stri
             m_nextParameterOffset += parameter.size;
         }
         // Add automatically created constant buffer
-        else if (!getResource(namePrefix + "<misc>").has_value() && varLayout->getSemanticName() != nullptr &&
+        else if (!getResource(std::string(namePrefix) + "<misc>").has_value() &&
+                 varLayout->getSemanticName() != nullptr &&
                  std::string(varLayout->getSemanticName()).substr(0, 3) != "SV_")
         {
-            addResourcesMetal(stage, namePrefix + "<misc>", ResourceType::CONSTANT_BUFFER, varLayout->getCategory());
+            addResourcesMetal(stage, std::string(namePrefix) + "<misc>", ResourceType::CONSTANT_BUFFER,
+                              varLayout->getCategory());
         }
         break;
     default:
@@ -515,7 +517,7 @@ void CompiledShaderModule::addParametersMetal(ShaderStage stage, const std::stri
     }
 }
 
-void CompiledShaderModule::addResourcesMetal(ShaderStage stage, const std::string& name, ResourceType type,
+void CompiledShaderModule::addResourcesMetal(ShaderStage stage, std::string_view name, ResourceType type,
                                              slang::ParameterCategory category)
 {
     ResourceBinding resource;

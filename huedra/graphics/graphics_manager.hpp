@@ -33,8 +33,8 @@ public:
     Ref<Buffer> createBuffer(BufferType type, u32 usage, u64 size, void* data = nullptr);
     Ref<Texture> createTexture(const TextureData& textureData);
     Ref<RenderTarget> createRenderTarget(RenderTargetType type, GraphicsDataFormat format, u32 width, u32 height);
-    ShaderModule createShaderModule(const std::string& name, const u8* sourceCode, u64 sourceCodeLength);
-    ShaderModule createShaderModule(const std::string& name, std::string& sourceString);
+    ShaderModule createShaderModule(std::string_view name, const u8* sourceCode, u64 sourceCodeLength);
+    ShaderModule createShaderModule(std::string_view name, std::string& sourceString);
     CompiledShaderModule compileAndLinkShaderModules(const std::map<ShaderStage, ShaderInput>& inputs);
 
     void removeBuffer(Ref<Buffer> buffer);

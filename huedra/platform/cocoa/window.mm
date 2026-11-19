@@ -104,7 +104,7 @@ NSRect findMainFrame()
 
 namespace huedra {
 
-bool WindowCocoa::init(const std::string& title, const WindowInput& input)
+bool WindowCocoa::init(std::string_view title, const WindowInput& input)
 {
     @autoreleasepool
     {
@@ -310,7 +310,7 @@ ivec2 WindowCocoa::getRelativePosition(ivec2 position) const { return position -
 
 ivec2 WindowCocoa::getRelativeScreenPosition(ivec2 position) const { return position - getScreenPosition(); }
 
-void WindowCocoa::setTitle(const std::string& title)
+void WindowCocoa::setTitle(std::string_view title)
 {
     @autoreleasepool
     {

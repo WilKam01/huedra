@@ -180,7 +180,7 @@ LRESULT CALLBACK WindowWin32::windowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LP
 }
 // NOLINTEND(performance-no-int-to-ptr, performance-no-int-to-ptr)
 
-bool WindowWin32::init(const std::string& title, const WindowInput& input, HINSTANCE instance)
+bool WindowWin32::init(std::string_view title, const WindowInput& input, HINSTANCE instance)
 {
     RECT winRect;
     winRect.left = 0;
@@ -285,7 +285,7 @@ ivec2 WindowWin32::getRelativePosition(ivec2 position) const { return position -
 
 ivec2 WindowWin32::getRelativeScreenPosition(ivec2 position) const { return position - getScreenPosition(); }
 
-void WindowWin32::setTitle(const std::string& title)
+void WindowWin32::setTitle(std::string_view title)
 {
     if (SetWindowTextA(m_handle, title.c_str()) != 0)
     {
