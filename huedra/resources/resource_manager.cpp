@@ -77,6 +77,32 @@ TextureData& ResourceManager::loadTextureData(std::string_view path, TexelChanne
     return m_textureDatas[hash];
 }
 
+HdrTextureData& ResourceManager::loadHdrTextureData(std::string_view path, TexelChannelFormat channelFormat)
+{
+    u64 hash = constants::FNV_OFFSET;
+    auto combineHash = [&hash](u64 val) { hash ^= val * constants::FNV_PRIME; };
+    auto u64Hash = std::hash<u64>();
+    for (const auto& c : path)
+    {
+        combineHash(u64Hash(static_cast<u64>(c)));
+    }
+
+    if (!m_hdrTextureDatas.contains(hash))
+    {
+        FilePathInfo info = transformFilePath(path);
+        if (info.extension == "hdr")
+        {
+            m_hdrTextureDatas.insert(std::pair<u64, HdrTextureData>(hash, loadRadianceHdr(path, channelFormat)));
+        }
+        else
+        {
+            log::func::warn("Extension \"{}\" not supported", info.extension.c_str());
+            return m_missingHdrTextureData;
+        }
+    }
+    return m_hdrTextureDatas[hash];
+}
+
 ShaderModule& ResourceManager::loadShaderModule(std::string_view path)
 {
     u64 hash = constants::FNV_OFFSET;

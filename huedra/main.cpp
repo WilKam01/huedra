@@ -31,6 +31,9 @@ int main()
     global::graphicsManager.init();
     global::resourceManager.init();
 
+    HdrTextureData& hdr = global::resourceManager.loadHdrTextureData(
+        "assets/textures/citrus_orchard_road_puresky_1k.hdr", TexelChannelFormat::RGBA);
+
     log::info("vec: {:.3f}, {:.2f}, {:.1f}", vec2(1.23456, 3.44567), vec3(1.312313),
               vec4(1.23456, 3.44567, 4.55, 500.493));
     log::info("quaternion: {}", Quaternion(1.2345, vec3(3.2102)).str());

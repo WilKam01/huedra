@@ -32,6 +32,7 @@ public:
 
     Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) override;
     Texture* createTexture(const TextureData& textureData) override;
+    Texture* createTexture(const HdrTextureData& textureData) override;
     RenderTarget* createRenderTarget(RenderTargetType type, GraphicsDataFormat format, u32 width, u32 height) override;
 
     void removeBuffer(Buffer* buffer) override;

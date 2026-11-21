@@ -21,7 +21,7 @@ public:
     VulkanTexture(VulkanTexture&& rhs) = default;
     VulkanTexture& operator=(VulkanTexture&& rhs) = default;
 
-    void init(Device& device, const TextureData& textureData, VkFormat format, VkImage image,
+    void init(Device& device, u32 width, u32 height, GraphicsDataFormat dataFormat, VkFormat format, VkImage image,
               VkDeviceMemory memory); // Static texture
     void init(Device& device, TextureType type, GraphicsDataFormat format, u32 width, u32 height, u32 imageCount,
               VulkanRenderTarget& renderTarget); // Render target texture

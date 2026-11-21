@@ -23,15 +23,18 @@ public:
 
     std::vector<MeshData>& loadMeshData(std::string_view path);
     TextureData& loadTextureData(std::string_view path, TexelChannelFormat channelFormat);
+    HdrTextureData& loadHdrTextureData(std::string_view path, TexelChannelFormat channelFormat);
     ShaderModule& loadShaderModule(std::string_view path);
 
 private:
     std::vector<MeshData> m_missingMeshData;
     TextureData m_missingTextureData;
+    HdrTextureData m_missingHdrTextureData;
     ShaderModule m_missingShaderModule;
 
     std::unordered_map<u64, std::vector<MeshData>> m_meshDatas;
     std::unordered_map<u64, TextureData> m_textureDatas;
+    std::unordered_map<u64, HdrTextureData> m_hdrTextureDatas;
     std::unordered_map<u64, ShaderModule> m_shaders;
 };
 

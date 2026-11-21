@@ -30,6 +30,7 @@ public:
 
     virtual Buffer* createBuffer(BufferType type, BufferUsageFlags usage, u64 size, void* data) = 0;
     virtual Texture* createTexture(const TextureData& textureData) = 0;
+    virtual Texture* createTexture(const HdrTextureData& textureData) = 0;
     virtual RenderTarget* createRenderTarget(RenderTargetType type, GraphicsDataFormat format, u32 width,
                                              u32 height) = 0;
 

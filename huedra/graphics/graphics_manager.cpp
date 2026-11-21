@@ -81,6 +81,26 @@ Ref<Texture> GraphicsManager::createTexture(const TextureData& textureData)
     return Ref<Texture>(m_context->createTexture(textureData));
 }
 
+Ref<Texture> GraphicsManager::createTexture(const HdrTextureData& textureData)
+{
+    if (textureData.width == 0 || textureData.height == 0)
+    {
+        log::func::error("Could not create texture, width and height can't be 0");
+        return Ref<Texture>(nullptr);
+    }
+    if (textureData.format == GraphicsDataFormat::UNDEFINED)
+    {
+        log::func::error("Could not create texture, format has be defined");
+        return Ref<Texture>(nullptr);
+    }
+    if (textureData.texelSize == 0 || textureData.texels.empty())
+    {
+        log::func::error("Could not create texture, invalid texture data provided");
+        return Ref<Texture>(nullptr);
+    }
+    return Ref<Texture>(m_context->createTexture(textureData));
+}
+
 Ref<RenderTarget> GraphicsManager::createRenderTarget(RenderTargetType type, GraphicsDataFormat format, u32 width,
                                                       u32 height)
 {
@@ -155,5 +175,4 @@ void GraphicsManager::createSwapchain(Window* window, bool renderDepth)
 }
 
 void GraphicsManager::removeSwapchain(u64 index) { m_context->removeSwapchain(index); }
-
 }; // namespace huedra

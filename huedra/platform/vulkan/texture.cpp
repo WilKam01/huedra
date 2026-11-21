@@ -9,10 +9,10 @@
 
 namespace huedra {
 
-void VulkanTexture::init(Device& device, const TextureData& textureData, VkFormat format, VkImage image,
-                         VkDeviceMemory memory)
+void VulkanTexture::init(Device& device, u32 width, u32 height, GraphicsDataFormat dataFormat, VkFormat format,
+                         VkImage image, VkDeviceMemory memory)
 {
-    Texture::init(textureData.width, textureData.height, textureData.format, TextureType::COLOR);
+    Texture::init(width, height, dataFormat, TextureType::COLOR);
 
     m_device = &device;
     m_externallyCreated = false;

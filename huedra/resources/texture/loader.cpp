@@ -1,7 +1,9 @@
 #include "loader.hpp"
 #include "core/file/utils.hpp"
 #include "core/memory/utils.hpp"
+#include "math/vec2.hpp"
 #include "math/vec3.hpp"
+#include "math/vec4.hpp"
 
 #include <cmath>
 
@@ -395,6 +397,293 @@ TextureData loadPng(std::string_view path, TexelChannelFormat desiredFormat)
                     parseToBytes<u8>(&textureData.texels[scanlineStart + texelStart + k], pngChannels[k],
                                      std::endian::native);
                 }
+            }
+        }
+    }
+
+    return textureData;
+}
+
+HdrTextureData loadRadianceHdr(std::string_view path, TexelChannelFormat desiredFormat)
+{
+    HdrTextureData textureData;
+    std::vector<u8> bytes = readBytes(path);
+    u64 byteIndex{0};
+
+    std::string buf;
+    std::vector<std::string> lines;
+    // Find readable lines in header until data starts
+    while (byteIndex < bytes.size())
+    {
+        if (bytes[byteIndex] == '\n')
+        {
+            if (buf.empty())
+            {
+                ++byteIndex;
+                break; // Hit empty line
+            }
+
+            if (lines.empty() && buf != "#?RADIANCE" && buf != "#?RGBE")
+            {
+                log::func::error("{} does not have a valid signature", path);
+                return {};
+            }
+            lines.push_back(buf);
+            buf.clear();
+        }
+        else
+        {
+            buf.push_back(bytes[byteIndex]);
+        }
+        ++byteIndex;
+    }
+
+    // Did not find any lines = no signature
+    if (lines.empty())
+    {
+        log::func::error("{} does not have a valid signature", path);
+        return {};
+    }
+
+    // Check for variables
+    bool foundFormat = false;
+    f32 exposure = 1.0f;
+    vec3 colorCorrection(1.0f);
+    for (auto& line : lines)
+    {
+        // Skip comments
+        if (line[0] == '#')
+        {
+            continue;
+        }
+
+        std::vector<std::string> split = splitByChar(line, '=');
+        if (split.size() != 2)
+        {
+            log::func::error("{} has invalid variable declaration on line \"{}\"", path, line);
+            continue;
+        }
+
+        std::string_view var = split[0];
+        std::string_view val = split[1];
+
+        if (var == "FORMAT")
+        {
+            if (val != "32-bit_rle_rgbe")
+            {
+                log::func::error("{} has unsupported FORMAT: \"{}\" (supported: 32-bit_rle_rgbe)", path, val);
+                return {};
+            }
+            foundFormat = true;
+        }
+        else if (var == "EXPOSURE")
+        {
+            try
+            {
+                exposure *= std::stof(std::string(val));
+            }
+            catch (...)
+            {
+                log::func::error("{}: Could not convert EXPOSURE to f32: {}", path, val);
+            }
+        }
+        else if (var == "COLORCORR")
+        {
+            std::vector<std::string> splitCorr = splitByChar(val, ' ');
+            if (splitCorr.size() != 3)
+            {
+                log::func::error("{}: Could not convert COLORCORR to vec3: {}", path, val);
+                continue;
+            }
+
+            try
+            {
+                for (u32 i = 0; i < 3; ++i)
+                {
+                    colorCorrection[i] *= std::stof(splitCorr[i]);
+                }
+            }
+            catch (...)
+            {
+                log::func::error("{}: Could not convert COLORCORR to vec3: {}", path, val);
+            }
+        }
+
+        log::func::debug("Variable: {}, value: {}", var, val);
+    }
+
+    if (!foundFormat)
+    {
+        log::func::error("{} does not have a specified FORMAT", path);
+        return {};
+    }
+
+    // Find resolution
+    std::string resolution;
+    while (byteIndex < bytes.size() && bytes[byteIndex] != '\n')
+    {
+        resolution.push_back(bytes[byteIndex++]);
+    }
+    ++byteIndex; // Go past '\n'
+
+    std::vector<std::string> resSplit = splitByChar(resolution, ' ');
+    if (resSplit.size() != 4)
+    {
+        log::func::error("{} has invalid resolution definition: \"{}\"", path, resolution);
+        return {};
+    }
+
+    bool positiveX = resSplit[2][1] == '+';
+    bool positiveY = resSplit[0][1] == '+';
+    textureData.width = std::stoul(resSplit[3]);
+    textureData.height = std::stoul(resSplit[1]);
+
+    bool isFlipped = resSplit[0][1] == 'X';
+    if (isFlipped)
+    {
+        std::swap(positiveX, positiveY);
+        std::swap(textureData.width, textureData.height);
+    }
+
+    auto numChannels = static_cast<u32>(desiredFormat);
+    textureData.texelSize = numChannels;
+    textureData.texels.resize(textureData.width * textureData.height * textureData.texelSize, 0.0f);
+    switch (desiredFormat)
+    {
+    case TexelChannelFormat::G:
+        textureData.format = GraphicsDataFormat::R_32_FLOAT;
+        break;
+    case TexelChannelFormat::GA:
+        textureData.format = GraphicsDataFormat::RG_32_FLOAT;
+        break;
+    case TexelChannelFormat::RGB:
+        textureData.format = GraphicsDataFormat::RGB_32_FLOAT;
+        break;
+    case TexelChannelFormat::RGBA:
+        textureData.format = GraphicsDataFormat::RGBA_32_FLOAT;
+        break;
+    default:
+        break;
+    }
+
+    std::vector<u8vec4> scanline(textureData.width);
+    for (u32 y = 0; y < textureData.height; ++y)
+    {
+        u8 b0 = bytes[byteIndex++];
+        u8 b1 = bytes[byteIndex++];
+        u8 b2 = bytes[byteIndex++];
+        u8 b3 = bytes[byteIndex++];
+
+        if (b0 == 2 && b1 == 2 && b2 < 128)
+        {
+            u16 width = parseFromBytes<u16>(std::vector<u8>{b2, b3}.data(), std::endian::big);
+            if (textureData.width != width)
+            {
+                log::func::error("{} has invalid scanline, width does not equal resolution width: {} != {}", path,
+                                 width, textureData.width);
+                return {};
+            }
+
+            for (u32 channel = 0; channel < 4; ++channel)
+            {
+                u32 x = 0;
+                while (x < textureData.width)
+                {
+                    u8 code = bytes[byteIndex++];
+                    // Repeat next byte code - 128 times
+                    if (code > 128)
+                    {
+                        u32 count = code - 128;
+                        if (x + count > textureData.width)
+                        {
+                            log::func::error(
+                                "{} has invalid scanline, repeat count goes beyond scanline width: {} > {}", path,
+                                x + count, textureData.width);
+                            return {};
+                        }
+
+                        u8 val = bytes[byteIndex++];
+                        for (u32 i = 0; i < count; ++i)
+                        {
+                            scanline[x + i][channel] = val;
+                        }
+                        x += count;
+                    }
+                    // Copy next code - 128 raw bytes directly
+                    else
+                    {
+                        u32 count = code;
+                        if (count == 0 || x + count > textureData.width)
+                        {
+                            log::func::error(
+                                "{} has invalid scanline, copy count goes beyond scanline width (or is 0): {} > {}",
+                                path, x + count, textureData.width);
+                            return {};
+                        }
+
+                        for (u32 i = 0; i < count; ++i)
+                        {
+                            scanline[x + i][channel] = bytes[byteIndex++];
+                        }
+                        x += count;
+                    }
+                }
+            }
+        }
+        // Uncompressed
+        else
+        {
+            scanline[0] = u8vec4(b0, b1, b2, b3);
+            for (u32 i = 1; i < textureData.width; ++i)
+            {
+                scanline[i] =
+                    u8vec4(bytes[byteIndex], bytes[byteIndex + 1], bytes[byteIndex + 2], bytes[byteIndex + 3]);
+                byteIndex += 4;
+            }
+        }
+
+        // Convert RGBE -> RGBA (based on desiredFormat)
+        vec3 correction = (1.0f / exposure) * colorCorrection;
+        for (u32 i = 0; i < textureData.width; ++i)
+        {
+            auto vec = scanline[i];
+            vec3 result(0.0f);
+
+            if (vec.a > 0)
+            {
+                f32 scale = std::ldexp(1.0, vec.a - i32(128 + 8));
+                result = vec3(vec.r, vec.g, vec.b) * scale;
+            }
+
+            // Apply exposure and color correction
+            result *= correction;
+
+            // TODO: Figure out orientation based on +/- of resolution
+            uvec2 coord(i, y);
+
+            u32 startIndex = (coord.y * textureData.width + coord.x) * textureData.texelSize;
+            switch (desiredFormat)
+            {
+            case TexelChannelFormat::G:
+                textureData.texels[startIndex] = (result.x + result.y + result.z) / 3.0f;
+                break;
+            case TexelChannelFormat::GA:
+                textureData.texels[startIndex] = (result.x + result.y + result.z) / 3.0f;
+                textureData.texels[startIndex + 1] = 1.0f;
+                break;
+            case TexelChannelFormat::RGB:
+                textureData.texels[startIndex] = result.x;
+                textureData.texels[startIndex + 1] = result.y;
+                textureData.texels[startIndex + 2] = result.z;
+                break;
+            case TexelChannelFormat::RGBA:
+                textureData.texels[startIndex] = result.x;
+                textureData.texels[startIndex + 1] = result.y;
+                textureData.texels[startIndex + 2] = result.z;
+                textureData.texels[startIndex + 3] = 1.0f;
+                break;
+            default:
+                break;
             }
         }
     }

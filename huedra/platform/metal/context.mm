@@ -138,6 +138,12 @@ Texture* MetalContext::createTexture(const TextureData& textureData)
     return &texture;
 }
 
+Texture* MetalContext::createTexture(const HdrTextureData& textureData)
+{
+    // TODO: Implement
+    return nullptr;
+}
+
 RenderTarget* huedra::MetalContext::createRenderTarget(RenderTargetType type, GraphicsDataFormat format, u32 width,
                                                        u32 height)
 {
