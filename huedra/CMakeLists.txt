@@ -1,0 +1,304 @@
+include(FindPackageHandleStandardArgs)
+include(${CMAKE_SOURCE_DIR}/cmake/utils.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/dependencies.cmake)
+
+option(X11_OVERRIDE "Force use of X11 instead of Wayland, only applicable on Linux" OFF)
+
+append_glob_recurse_files(SOURCES 
+  ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp 
+)
+
+list(FILTER SOURCES EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/platform/.*")
+
+add_library(huedra ${SOURCES})
+
+# Configure platforms and specific libraries
+if(WIN32)
+  message(STATUS "Building for Windows")
+  target_compile_definitions(huedra PRIVATE -DWIN32 -DNOMINMAX)
+
+  find_package(Vulkan REQUIRED)
+  include_directories(huedra {Vulkan_INCLUDE_DIRS})
+  target_link_libraries(huedra PRIVATE Vulkan::Vulkan)
+  target_compile_definitions(huedra PRIVATE -DVULKAN)
+
+  append_glob_recurse_files(ADDITIONAL_SOURCES 
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/win32/*.cpp 
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/vulkan/*.cpp 
+  )
+
+elseif(APPLE)
+  message(STATUS "Building for MacOS")
+  target_compile_definitions(huedra PRIVATE -DMACOS)
+
+  find_library(COCOA_LIBRARY Cocoa REQUIRED)
+  find_library(METAL_LIBRARY Metal REQUIRED)
+  find_library(METAL_KIT_LIBRARY MetalKit REQUIRED)
+  find_library(QUARTZ_CORE QuartzCore REQUIRED)
+  target_compile_definitions(huedra PRIVATE -DCOCOA)
+  target_compile_definitions(huedra PRIVATE -DMETAL)
+
+  target_link_libraries(huedra PRIVATE
+      ${COCOA_LIBRARY}
+      ${METAL_LIBRARY}
+      ${METAL_KIT_LIBRARY}
+      ${QUARTZ_CORE}
+  )
+
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+  set_source_files_properties(${SOURCES} PROPERTIES COMPILE_FLAGS "-x objective-c++")
+  
+  append_glob_recurse_files(ADDITIONAL_SOURCES 
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/cocoa/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/cocoa/*.mm
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/metal/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/metal/*.mm
+  )
+  set_source_files_properties(${ADDITIONAL_SOURCES} PROPERTIES COMPILE_FLAGS "-x objective-c++")
+
+elseif(LINUX)
+  message(STATUS "Building for Linux")
+  target_compile_definitions(huedra PRIVATE -DLINUX)
+
+  find_package(Vulkan REQUIRED)
+  include_directories(huedra {Vulkan_INCLUDE_DIRS})
+  target_link_libraries(huedra PRIVATE Vulkan::Vulkan)
+  target_compile_definitions(huedra PRIVATE -DVULKAN)
+  append_glob_recurse_files(ADDITIONAL_SOURCES 
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/vulkan/*.cpp 
+  )
+
+  if($ENV{XDG_SESSION_TYPE} STREQUAL "wayland" AND NOT X11_OVERRIDE)
+    message(STATUS "Using Wayland Display System")
+
+    target_compile_definitions(huedra PRIVATE -DWAYLAND)
+
+    # Find include file and lib
+    find_path(WAYLAND_CLIENT_INCLUDE_DIR
+      NAMES wayland-client.h
+      PATHS /usr/include /usr/local/include
+    )
+    find_library(WAYLAND_CLIENT_LIBRARY
+      NAMES wayland-client
+      PATHS /usr/lib /usr/local/lib /usr/lib/x86_64-linux-gnu
+    )
+    find_package_handle_standard_args(WAYLAND_CLIENT 
+      REQUIRED_VARS WAYLAND_CLIENT_LIBRARY WAYLAND_CLIENT_INCLUDE_DIR
+    )
+
+    find_path(WAYLAND_CURSOR_INCLUDE_DIR
+      NAMES wayland-cursor.h
+      PATHS /usr/include /usr/local/include
+    )
+    find_library(WAYLAND_CURSOR_LIBRARY
+      NAMES wayland-cursor
+      PATHS /usr/lib /usr/local/lib /usr/lib/x86_64-linux-gnu
+    )
+    find_package_handle_standard_args(WAYLAND_CURSOR 
+      REQUIRED_VARS WAYLAND_CURSOR_LIBRARY WAYLAND_CURSOR_INCLUDE_DIR
+    )
+
+    if(NOT WAYLAND_CLIENT_FOUND OR NOT WAYLAND_CURSOR_FOUND)
+      message(FATAL_ERROR "Could not find Wayland dependencies")
+    endif()
+
+    add_library(Wayland::Client UNKNOWN IMPORTED)
+    set_target_properties(Wayland::Client PROPERTIES
+      INTERFACE_INCLUDE_DIRECTORIES "${WAYLAND_CLIENT_INCLUDE_DIR}"
+      IMPORTED_LOCATION "${WAYLAND_CLIENT_LIBRARY}"
+    )
+    target_link_libraries(huedra PRIVATE Wayland::Client)
+
+    add_library(Wayland::Cursor UNKNOWN IMPORTED)
+    set_target_properties(Wayland::Cursor PROPERTIES
+      INTERFACE_INCLUDE_DIRECTORIES "${WAYLAND_CURSOR_INCLUDE_DIR}"
+      IMPORTED_LOCATION "${WAYLAND_CURSOR_LIBRARY}"
+    )
+    target_link_libraries(huedra PRIVATE Wayland::Cursor)
+
+    # Find scanner to generate protocol files
+    find_program(WAYLAND_SCANNER_EXECUTABLE
+      NAMES wayland-scanner
+    )
+
+    if(NOT WAYLAND_SCANNER_EXECUTABLE)
+      message(FATAL_ERROR "Could not find wayland-scanner to generate protocol files")
+    endif()
+
+    find_path(WAYLAND_PROTOCOLS_DIR
+      NAMES wayland-protocols
+      PATHS /usr/share/ /usr/local/share/
+      NO_DEFAULT_PATH
+    )
+
+    if(NOT WAYLAND_PROTOCOLS_DIR)
+      message(FATAL_ERROR "Could not find wayland protocols directory")
+    endif()
+
+    set(WAYLAND_PROTOCOLS_DIR ${WAYLAND_PROTOCOLS_DIR}/wayland-protocols)
+
+    # Generate protocol files
+    set(SHELL_PROTOCOL_XML "${WAYLAND_PROTOCOLS_DIR}/stable/xdg-shell/xdg-shell.xml")
+    set(SHELL_GENERATED_NAME "${CMAKE_CURRENT_BINARY_DIR}/wayland/xdg-shell")
+
+    set(DECORATION_PROTOCOL_XML "${WAYLAND_PROTOCOLS_DIR}/unstable/xdg-decoration/xdg-decoration-unstable-v1.xml")
+    set(DECORATION_GENERATED_NAME "${CMAKE_CURRENT_BINARY_DIR}/wayland/xdg-decoration")
+
+    set(WARP_PROTOCOL_XML "${WAYLAND_PROTOCOLS_DIR}/staging/pointer-warp/pointer-warp-v1.xml")
+    set(WARP_GENERATED_NAME "${CMAKE_CURRENT_BINARY_DIR}/wayland/pointer-warp")
+
+    set(RELATIVE_POINTER_PROTOCOL_XML "${WAYLAND_PROTOCOLS_DIR}/unstable/relative-pointer/relative-pointer-unstable-v1.xml")
+    set(RELATIVE_POINTER_GENERATED_NAME "${CMAKE_CURRENT_BINARY_DIR}/wayland/relative-pointer")
+
+    set(POINTER_CONSTRAINTS_PROTOCOL_XML "${WAYLAND_PROTOCOLS_DIR}/unstable/pointer-constraints/pointer-constraints-unstable-v1.xml")
+    set(POINTER_CONSTRAINTS_GENERATED_NAME "${CMAKE_CURRENT_BINARY_DIR}/wayland/pointer-constraints")
+
+    execute_process(
+      COMMAND mkdir -p ${CMAKE_CURRENT_BINARY_DIR}/wayland
+      COMMAND ${WAYLAND_SCANNER_EXECUTABLE} client-header "${SHELL_PROTOCOL_XML}" "${SHELL_GENERATED_NAME}.h"
+      COMMAND ${WAYLAND_SCANNER_EXECUTABLE} private-code "${SHELL_PROTOCOL_XML}" "${SHELL_GENERATED_NAME}.c"
+      COMMAND ${WAYLAND_SCANNER_EXECUTABLE} client-header "${DECORATION_PROTOCOL_XML}" "${DECORATION_GENERATED_NAME}.h"
+      COMMAND ${WAYLAND_SCANNER_EXECUTABLE} private-code "${DECORATION_PROTOCOL_XML}" "${DECORATION_GENERATED_NAME}.c"
+      COMMAND ${WAYLAND_SCANNER_EXECUTABLE} client-header "${WARP_PROTOCOL_XML}" "${WARP_GENERATED_NAME}.h"
+      COMMAND ${WAYLAND_SCANNER_EXECUTABLE} private-code "${WARP_PROTOCOL_XML}" "${WARP_GENERATED_NAME}.c"
+      COMMAND ${WAYLAND_SCANNER_EXECUTABLE} client-header "${RELATIVE_POINTER_PROTOCOL_XML}" "${RELATIVE_POINTER_GENERATED_NAME}.h"
+      COMMAND ${WAYLAND_SCANNER_EXECUTABLE} private-code "${RELATIVE_POINTER_PROTOCOL_XML}" "${RELATIVE_POINTER_GENERATED_NAME}.c"
+      COMMAND ${WAYLAND_SCANNER_EXECUTABLE} client-header "${POINTER_CONSTRAINTS_PROTOCOL_XML}" "${POINTER_CONSTRAINTS_GENERATED_NAME}.h"
+      COMMAND ${WAYLAND_SCANNER_EXECUTABLE} private-code "${POINTER_CONSTRAINTS_PROTOCOL_XML}" "${POINTER_CONSTRAINTS_GENERATED_NAME}.c"
+      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    )
+
+    find_path(XKBCOMMON_INCLUDE_DIR NAMES xkbcommon/xkbcommon.h REQUIRED)
+    find_library(XKBCOMMON_LIB NAMES xkbcommon REQUIRED)
+    target_include_directories(huedra PUBLIC ${XKBCOMMON_INCLUDE_DIR})
+    target_link_libraries(huedra PRIVATE ${XKBCOMMON_LIB})
+
+    append_glob_recurse_files(ADDITIONAL_SOURCES 
+      ${SHELL_GENERATED_NAME}.c 
+      ${DECORATION_GENERATED_NAME}.c 
+      ${WARP_GENERATED_NAME}.c 
+      ${RELATIVE_POINTER_GENERATED_NAME}.c 
+      ${POINTER_CONSTRAINTS_GENERATED_NAME}.c 
+      ${CMAKE_CURRENT_SOURCE_DIR}/platform/wayland/*.cpp 
+    )
+    target_include_directories(huedra PUBLIC
+      ${CMAKE_CURRENT_BINARY_DIR}/wayland
+    )
+
+    find_path(SYSTEMD_INCLUDE_DIR
+        NAMES systemd/sd-bus.h
+    )
+
+    find_library(SYSTEMD_LIBRARY
+        NAMES systemd
+    )
+
+    if(NOT SYSTEMD_INCLUDE_DIR OR NOT SYSTEMD_LIBRARY)
+        message(FATAL_ERROR "Could not find libsystemd!")
+    endif()
+
+    target_include_directories(huedra PUBLIC ${SYSTEMD_INCLUDE_DIR})
+    target_link_libraries(huedra PRIVATE ${SYSTEMD_LIBRARY})
+  else()
+    message(STATUS "Using X11 Display System")
+    append_glob_recurse_files(ADDITIONAL_SOURCES 
+      ${CMAKE_CURRENT_SOURCE_DIR}/platform/x11/*.cpp 
+    )
+    target_compile_definitions(huedra PRIVATE -DX11)
+
+    # Find dependencies
+    find_package(X11 REQUIRED)
+
+    find_path(XCB_INCLUDE_DIR
+      NAMES xcb/xcb.h
+      PATHS /usr/include /usr/local/include
+    )
+
+    find_library(XCB_LIBRARY
+      NAMES xcb
+      PATHS /usr/lib /usr/local/lib /usr/lib/x86_64-linux-gnu
+    )
+
+    find_path(XKBCOMMON_INCLUDE_DIR 
+      NAMES 
+      xkbcommon/xkbcommon.h REQUIRED
+    )
+    find_library(XKBCOMMON_LIB 
+      NAMES xkbcommon REQUIRED
+    )
+
+    find_library(XCB_XKB_LIBRARY 
+      NAMES xcb-xkb 
+      PATHS /usr/lib /usr/lib64
+    )
+
+    find_library(XCB_XFIXES_LIBRARY 
+      NAMES xcb-xfixes 
+      PATHS /usr/lib /usr/lib64
+    )
+
+    find_path(XCB_CURSOR_INCLUDE_DIR 
+      NAMES xcb/xcb_cursor.h 
+      PATHS /usr/include
+    )
+    find_library(XCB_CURSOR_LIBRARY 
+      NAMES xcb-cursor 
+      PATHS /usr/lib /usr/lib64
+    )
+
+    find_path(XKB_X11_INCLUDE_DIR 
+      NAMES xkbcommon/xkbcommon-x11.h 
+      PATHS /usr/include
+    )
+    find_library(XKB_X11_LIBRARY 
+      NAMES xkbcommon-x11 
+      PATHS /usr/lib /usr/lib64
+    )
+
+    if(NOT XCB_INCLUDE_DIR OR NOT XCB_LIBRARY OR NOT XKBCOMMON_INCLUDE_DIR OR NOT XKBCOMMON_LIB OR 
+       NOT XCB_XKB_LIBRARY OR NOT XCB_XFIXES_LIBRARY OR NOT XCB_CURSOR_INCLUDE_DIR OR NOT XCB_CURSOR_LIBRARY OR
+       NOT XKB_X11_INCLUDE_DIR OR NOT XKB_X11_LIBRARY)
+      message(FATAL_ERROR "Could not find XCB (X11) dependencies")
+    endif()
+
+    target_include_directories(huedra PUBLIC 
+      ${XCB_INCLUDE_DIR}
+      ${XKBCOMMON_INCLUDE_DIR}
+      ${XCB_CURSOR_INCLUDE_DIR}
+      ${XKB_X11_INCLUDE_DIR}
+    )
+
+    target_link_libraries(huedra PRIVATE 
+      ${XCB_LIBRARY}
+      ${XKBCOMMON_LIB}
+      ${XCB_XKB_LIBRARY}
+      ${XCB_XFIXES_LIBRARY}
+      ${XCB_CURSOR_LIBRARY}
+      ${XKB_X11_LIBRARY}
+    )
+  endif()
+endif()
+
+# Link common dependencies
+target_link_libraries(huedra PUBLIC slang)
+
+target_include_directories(huedra PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+append_glob_recurse_files(ADDITIONAL_SOURCES 
+  ${CMAKE_CURRENT_SOURCE_DIR}/platform/slang/*.cpp 
+)
+
+target_sources(huedra PRIVATE ${ADDITIONAL_SOURCES})
+
+if(WIN32)
+  # Copy dependency DLLs
+  add_custom_target(copy_dlls ALL
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          ${DLLS}
+          ${CMAKE_CURRENT_BINARY_DIR}
+      COMMENT "Copying DLL files to build folder"
+  )
+  add_dependencies(huedra copy_dlls)
+endif()

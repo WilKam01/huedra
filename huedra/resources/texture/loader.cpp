@@ -13,6 +13,10 @@ TextureData loadPng(std::string_view path, TexelChannelFormat desiredFormat)
 {
     TextureData textureData;
     std::vector<u8> bytes = readBytes(path);
+    if (bytes.empty())
+    {
+        return {};
+    }
 
     static constexpr std::array<u32, 256> crcTable = {
         {0x0,        0x77073096, 0xee0e612c, 0x990951ba, 0x76dc419,  0x706af48f, 0xe963a535, 0x9e6495a3, 0xedb8832,
@@ -408,6 +412,11 @@ HdrTextureData loadRadianceHdr(std::string_view path, TexelChannelFormat desired
 {
     HdrTextureData textureData;
     std::vector<u8> bytes = readBytes(path);
+    if (bytes.empty())
+    {
+        return {};
+    }
+
     u64 byteIndex{0};
 
     std::string buf;

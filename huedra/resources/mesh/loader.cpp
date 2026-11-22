@@ -12,6 +12,10 @@ std::vector<MeshData> loadObj(std::string_view path)
     std::vector<MeshData> meshDatas;
     MeshData* curMesh = nullptr;
     std::vector<u8> bytes = readBytes(path);
+    if (bytes.empty())
+    {
+        return {};
+    }
 
     u64 lineStart = 0;
     std::vector<vec3> positions;
@@ -411,7 +415,13 @@ std::vector<MeshData> loadGltf(std::string_view path)
         FLOAT = 5126,
     };
 
-    JsonObject json = parseJson(readBytes(path));
+    std::vector<u8> bytes = readBytes(path);
+    if (bytes.empty())
+    {
+        return {};
+    }
+
+    JsonObject json = parseJson(bytes);
     std::string relPath = splitLastByChar(path, '/')[0] + "/";
 
     if (!json.hasMember("meshes", JsonValueType::ARRAY) || !json.hasMember("accessors", JsonValueType::ARRAY) ||
@@ -458,6 +468,11 @@ std::vector<MeshData> loadGltf(std::string_view path)
             // Transforms path to bin extension, ex: "dir1/dir2/file.gltf" -> "dir1/dir2/file.bin"
             byteBuffers[i] = readBytes(splitByChar(path, '.')[0] + ".bin");
         }
+
+        if (byteBuffers[i].empty())
+        {
+            return {};
+        }
     }
 
     return loadGltf(path, json, byteBuffers);
@@ -467,6 +482,10 @@ std::vector<MeshData> loadGlb(std::string_view path)
 {
     std::vector<MeshData> meshData;
     std::vector<u8> bytes = readBytes(path);
+    if (bytes.empty())
+    {
+        return {};
+    }
 
     const u32 gltfSignature = 0x46546c67; // "glTF"
     const u32 jsonSignature = 0x4e4f534a; // "JSON"

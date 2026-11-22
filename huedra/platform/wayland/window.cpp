@@ -63,8 +63,8 @@ bool WindowWayland::init(std::string_view title, const WindowInput& input, bool 
     }
     xdg_toplevel_add_listener(m_xdgToplevel, &xdgToplevelListener, this);
 
-    xdg_toplevel_set_title(m_xdgToplevel, title.c_str());
-    xdg_toplevel_set_app_id(m_xdgToplevel, title.c_str());
+    xdg_toplevel_set_title(m_xdgToplevel, title.data());
+    xdg_toplevel_set_app_id(m_xdgToplevel, title.data());
 
     // Add standard window decoration
     m_zxdgToplevelDecoration = zxdg_decoration_manager_v1_get_toplevel_decoration(zxdgDecorationManager, m_xdgToplevel);
@@ -117,8 +117,8 @@ ivec2 WindowWayland::getRelativeScreenPosition(ivec2 position) const
 
 void WindowWayland::setTitle(std::string_view title)
 {
-    xdg_toplevel_set_title(m_xdgToplevel, title.c_str());
-    xdg_toplevel_set_app_id(m_xdgToplevel, title.c_str());
+    xdg_toplevel_set_title(m_xdgToplevel, title.data());
+    xdg_toplevel_set_app_id(m_xdgToplevel, title.data());
     updateTitle(title);
 }
 

@@ -123,11 +123,17 @@ ShaderModule& ResourceManager::loadShaderModule(std::string_view path)
         }
 
         std::vector<u8> bytes = readBytes(path);
+        if (bytes.empty())
+        {
+            return m_missingShaderModule;
+        }
+
         ShaderModule shaderModule =
             global::graphicsManager.createShaderModule(info.dirPath + "/" + info.fileName, bytes.data(), bytes.size());
         if (shaderModule.getSlangModule() == nullptr)
         {
             log::func::fatal("Could not create shader module");
+            return m_missingShaderModule;
         }
         m_shaders.insert(std::pair<u64, ShaderModule>(hash, shaderModule));
     }

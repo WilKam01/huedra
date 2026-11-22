@@ -74,6 +74,11 @@ CommonFontHeader loadCommonFontHeader(const std::vector<u8>& bytes)
 FontData loadTtf(std::string_view path)
 {
     std::vector<u8> bytes{readBytes(path)};
+    if (bytes.empty())
+    {
+        return {};
+    }
+
     CommonFontHeader header = loadCommonFontHeader(bytes);
 
     if (header.type != CommonFontHeader::Type::TRUE_TYPE)
