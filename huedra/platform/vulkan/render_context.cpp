@@ -1,9 +1,9 @@
 #include "render_context.hpp"
-#include "core/log.hpp"
-#include "graphics/buffer.hpp"
-#include "graphics/pipeline_data.hpp"
-#include "platform/vulkan/context.hpp"
-#include "platform/vulkan/type_converter.hpp"
+#include "huedra/core/log.hpp"
+#include "huedra/graphics/buffer.hpp"
+#include "huedra/graphics/pipeline_data.hpp"
+#include "huedra/platform/vulkan/context.hpp"
+#include "huedra/platform/vulkan/type_converter.hpp"
 
 namespace huedra {
 

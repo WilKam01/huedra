@@ -1,7 +1,7 @@
 #pragma once
-#include "platform/cocoa/window.hpp"
-#include "platform/metal/config.hpp"
-#include "platform/metal/render_target.hpp"
+#include "huedra/platform/cocoa/window.hpp"
+#include "huedra/platform/metal/config.hpp"
+#include "huedra/platform/metal/render_target.hpp"
 
 #include <atomic>
 #include <condition_variable>

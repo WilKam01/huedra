@@ -1,7 +1,7 @@
 #include "render_target.hpp"
-#include "core/references/ref.hpp"
+#include "huedra/core/references/ref.hpp"
 
-#include "core/log.hpp"
+#include "huedra/core/log.hpp"
 
 namespace huedra {
 

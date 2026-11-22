@@ -1,9 +1,9 @@
 #pragma once
 
-#include "graphics/render_context.hpp"
-#include "platform/vulkan/buffer.hpp"
-#include "platform/vulkan/descriptor_handler.hpp"
-#include "platform/vulkan/render_pass.hpp"
+#include "huedra/graphics/render_context.hpp"
+#include "huedra/platform/vulkan/buffer.hpp"
+#include "huedra/platform/vulkan/descriptor_handler.hpp"
+#include "huedra/platform/vulkan/render_pass.hpp"
 
 namespace huedra {
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core/constants.hpp"
-#include "core/types.hpp"
+#include "huedra/core/constants.hpp"
+#include "huedra/core/types.hpp"
 
 namespace huedra {
 

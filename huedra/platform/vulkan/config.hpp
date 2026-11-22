@@ -8,8 +8,8 @@
 #define VK_USE_PLATFORM_XCB_KHR
 #endif
 
-#include "core/types.hpp"
-#include "vulkan/vulkan.h"
+#include "huedra/core/types.hpp"
+#include <vulkan/vulkan.h>
 
 namespace huedra::vulkan_config {
 

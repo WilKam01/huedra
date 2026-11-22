@@ -1,11 +1,11 @@
 #include "texture.hpp"
-#include "core/global.hpp"
-#include "core/log.hpp"
-#include "platform/vulkan/buffer.hpp"
-#include "platform/vulkan/pipeline.hpp"
-#include "platform/vulkan/render_target.hpp"
-#include "platform/vulkan/swapchain.hpp"
-#include "platform/vulkan/type_converter.hpp"
+#include "huedra/core/global.hpp"
+#include "huedra/core/log.hpp"
+#include "huedra/platform/vulkan/buffer.hpp"
+#include "huedra/platform/vulkan/pipeline.hpp"
+#include "huedra/platform/vulkan/render_target.hpp"
+#include "huedra/platform/vulkan/swapchain.hpp"
+#include "huedra/platform/vulkan/type_converter.hpp"
 
 namespace huedra {
 

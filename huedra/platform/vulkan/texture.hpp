@@ -1,10 +1,10 @@
 #pragma once
 
-#include "graphics/pipeline_data.hpp"
-#include "graphics/texture.hpp"
-#include "platform/vulkan/command_pool.hpp"
-#include "platform/vulkan/device.hpp"
-#include "resources/texture/data.hpp"
+#include "huedra/graphics/pipeline_data.hpp"
+#include "huedra/graphics/texture.hpp"
+#include "huedra/platform/vulkan/command_pool.hpp"
+#include "huedra/platform/vulkan/device.hpp"
+#include "huedra/resources/texture/data.hpp"
 
 namespace huedra {
 

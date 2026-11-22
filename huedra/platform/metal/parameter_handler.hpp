@@ -1,11 +1,11 @@
 #pragma once
 
-#include "core/types.hpp"
-#include "graphics/pipeline_data.hpp"
-#include "graphics/shader_module.hpp"
-#include "platform/metal/buffer.hpp"
-#include "platform/metal/config.hpp"
-#include "platform/metal/texture.hpp"
+#include "huedra/core/types.hpp"
+#include "huedra/graphics/pipeline_data.hpp"
+#include "huedra/graphics/shader_module.hpp"
+#include "huedra/platform/metal/buffer.hpp"
+#include "huedra/platform/metal/config.hpp"
+#include "huedra/platform/metal/texture.hpp"
 
 namespace huedra {
 

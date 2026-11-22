@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core/types.hpp"
-#include "resources/texture/data.hpp"
+#include "huedra/core/types.hpp"
+#include "huedra/resources/texture/data.hpp"
 
 namespace huedra {
 

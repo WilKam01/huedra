@@ -1,6 +1,6 @@
 #include "base64.hpp"
 
-#include "core/log.hpp"
+#include "huedra/core/log.hpp"
 
 namespace huedra {
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "platform/vulkan/device.hpp"
+#include "huedra/platform/vulkan/device.hpp"
 
 namespace huedra {
 

@@ -1,9 +1,9 @@
 #include "texture.hpp"
-#include "core/global.hpp"
-#include "graphics/texture.hpp"
-#include "platform/metal/render_target.hpp"
-#include "platform/metal/type_converter.hpp"
-#include "resources/texture/data.hpp"
+#include "huedra/core/global.hpp"
+#include "huedra/graphics/texture.hpp"
+#include "huedra/platform/metal/render_target.hpp"
+#include "huedra/platform/metal/type_converter.hpp"
+#include "huedra/resources/texture/data.hpp"
 
 namespace huedra {
 

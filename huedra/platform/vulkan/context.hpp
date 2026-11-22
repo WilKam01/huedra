@@ -1,15 +1,15 @@
 #pragma once
 
-#include "graphics/context.hpp"
-#include "platform/vulkan/buffer.hpp"
-#include "platform/vulkan/descriptor_handler.hpp"
-#include "platform/vulkan/device.hpp"
-#include "platform/vulkan/instance.hpp"
-#include "platform/vulkan/pipeline.hpp"
-#include "platform/vulkan/render_context.hpp"
-#include "platform/vulkan/render_pass.hpp"
-#include "platform/vulkan/swapchain.hpp"
-#include "window/window.hpp"
+#include "huedra/graphics/context.hpp"
+#include "huedra/platform/vulkan/buffer.hpp"
+#include "huedra/platform/vulkan/descriptor_handler.hpp"
+#include "huedra/platform/vulkan/device.hpp"
+#include "huedra/platform/vulkan/instance.hpp"
+#include "huedra/platform/vulkan/pipeline.hpp"
+#include "huedra/platform/vulkan/render_context.hpp"
+#include "huedra/platform/vulkan/render_pass.hpp"
+#include "huedra/platform/vulkan/swapchain.hpp"
+#include "huedra/window/window.hpp"
 
 namespace huedra {
 

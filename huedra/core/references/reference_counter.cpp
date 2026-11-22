@@ -1,6 +1,6 @@
 #include "reference_counter.hpp"
-#include "core/log.hpp"
-#include "core/references/ref.hpp"
+#include "huedra/core/log.hpp"
+#include "huedra/core/references/ref.hpp"
 
 namespace huedra {
 

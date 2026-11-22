@@ -1,11 +1,11 @@
 #include "shader_module.hpp"
 
-#include "core/file/utils.hpp"
-#include "core/global.hpp"
-#include "core/log.hpp"
-#include "core/serialization/json.hpp"
-#include "core/string/utils.hpp"
-#include "graphics/pipeline_data.hpp"
+#include "huedra/core/file/utils.hpp"
+#include "huedra/core/global.hpp"
+#include "huedra/core/log.hpp"
+#include "huedra/core/serialization/json.hpp"
+#include "huedra/core/string/utils.hpp"
+#include "huedra/graphics/pipeline_data.hpp"
 
 #include <algorithm>
 #include <array>

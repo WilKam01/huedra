@@ -1,6 +1,6 @@
 #include "config.hpp"
-#include "core/global.hpp"
-#include "core/log.hpp"
+#include "huedra/core/global.hpp"
+#include "huedra/core/log.hpp"
 #include <cstring>
 #include <linux/input-event-codes.h>
 #include <systemd/sd-bus.h>

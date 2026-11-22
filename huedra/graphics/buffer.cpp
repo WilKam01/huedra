@@ -1,5 +1,5 @@
 #include "buffer.hpp"
-#include "core/references/reference_counter.hpp"
+#include "huedra/core/references/reference_counter.hpp"
 
 namespace huedra {
 

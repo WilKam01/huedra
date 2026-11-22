@@ -1,7 +1,7 @@
 #pragma once
 
-#include "graphics/buffer.hpp"
-#include "platform/metal/config.hpp"
+#include "huedra/graphics/buffer.hpp"
+#include "huedra/platform/metal/config.hpp"
 
 namespace huedra {
 

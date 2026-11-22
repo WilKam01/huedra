@@ -1,8 +1,8 @@
 #pragma once
 
-#include "core/types.hpp"
-#include "graphics/shader_module.hpp"
-#include "platform/slang/config.hpp"
+#include "huedra/core/types.hpp"
+#include "huedra/graphics/shader_module.hpp"
+#include "huedra/platform/slang/config.hpp"
 
 namespace huedra {
 

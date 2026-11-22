@@ -1,12 +1,12 @@
 #include "os_manager.hpp"
-#include "core/log.hpp"
+#include "huedra/core/log.hpp"
 
 #ifdef WIN32
-#include "platform/win32/window.hpp"
+#include "huedra/platform/win32/window.hpp"
 #elif defined(WAYLAND)
-#include "platform/wayland/window.hpp"
+#include "huedra/platform/wayland/window.hpp"
 #elif defined(X11)
-#include "platform/x11/window.hpp"
+#include "huedra/platform/x11/window.hpp"
 #endif
 
 namespace huedra {

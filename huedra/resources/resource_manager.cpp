@@ -1,11 +1,11 @@
 #include "resource_manager.hpp"
-#include "core/constants.hpp"
-#include "core/file/utils.hpp"
-#include "core/global.hpp"
-#include "core/log.hpp"
-#include "core/string/utils.hpp"
-#include "resources/mesh/loader.hpp"
-#include "resources/texture/loader.hpp"
+#include "huedra/core/constants.hpp"
+#include "huedra/core/file/utils.hpp"
+#include "huedra/core/global.hpp"
+#include "huedra/core/log.hpp"
+#include "huedra/core/string/utils.hpp"
+#include "huedra/resources/mesh/loader.hpp"
+#include "huedra/resources/texture/loader.hpp"
 
 namespace huedra {
 

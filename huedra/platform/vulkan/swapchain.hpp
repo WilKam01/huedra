@@ -1,9 +1,9 @@
 #pragma once
 
-#include "platform/vulkan/command_buffer.hpp"
-#include "platform/vulkan/device.hpp"
-#include "platform/vulkan/render_target.hpp"
-#include "window/window.hpp"
+#include "huedra/platform/vulkan/command_buffer.hpp"
+#include "huedra/platform/vulkan/device.hpp"
+#include "huedra/platform/vulkan/render_target.hpp"
+#include "huedra/window/window.hpp"
 
 namespace huedra {
 

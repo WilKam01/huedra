@@ -1,6 +1,6 @@
 #pragma once
 
-#include "math/quaternion.hpp"
+#include "huedra/math/quaternion.hpp"
 
 namespace huedra::math {
 

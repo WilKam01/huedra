@@ -1,6 +1,6 @@
 #include "pipeline_builder.hpp"
-#include "core/constants.hpp"
-#include "core/log.hpp"
+#include "huedra/core/constants.hpp"
+#include "huedra/core/log.hpp"
 
 #include <functional>
 

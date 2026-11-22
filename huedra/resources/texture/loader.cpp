@@ -1,9 +1,9 @@
 #include "loader.hpp"
-#include "core/file/utils.hpp"
-#include "core/memory/utils.hpp"
-#include "math/vec2.hpp"
-#include "math/vec3.hpp"
-#include "math/vec4.hpp"
+#include "huedra/core/file/utils.hpp"
+#include "huedra/core/memory/utils.hpp"
+#include "huedra/math/vec2.hpp"
+#include "huedra/math/vec3.hpp"
+#include "huedra/math/vec4.hpp"
 
 #include <cmath>
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "graphics/pipeline_data.hpp"
-#include "platform/vulkan/config.hpp"
+#include "huedra/graphics/pipeline_data.hpp"
+#include "huedra/platform/vulkan/config.hpp"
 
 namespace huedra::converter {
 

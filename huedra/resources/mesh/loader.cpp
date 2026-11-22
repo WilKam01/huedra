@@ -1,9 +1,9 @@
 #include "loader.hpp"
-#include "core/file/utils.hpp"
-#include "core/memory/utils.hpp"
-#include "core/serialization/base64.hpp"
-#include "core/serialization/json.hpp"
-#include "core/string/utils.hpp"
+#include "huedra/core/file/utils.hpp"
+#include "huedra/core/memory/utils.hpp"
+#include "huedra/core/serialization/base64.hpp"
+#include "huedra/core/serialization/json.hpp"
+#include "huedra/core/string/utils.hpp"
 
 namespace huedra {
 

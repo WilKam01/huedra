@@ -1,7 +1,7 @@
 #pragma once
 
-#include "graphics/pipeline_builder.hpp"
-#include "platform/vulkan/device.hpp"
+#include "huedra/graphics/pipeline_builder.hpp"
+#include "huedra/platform/vulkan/device.hpp"
 
 namespace huedra {
 

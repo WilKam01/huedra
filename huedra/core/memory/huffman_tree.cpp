@@ -1,5 +1,5 @@
 #include "huffman_tree.hpp"
-#include "core/memory/utils.hpp"
+#include "huedra/core/memory/utils.hpp"
 
 namespace huedra {
 

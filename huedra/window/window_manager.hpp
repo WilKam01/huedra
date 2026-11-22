@@ -1,10 +1,10 @@
 #pragma once
 
-#include "core/input/mouse.hpp"
-#include "core/references/reference_counter.hpp"
-#include "core/types.hpp"
-#include "math/vec2.hpp"
-#include "window/window.hpp"
+#include "huedra/core/input/mouse.hpp"
+#include "huedra/core/references/reference_counter.hpp"
+#include "huedra/core/types.hpp"
+#include "huedra/math/vec2.hpp"
+#include "huedra/window/window.hpp"
 
 namespace huedra {
 

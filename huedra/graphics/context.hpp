@@ -1,9 +1,9 @@
 #pragma once
 
-#include "core/types.hpp"
-#include "graphics/render_graph_builder.hpp"
-#include "resources/texture/data.hpp"
-#include "window/window.hpp"
+#include "huedra/core/types.hpp"
+#include "huedra/graphics/render_graph_builder.hpp"
+#include "huedra/resources/texture/data.hpp"
+#include "huedra/window/window.hpp"
 
 namespace huedra {
 

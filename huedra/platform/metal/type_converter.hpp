@@ -1,7 +1,7 @@
 #pragma once
 
-#include "graphics/pipeline_data.hpp"
-#include "platform/metal/config.hpp"
+#include "huedra/graphics/pipeline_data.hpp"
+#include "huedra/platform/metal/config.hpp"
 #include <Metal/Metal.h>
 
 namespace huedra::converter {

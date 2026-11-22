@@ -1,8 +1,8 @@
 #pragma once
 
-#include "graphics/texture.hpp"
-#include "platform/metal/config.hpp"
-#include "resources/texture/data.hpp"
+#include "huedra/graphics/texture.hpp"
+#include "huedra/platform/metal/config.hpp"
+#include "huedra/resources/texture/data.hpp"
 
 namespace huedra {
 

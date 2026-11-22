@@ -1,5 +1,5 @@
-#include "core/types.hpp"
-#include "graphics/render_target.hpp"
+#include "huedra/core/types.hpp"
+#include "huedra/graphics/render_target.hpp"
 
 namespace huedra {
 

@@ -1,9 +1,9 @@
 #include "parameter_handler.hpp"
-#include "core/log.hpp"
-#include "graphics/buffer.hpp"
-#include "graphics/pipeline_data.hpp"
-#include "graphics/shader_module.hpp"
-#include "platform/metal/pipeline.hpp"
+#include "huedra/core/log.hpp"
+#include "huedra/graphics/buffer.hpp"
+#include "huedra/graphics/pipeline_data.hpp"
+#include "huedra/graphics/shader_module.hpp"
+#include "huedra/platform/metal/pipeline.hpp"
 #include <Metal/Metal.h>
 #include <cstring>
 

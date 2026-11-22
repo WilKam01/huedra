@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core/log.hpp"
-#include "scene/types.hpp"
+#include "huedra/core/log.hpp"
+#include "huedra/scene/types.hpp"
 
 #include <functional>
 #include <typeindex>

@@ -1,10 +1,10 @@
 #include "pipeline.hpp"
-#include "core/file/utils.hpp"
-#include "core/global.hpp"
-#include "core/log.hpp"
-#include "graphics/pipeline_data.hpp"
-#include "graphics/render_target.hpp"
-#include "platform/metal/type_converter.hpp"
+#include "huedra/core/file/utils.hpp"
+#include "huedra/core/global.hpp"
+#include "huedra/core/log.hpp"
+#include "huedra/graphics/pipeline_data.hpp"
+#include "huedra/graphics/render_target.hpp"
+#include "huedra/platform/metal/type_converter.hpp"
 #include <Metal/Metal.h>
 #include <optional>
 

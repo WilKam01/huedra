@@ -1,9 +1,9 @@
 #pragma once
-#include "core/serialization/json.hpp"
-#include "core/types.hpp"
-#include "graphics/pipeline_data.hpp"
-#include "math/vec3.hpp"
-#include "platform/slang/config.hpp"
+#include "huedra/core/serialization/json.hpp"
+#include "huedra/core/types.hpp"
+#include "huedra/graphics/pipeline_data.hpp"
+#include "huedra/math/vec3.hpp"
+#include "huedra/platform/slang/config.hpp"
 
 namespace huedra {
 

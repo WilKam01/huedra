@@ -1,7 +1,7 @@
 #include "swapchain.hpp"
-#include "core/log.hpp"
-#include "graphics/graphics_manager.hpp"
-#include "graphics/render_target.hpp"
+#include "huedra/core/log.hpp"
+#include "huedra/graphics/graphics_manager.hpp"
+#include "huedra/graphics/render_target.hpp"
 
 namespace {
 

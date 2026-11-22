@@ -1,7 +1,7 @@
 #pragma once
-#include "core/input/mouse.hpp"
-#include "core/timer.hpp"
-#include "platform/wayland/window.hpp"
+#include "huedra/core/input/mouse.hpp"
+#include "huedra/core/timer.hpp"
+#include "huedra/platform/wayland/window.hpp"
 
 #include <pointer-constraints.h>
 #include <pointer-warp.h>

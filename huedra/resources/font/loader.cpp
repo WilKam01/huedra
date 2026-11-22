@@ -1,11 +1,11 @@
 #include "loader.hpp"
-#include "core/file/utils.hpp"
-#include "core/log.hpp"
-#include "core/memory/utils.hpp"
-#include "core/types.hpp"
-#include "math/matrix.hpp"
-#include "math/vec2.hpp"
-#include "resources/font/data.hpp"
+#include "huedra/core/file/utils.hpp"
+#include "huedra/core/log.hpp"
+#include "huedra/core/memory/utils.hpp"
+#include "huedra/core/types.hpp"
+#include "huedra/math/matrix.hpp"
+#include "huedra/math/vec2.hpp"
+#include "huedra/resources/font/data.hpp"
 
 #include <array>
 #include <bit>

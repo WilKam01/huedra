@@ -1,8 +1,8 @@
 #include "render_graph_builder.hpp"
-#include "core/constants.hpp"
-#include "core/log.hpp"
-#include "graphics/buffer.hpp"
-#include "graphics/texture.hpp"
+#include "huedra/core/constants.hpp"
+#include "huedra/core/log.hpp"
+#include "huedra/graphics/buffer.hpp"
+#include "huedra/graphics/texture.hpp"
 
 namespace huedra {
 

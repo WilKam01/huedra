@@ -1,9 +1,9 @@
 #pragma once
 
-#include "math/matrix.hpp"
-#include "math/matrix_core.hpp"
-#include "math/vec2.hpp"
-#include "math/vec3.hpp"
+#include "huedra/math/matrix.hpp"
+#include "huedra/math/matrix_core.hpp"
+#include "huedra/math/vec2.hpp"
+#include "huedra/math/vec3.hpp"
 
 namespace huedra::math {
 
@@ -210,4 +210,4 @@ constexpr Matrix<T, 4, 4> perspective(T fov, T aspectRatio, const Vec2<T>& zPlan
     return perspectiveZRH(fov, aspectRatio, zPlanes);
 }
 
-} // namespace huedra
+} // namespace huedra::math

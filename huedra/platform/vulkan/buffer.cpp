@@ -1,7 +1,7 @@
 #include "buffer.hpp"
-#include "core/global.hpp"
-#include "core/log.hpp"
-#include "graphics/pipeline_data.hpp"
+#include "huedra/core/global.hpp"
+#include "huedra/core/log.hpp"
+#include "huedra/graphics/pipeline_data.hpp"
 
 #include <cstring>
 

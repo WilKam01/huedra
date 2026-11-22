@@ -1,11 +1,11 @@
 #pragma once
 
-#include "graphics/render_context.hpp"
-#include "graphics/render_target.hpp"
-#include "platform/metal/config.hpp"
-#include "platform/metal/context.hpp"
-#include "platform/metal/parameter_handler.hpp"
-#include "platform/metal/pipeline.hpp"
+#include "huedra/graphics/render_context.hpp"
+#include "huedra/graphics/render_target.hpp"
+#include "huedra/platform/metal/config.hpp"
+#include "huedra/platform/metal/context.hpp"
+#include "huedra/platform/metal/parameter_handler.hpp"
+#include "huedra/platform/metal/pipeline.hpp"
 #include <string_view>
 
 namespace huedra {

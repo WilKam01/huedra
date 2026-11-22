@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core/types.hpp"
-#include "math/vec2.hpp"
+#include "huedra/core/types.hpp"
+#include "huedra/math/vec2.hpp"
 #include <vector>
 
 namespace huedra {

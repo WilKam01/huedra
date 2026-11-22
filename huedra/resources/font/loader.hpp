@@ -1,6 +1,6 @@
 #pragma once
 
-#include "resources/font/data.hpp"
+#include "huedra/resources/font/data.hpp"
 
 namespace huedra {
 

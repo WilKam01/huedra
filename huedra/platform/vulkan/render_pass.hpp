@@ -1,9 +1,9 @@
 #pragma once
 
-#include "graphics/render_graph_builder.hpp"
-#include "platform/vulkan/device.hpp"
-#include "platform/vulkan/pipeline.hpp"
-#include "platform/vulkan/render_target.hpp"
+#include "huedra/graphics/render_graph_builder.hpp"
+#include "huedra/platform/vulkan/device.hpp"
+#include "huedra/platform/vulkan/pipeline.hpp"
+#include "huedra/platform/vulkan/render_target.hpp"
 
 namespace huedra {
 

@@ -1,10 +1,10 @@
 #include "window.hpp"
-#include "core/global.hpp"
-#include "core/input/keys.hpp"
-#include "core/input/mouse.hpp"
-#include "core/log.hpp"
-#include "core/types.hpp"
-#include "window/window.hpp"
+#include "huedra/core/global.hpp"
+#include "huedra/core/input/keys.hpp"
+#include "huedra/core/input/mouse.hpp"
+#include "huedra/core/log.hpp"
+#include "huedra/core/types.hpp"
+#include "huedra/window/window.hpp"
 
 #include <AppKit/NSEvent.h>
 #include <CoreFoundation/CFCGTypes.h>

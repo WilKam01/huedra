@@ -1,7 +1,7 @@
 #pragma once
 
-#include "math/vec3.hpp"
-#include "math/vec_transform.hpp"
+#include "huedra/math/vec3.hpp"
+#include "huedra/math/vec_transform.hpp"
 
 namespace huedra {
 

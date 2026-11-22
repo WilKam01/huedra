@@ -1,12 +1,12 @@
 #pragma
 
-#include "core/references/ref.hpp"
-#include "graphics/buffer.hpp"
-#include "graphics/context.hpp"
-#include "graphics/render_graph_builder.hpp"
-#include "platform/slang/context.hpp"
-#include "resources/texture/data.hpp"
-#include "window/window.hpp"
+#include "huedra/core/references/ref.hpp"
+#include "huedra/graphics/buffer.hpp"
+#include "huedra/graphics/context.hpp"
+#include "huedra/graphics/render_graph_builder.hpp"
+#include "huedra/platform/slang/context.hpp"
+#include "huedra/resources/texture/data.hpp"
+#include "huedra/window/window.hpp"
 
 namespace huedra {
 

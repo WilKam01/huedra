@@ -1,12 +1,12 @@
 #pragma once
 
-#include "graphics/pipeline_builder.hpp"
-#include "graphics/pipeline_data.hpp"
-#include "graphics/render_pass_builder.hpp"
-#include "graphics/render_target.hpp"
-#include "graphics/shader_module.hpp"
-#include "platform/metal/config.hpp"
-#include "platform/metal/parameter_handler.hpp"
+#include "huedra/graphics/pipeline_builder.hpp"
+#include "huedra/graphics/pipeline_data.hpp"
+#include "huedra/graphics/render_pass_builder.hpp"
+#include "huedra/graphics/render_target.hpp"
+#include "huedra/graphics/shader_module.hpp"
+#include "huedra/platform/metal/config.hpp"
+#include "huedra/platform/metal/parameter_handler.hpp"
 
 namespace huedra {
 

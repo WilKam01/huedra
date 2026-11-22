@@ -1,14 +1,14 @@
 #pragma once
 
-#include "graphics/context.hpp"
-#include "graphics/render_graph_builder.hpp"
-#include "graphics/render_target.hpp"
-#include "platform/metal/buffer.hpp"
-#include "platform/metal/config.hpp"
-#include "platform/metal/pipeline.hpp"
-#include "platform/metal/render_target.hpp"
-#include "platform/metal/swapchain.hpp"
-#include "platform/metal/texture.hpp"
+#include "huedra/graphics/context.hpp"
+#include "huedra/graphics/render_graph_builder.hpp"
+#include "huedra/graphics/render_target.hpp"
+#include "huedra/platform/metal/buffer.hpp"
+#include "huedra/platform/metal/config.hpp"
+#include "huedra/platform/metal/pipeline.hpp"
+#include "huedra/platform/metal/render_target.hpp"
+#include "huedra/platform/metal/swapchain.hpp"
+#include "huedra/platform/metal/texture.hpp"
 
 #include <array>
 #include <atomic>

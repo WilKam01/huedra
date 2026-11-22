@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/types.hpp"
+#include "huedra/core/types.hpp"
 
 namespace huedra::constants {
 
@@ -13,4 +13,4 @@ const u64 MICROSECONDS_TO_NANO = 1'000;
 const u64 FNV_PRIME = 0x00000100000001b3;
 const u64 FNV_OFFSET = 0xcbf29ce484222325;
 
-}; // namespace huedra
+}; // namespace huedra::constants

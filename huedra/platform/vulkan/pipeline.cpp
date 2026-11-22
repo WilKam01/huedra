@@ -1,8 +1,8 @@
 #include "pipeline.hpp"
-#include "core/file/utils.hpp"
-#include "core/global.hpp"
-#include "core/log.hpp"
-#include "platform/vulkan/type_converter.hpp"
+#include "huedra/core/file/utils.hpp"
+#include "huedra/core/global.hpp"
+#include "huedra/core/log.hpp"
+#include "huedra/platform/vulkan/type_converter.hpp"
 
 namespace huedra {
 

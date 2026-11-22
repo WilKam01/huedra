@@ -1,5 +1,5 @@
 #include "buffer.hpp"
-#include "core/global.hpp"
+#include "huedra/core/global.hpp"
 
 namespace huedra {
 

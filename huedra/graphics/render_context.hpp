@@ -1,8 +1,8 @@
 #pragma once
 
-#include "core/references/ref.hpp"
-#include "graphics/pipeline_data.hpp"
-#include "math/vec3.hpp"
+#include "huedra/core/references/ref.hpp"
+#include "huedra/graphics/pipeline_data.hpp"
+#include "huedra/math/vec3.hpp"
 
 namespace huedra {
 

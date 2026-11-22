@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core/log.hpp"
-#include "math/matrix.hpp"
+#include "huedra/core/log.hpp"
+#include "huedra/math/matrix.hpp"
 
 namespace huedra {
 

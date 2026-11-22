@@ -1,8 +1,8 @@
 #include "render_pass_builder.hpp"
-#include "core/constants.hpp"
-#include "core/log.hpp"
-#include "graphics/pipeline_data.hpp"
-#include "graphics/render_target.hpp"
+#include "huedra/core/constants.hpp"
+#include "huedra/core/log.hpp"
+#include "huedra/graphics/pipeline_data.hpp"
+#include "huedra/graphics/render_target.hpp"
 
 namespace huedra {
 

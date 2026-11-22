@@ -1,5 +1,5 @@
 #pragma once
-#include "window/window.hpp"
+#include "huedra/window/window.hpp"
 #include <xcb/xcb.h>
 
 namespace huedra {

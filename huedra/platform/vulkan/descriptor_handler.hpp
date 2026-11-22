@@ -1,8 +1,8 @@
 #pragma once
 
-#include "platform/vulkan/buffer.hpp"
-#include "platform/vulkan/device.hpp"
-#include "platform/vulkan/render_pass.hpp"
+#include "huedra/platform/vulkan/buffer.hpp"
+#include "huedra/platform/vulkan/device.hpp"
+#include "huedra/platform/vulkan/render_pass.hpp"
 
 namespace huedra {
 

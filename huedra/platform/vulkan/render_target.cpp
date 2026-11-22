@@ -1,9 +1,9 @@
 #include "render_target.hpp"
-#include "core/global.hpp"
-#include "core/log.hpp"
-#include "platform/vulkan/render_pass.hpp"
-#include "platform/vulkan/swapchain.hpp"
-#include "platform/vulkan/type_converter.hpp"
+#include "huedra/core/global.hpp"
+#include "huedra/core/log.hpp"
+#include "huedra/platform/vulkan/render_pass.hpp"
+#include "huedra/platform/vulkan/swapchain.hpp"
+#include "huedra/platform/vulkan/type_converter.hpp"
 
 namespace huedra {
 

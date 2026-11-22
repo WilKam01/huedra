@@ -1,8 +1,8 @@
 #pragma once
 
-#include "math/vec2.hpp"
-#include "math/vec3.hpp"
-#include "math/vec4.hpp"
+#include "huedra/math/vec2.hpp"
+#include "huedra/math/vec3.hpp"
+#include "huedra/math/vec4.hpp"
 #include <cmath>
 
 namespace huedra::math {

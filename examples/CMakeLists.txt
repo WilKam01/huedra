@@ -19,7 +19,7 @@ function(add_example SUBFOLDER)
     add_executable(${SUBFOLDER} ${SOURCES})
     
     target_include_directories(${SUBFOLDER} PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/${SUBFOLDER}
+        ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
     target_link_libraries(${SUBFOLDER} PRIVATE huedra)

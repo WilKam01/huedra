@@ -1,7 +1,7 @@
 #include "input.hpp"
-#include "core/global.hpp"
-#include "core/log.hpp"
-#include "math/vec_transform.hpp"
+#include "huedra/core/global.hpp"
+#include "huedra/core/log.hpp"
+#include "huedra/math/vec_transform.hpp"
 
 namespace huedra {
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "math/vec.hpp"
+#include "huedra/math/vec.hpp"
 
 namespace huedra {
 

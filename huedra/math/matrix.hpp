@@ -1,9 +1,9 @@
 #pragma once
 
-#include "core/types.hpp"
-#include "math/vec2.hpp"
-#include "math/vec3.hpp"
-#include "math/vec4.hpp"
+#include "huedra/core/types.hpp"
+#include "huedra/math/vec2.hpp"
+#include "huedra/math/vec3.hpp"
+#include "huedra/math/vec4.hpp"
 #include <array>
 
 namespace huedra {

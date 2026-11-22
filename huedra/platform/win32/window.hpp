@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core/input/keys.hpp"
-#include "window/window.hpp"
+#include "huedra/core/input/keys.hpp"
+#include "huedra/window/window.hpp"
 
 #include <windows.h>
 

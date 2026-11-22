@@ -1,15 +1,15 @@
 #include "context.hpp"
-#include "core/global.hpp"
-#include "core/log.hpp"
-#include "core/string/utils.hpp"
-#include "graphics/render_pass_builder.hpp"
-#include "graphics/utils.hpp"
-#include "platform/vulkan/config.hpp"
-#include "platform/vulkan/os_manager.hpp"
-#include "platform/vulkan/type_converter.hpp"
+#include "huedra/core/global.hpp"
+#include "huedra/core/log.hpp"
+#include "huedra/core/string/utils.hpp"
+#include "huedra/graphics/render_pass_builder.hpp"
+#include "huedra/graphics/utils.hpp"
+#include "huedra/platform/vulkan/config.hpp"
+#include "huedra/platform/vulkan/os_manager.hpp"
+#include "huedra/platform/vulkan/type_converter.hpp"
 
 #ifdef WAYLAND
-#include "platform/wayland/window.hpp"
+#include "huedra/platform/wayland/window.hpp"
 #endif
 
 namespace huedra {

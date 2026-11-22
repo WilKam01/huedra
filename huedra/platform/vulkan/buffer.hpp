@@ -1,7 +1,7 @@
 #pragma once
 
-#include "graphics/buffer.hpp"
-#include "platform/vulkan/device.hpp"
+#include "huedra/graphics/buffer.hpp"
+#include "huedra/platform/vulkan/device.hpp"
 
 namespace huedra {
 

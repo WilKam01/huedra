@@ -1,10 +1,10 @@
 #pragma once
 
-#include "core/references/ref.hpp"
-#include "core/types.hpp"
-#include "graphics/pipeline_builder.hpp"
-#include "graphics/render_target.hpp"
-#include "math/vec3.hpp"
+#include "huedra/core/references/ref.hpp"
+#include "huedra/core/types.hpp"
+#include "huedra/graphics/pipeline_builder.hpp"
+#include "huedra/graphics/render_target.hpp"
+#include "huedra/math/vec3.hpp"
 
 #include <functional>
 

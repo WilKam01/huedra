@@ -1,8 +1,8 @@
 #include "render_target.hpp"
-#include "core/global.hpp"
-#include "graphics/render_target.hpp"
-#include "graphics/texture.hpp"
-#include "platform/metal/swapchain.hpp"
+#include "huedra/core/global.hpp"
+#include "huedra/graphics/render_target.hpp"
+#include "huedra/graphics/texture.hpp"
+#include "huedra/platform/metal/swapchain.hpp"
 
 namespace huedra {
 

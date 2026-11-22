@@ -1,12 +1,12 @@
 #pragma once
 
-#include "core/log.hpp"
-#include "math/matrix.hpp"
-#include "math/matrix_core.hpp"
-#include "math/vec2.hpp"
-#include "math/vec3.hpp"
-#include "math/vec4.hpp"
-#include "math/vec_transform.hpp"
+#include "huedra/core/log.hpp"
+#include "huedra/math/matrix.hpp"
+#include "huedra/math/matrix_core.hpp"
+#include "huedra/math/vec2.hpp"
+#include "huedra/math/vec3.hpp"
+#include "huedra/math/vec4.hpp"
+#include "huedra/math/vec_transform.hpp"
 
 #include <limits>
 
@@ -347,4 +347,4 @@ constexpr Matrix<T, 4, 4> lookTo(const Vec3<T>& eye, const Vec3<T>& direction, c
     return lookAtRH(eye, target, up);
 }
 
-} // namespace huedra
+} // namespace huedra::math

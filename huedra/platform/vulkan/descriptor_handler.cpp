@@ -1,7 +1,7 @@
 #include "descriptor_handler.hpp"
 
-#include "core/log.hpp"
-#include "platform/vulkan/type_converter.hpp"
+#include "huedra/core/log.hpp"
+#include "huedra/platform/vulkan/type_converter.hpp"
 
 namespace huedra {
 

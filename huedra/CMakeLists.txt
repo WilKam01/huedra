@@ -283,7 +283,7 @@ endif()
 target_link_libraries(huedra PUBLIC slang)
 
 target_include_directories(huedra PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/..
 )
 
 append_glob_recurse_files(ADDITIONAL_SOURCES 

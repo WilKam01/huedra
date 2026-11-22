@@ -1,8 +1,8 @@
 #pragma once
 
-#include "core/log.hpp"
-#include "core/memory/huffman_tree.hpp"
-#include "core/types.hpp"
+#include "huedra/core/log.hpp"
+#include "huedra/core/memory/huffman_tree.hpp"
+#include "huedra/core/types.hpp"
 
 #include <bit>
 #include <cstring>

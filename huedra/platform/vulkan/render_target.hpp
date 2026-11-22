@@ -1,8 +1,8 @@
 #pragma once
 
-#include "graphics/render_target.hpp"
-#include "platform/vulkan/device.hpp"
-#include "platform/vulkan/texture.hpp"
+#include "huedra/graphics/render_target.hpp"
+#include "huedra/platform/vulkan/device.hpp"
+#include "huedra/platform/vulkan/texture.hpp"
 
 namespace huedra {
 

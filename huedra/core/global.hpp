@@ -1,11 +1,11 @@
 #pragma once
 
-#include "core/input/input.hpp"
-#include "core/timer.hpp"
-#include "graphics/graphics_manager.hpp"
-#include "resources/resource_manager.hpp"
-#include "scene/scene_manager.hpp"
-#include "window/window_manager.hpp"
+#include "huedra/core/input/input.hpp"
+#include "huedra/core/timer.hpp"
+#include "huedra/graphics/graphics_manager.hpp"
+#include "huedra/resources/resource_manager.hpp"
+#include "huedra/scene/scene_manager.hpp"
+#include "huedra/window/window_manager.hpp"
 
 namespace huedra::global {
 

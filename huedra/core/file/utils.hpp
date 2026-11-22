@@ -1,8 +1,8 @@
 #pragma once
 
-#include "core/file/types.hpp"
-#include "core/log.hpp"
-#include "core/string/utils.hpp"
+#include "huedra/core/file/types.hpp"
+#include "huedra/core/log.hpp"
+#include "huedra/core/string/utils.hpp"
 
 #include <fstream>
 

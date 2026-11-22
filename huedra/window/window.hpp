@@ -1,9 +1,9 @@
 #pragma once
 
-#include "core/references/ref.hpp"
-#include "core/types.hpp"
-#include "graphics/render_target.hpp"
-#include "math/vec2.hpp"
+#include "huedra/core/references/ref.hpp"
+#include "huedra/core/types.hpp"
+#include "huedra/graphics/render_target.hpp"
+#include "huedra/math/vec2.hpp"
 
 namespace huedra {
 

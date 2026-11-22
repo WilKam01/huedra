@@ -1,8 +1,8 @@
 #pragma once
 
-#include "platform/vulkan/config.hpp"
-#include "platform/vulkan/instance.hpp"
-#include "window/window.hpp"
+#include "huedra/platform/vulkan/config.hpp"
+#include "huedra/platform/vulkan/instance.hpp"
+#include "huedra/window/window.hpp"
 
 namespace huedra {
 

@@ -1,7 +1,7 @@
 #include "context.hpp"
-#include "core/file/utils.hpp"
-#include "core/log.hpp"
-#include "graphics/shader_module.hpp"
+#include "huedra/core/file/utils.hpp"
+#include "huedra/core/log.hpp"
+#include "huedra/graphics/shader_module.hpp"
 
 namespace huedra {
 

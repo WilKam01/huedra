@@ -1,10 +1,10 @@
 #include "graphics_manager.hpp"
-#include "core/log.hpp"
+#include "huedra/core/log.hpp"
 
 #ifdef VULKAN
-#include "platform/vulkan/context.hpp"
+#include "huedra/platform/vulkan/context.hpp"
 #elif defined(METAL)
-#include "platform/metal/context.hpp"
+#include "huedra/platform/metal/context.hpp"
 #endif
 
 namespace huedra {
