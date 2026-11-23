@@ -3,6 +3,7 @@
 #include "huedra/core/input/keys.hpp"
 #include "huedra/window/window.hpp"
 
+#include <viewporter-client-protocol.h>
 #include <xdg-decoration.h>
 #include <xdg-shell.h>
 
@@ -19,9 +20,9 @@ public:
     WindowWayland(WindowWayland&& rhs) = default;
     WindowWayland& operator=(WindowWayland&& rhs) = default;
 
-    bool init(std::string_view title, const WindowInput& input, bool graphicsManagersInitialized, wl_display* wlDisplay,
-              wl_shm* wlSharedMemory, wl_compositor* wlCompositor, xdg_wm_base* xdgBase,
-              zxdg_decoration_manager_v1* zxdgDecorationManager);
+    bool init(std::string_view title, const WindowInput& input, wl_display* wlDisplay, bool graphicsManagerInitialized,
+              wl_buffer* backgroundBuffer, wl_compositor* wlCompositor, xdg_wm_base* xdgBase,
+              zxdg_decoration_manager_v1* zxdgDecorationManager, wp_viewporter* wpViewporter);
     void cleanup() override;
     bool update() override;
 
@@ -52,18 +53,20 @@ private:
 
     bool m_isMouseFocused{false};
     u32 m_lastPointerSerial{0};
-    bool m_isGraphicsManagerInitialized{false};
+    uvec2 m_lastScreenSize;
+    bool m_graphicsManagerInitialized{false};
 
     // Per window
     wl_surface* m_mainSurface{nullptr};
+    wl_surface* m_cursorSurface{nullptr};
     xdg_surface* m_xdgSurface{nullptr};
     xdg_toplevel* m_xdgToplevel{nullptr};
     zxdg_toplevel_decoration_v1* m_zxdgToplevelDecoration{nullptr};
-    wl_surface* m_cursorSurface{nullptr};
+    wp_viewport* m_viewport{nullptr};
 
     // References
     wl_display* m_display{nullptr};
-    wl_shm* m_wlSharedMemory{nullptr};
+    wl_buffer* m_backgroundBuffer{nullptr};
 
     static constexpr wl_surface_listener wlSurfaceListener{};
     static constexpr xdg_surface_listener xdgSurfaceListener{.configure = handleSurfaceConfigure};

@@ -1,8 +1,10 @@
 #include "config.hpp"
 #include "huedra/core/global.hpp"
 #include "huedra/core/log.hpp"
+
 #include <cstring>
 #include <linux/input-event-codes.h>
+#include <sys/mman.h>
 #include <systemd/sd-bus.h>
 #include <unistd.h>
 
@@ -189,6 +191,36 @@ void WaylandConfig::updateCursor(bool override)
 
     wl_pointer_set_cursor(wlPointer, lastMouseSelectedWindow->getLastPointerSerial(), cursorSurface, image->hotspot_x,
                           image->hotspot_y);
+}
+
+void WaylandConfig::createBackgrounBuffer()
+{
+    constexpr i32 width = 1;
+    constexpr i32 height = 1;
+    constexpr i32 stride = width * 4;
+    constexpr i32 size = stride * height; // 4 bytes total
+
+    i32 fileDesc = memfd_create("wayland-shm-1x1", MFD_CLOEXEC);
+    if (fileDesc < 0)
+    {
+        log::func::fatal("Could not create wayland-shm-1x1 in RAM!");
+    }
+
+    if (ftruncate(fileDesc, size) < 0)
+    {
+        close(fileDesc);
+        log::func::fatal("Could not truncate wayland-shm-1x1 file!");
+    }
+
+    u32* pixelData = std::bit_cast<u32*>(mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fileDesc, 0));
+    *pixelData = 0xff222222; // Single gray pixel
+
+    wl_shm_pool* pool = wl_shm_create_pool(wlSharedMemory, fileDesc, size);
+    backgroundBuffer = wl_shm_pool_create_buffer(pool, 0, width, height, stride, WL_SHM_FORMAT_XRGB8888);
+
+    munmap(pixelData, size);
+    close(fileDesc);
+    wl_shm_pool_destroy(pool);
 }
 
 void WaylandConfig::handlePing(void* data, xdg_wm_base* base, u32 serial) { xdg_wm_base_pong(base, serial); }
@@ -651,6 +683,15 @@ void WaylandConfig::handleRegistry(void* data, wl_registry* registry, u32 name, 
         if (!config->zwpPointerConstraints)
         {
             log::func::fatal("Could not bind zwp pointer contraints from handleRegistry call!");
+        }
+    }
+    else if (strcmp(interface, wp_viewporter_interface.name) == 0)
+    {
+        config->wpViewporter = static_cast<wp_viewporter*>(
+            wl_registry_bind(registry, name, &wp_viewporter_interface, WP_VIEWPORTER_BIND_VERSION));
+        if (!config->wpViewporter)
+        {
+            log::func::fatal("Could not bind wp viewporter from handleRegistry call!");
         }
     }
 }

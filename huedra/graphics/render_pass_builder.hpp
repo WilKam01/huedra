@@ -69,7 +69,8 @@ public:
 
     u64 generateHash();
 
-    bool empty() const { return m_pipeline.empty() && m_commands == nullptr; }
+    // Only actually empty when not graphics, since graphics can just be a clear
+    bool empty() const { return (m_pipeline.empty() || m_commands == nullptr) && m_type != RenderPassType::GRAPHICS; }
     RenderPassType getType() const { return m_type; }
     PipelineBuilder getPipeline() const { return m_pipeline; }
     RenderCommands getCommands() const { return m_commands; }

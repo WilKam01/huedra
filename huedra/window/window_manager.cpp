@@ -227,6 +227,7 @@ void WindowManager::init()
     }
 
     wlConfig.loadCursorTheme();
+    wlConfig.createBackgrounBuffer();
 #elif defined(X11)
     xcbConnection = xcb_connect(nullptr, nullptr);
 
@@ -1064,6 +1065,7 @@ void WindowManager::cleanup()
 
     [NSApp terminate:nil];
 #elif defined(WAYLAND)
+    wl_buffer_destroy(wlConfig.backgroundBuffer);
     if (wlConfig.wlCursorTheme)
     {
         wl_cursor_theme_destroy(wlConfig.wlCursorTheme);
@@ -1258,9 +1260,9 @@ Window* WindowManager::createWindow(std::string_view title, const WindowInput& i
     success = window->init(title, input);
 #elif defined(WAYLAND)
     auto* window = new WindowWayland();
-    success =
-        window->init(title, input, global::graphicsManager.isInitialized(), wlConfig.wlDisplay, wlConfig.wlSharedMemory,
-                     wlConfig.wlCompositor, wlConfig.xdgBase, wlConfig.zxdgDecorationManager);
+    success = window->init(title, input, wlConfig.wlDisplay, global::graphicsManager.isInitialized(),
+                           wlConfig.backgroundBuffer, wlConfig.wlCompositor, wlConfig.xdgBase,
+                           wlConfig.zxdgDecorationManager, wlConfig.wpViewporter);
 #elif defined(X11)
     auto* window = new WindowX11();
     success = window->init(title, input, xcbConnection, xcbScreen, wmProtoReply, wmDeleteReply);

@@ -1006,7 +1006,10 @@ void VulkanContext::render()
             VulkanRenderContext renderContext;
             renderContext.init(commandBuffer, this, info.pass,
                                info.descriptorHandlers[global::graphicsManager.getCurrentFrame()]);
-            info.pass->getCommands()(renderContext);
+            if (info.pass->getCommands())
+            {
+                info.pass->getCommands()(renderContext);
+            }
 
             info.pass->end(commandBuffer);
         }

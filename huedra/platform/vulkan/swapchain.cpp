@@ -147,7 +147,6 @@ void VulkanSwapchain::create()
         imageCount = surfaceSupport.capabilities.maxImageCount;
     }
 
-    VkSwapchainKHR oldSwapchain = m_swapchain;
     VkSwapchainCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     createInfo.surface = m_surface;

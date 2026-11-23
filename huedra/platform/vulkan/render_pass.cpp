@@ -29,8 +29,11 @@ void VulkanRenderPass::create()
     if (m_builder.getType() == RenderPassType::GRAPHICS)
     {
         createRenderPass();
-        m_pipeline.initGraphics(m_builder.getPipeline(), *m_device, m_renderPass,
-                                static_cast<u32>(m_builder.getRenderTargets().size()));
+        if (!m_builder.getPipeline().empty())
+        {
+            m_pipeline.initGraphics(m_builder.getPipeline(), *m_device, m_renderPass,
+                                    static_cast<u32>(m_builder.getRenderTargets().size()));
+        }
         createFramebuffers();
     }
     else
@@ -46,7 +49,10 @@ void VulkanRenderPass::cleanup()
         cleanupFramebuffers();
         vkDestroyRenderPass(m_device->getLogical(), m_renderPass, nullptr);
     }
-    m_pipeline.cleanup();
+    if (!m_builder.getPipeline().empty())
+    {
+        m_pipeline.cleanup();
+    }
 }
 
 void VulkanRenderPass::createFramebuffers()
@@ -153,7 +159,10 @@ void VulkanRenderPass::begin(VkCommandBuffer commandBuffer)
     renderPassInfo.pClearValues = clearValues.data();
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.get());
+    if (!m_builder.getPipeline().empty())
+    {
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline.get());
+    }
 }
 
 void VulkanRenderPass::end(VkCommandBuffer commandBuffer)

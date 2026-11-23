@@ -1,11 +1,5 @@
 include(${CMAKE_SOURCE_DIR}/cmake/utils.cmake)
 
-add_custom_target(create_link ALL
-    COMMAND ${CMAKE_COMMAND} -E create_symlink
-    ${PROJECT_SOURCE_DIR}/assets ${CMAKE_CURRENT_BINARY_DIR}/${SUBFOLDER}/assets
-    COMMENT "Creating symlink for assets folder"
-)
-
 function(add_example SUBFOLDER)
     append_glob_recurse_files(SOURCES 
         ${CMAKE_CURRENT_SOURCE_DIR}/${SUBFOLDER}/*.cpp 
@@ -22,9 +16,21 @@ function(add_example SUBFOLDER)
         ${CMAKE_CURRENT_SOURCE_DIR}
     )
 
+    set_target_properties(${SUBFOLDER} PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${SUBFOLDER}"
+    )
+
     target_link_libraries(${SUBFOLDER} PRIVATE huedra)
 
-    add_dependencies(${SUBFOLDER} create_link)
+    add_custom_target(create_link_${SUBFOLDER} ALL
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_SOURCE_DIR}/${SUBFOLDER}/assets ${CMAKE_CURRENT_BINARY_DIR}/${SUBFOLDER}/assets
+        COMMENT "Creating symlink for ${SUBFOLDER}/assets folder"
+    )
+
+    if (IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${SUBFOLDER}/assets)
+        add_dependencies(${SUBFOLDER} create_link_${SUBFOLDER})
+    endif()
 
     # Define compiler flags and macros for different build types
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")

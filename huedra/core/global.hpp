@@ -16,4 +16,21 @@ inline GraphicsManager graphicsManager;
 inline ResourceManager resourceManager;
 inline SceneManager sceneManager;
 
+inline void init()
+{
+    timer.init();
+    windowManager.init();
+    graphicsManager.init();
+    resourceManager.init();
+    sceneManager.init();
+}
+
+inline void cleanup()
+{
+    sceneManager.cleanup();
+    resourceManager.cleanup();
+    graphicsManager.cleanup();
+    windowManager.cleanup();
+}
+
 } // namespace huedra::global

@@ -27,12 +27,6 @@ RenderGraphBuilder& RenderGraphBuilder::addPass(std::string_view name, const Ren
         return *this;
     }
 
-    if (!pass.getCommands())
-    {
-        log::func::error("Could not add render pass, no commands set");
-        return *this;
-    }
-
     if (pass.getType() == RenderPassType::GRAPHICS && pass.getRenderTargets().empty())
     {
         log::func::error("Could not add graphics render pass without any render targets");

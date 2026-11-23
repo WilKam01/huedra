@@ -6,6 +6,7 @@
 #include <pointer-constraints.h>
 #include <pointer-warp.h>
 #include <relative-pointer.h>
+#include <viewporter-client-protocol.h>
 #include <wayland-cursor.h>
 #include <xkbcommon/xkbcommon.h>
 
@@ -31,6 +32,8 @@ struct WaylandConfig
     zwp_locked_pointer_v1* zwpLockedPointer{nullptr};
     zwp_confined_pointer_v1* zwpConfinedPointer{nullptr};
     wl_cursor_theme* wlCursorTheme{nullptr};
+    wp_viewporter* wpViewporter{nullptr};
+    wl_buffer* backgroundBuffer{nullptr};
 
     u32 hwCapsBit{XKB_MOD_INVALID};
     u32 hwNumBit{XKB_MOD_INVALID};
@@ -62,10 +65,11 @@ struct WaylandConfig
     static const u32 WP_POINTER_WARP_BIND_VERSION = 1;
     static const u32 ZWP_RELATIVE_POINTER_MANAGER_BIND_VERSION = 1;
     static const u32 ZWP_POINTER_CONSTRAINTS_BIND_VERSION = 1;
+    static const u32 WP_VIEWPORTER_BIND_VERSION = 1;
 
-    // True: New theme detected
     bool loadCursorTheme();
     void updateCursor(bool override = false);
+    void createBackgrounBuffer();
 
     static void handlePing(void* data, xdg_wm_base* base, u32 serial);
 

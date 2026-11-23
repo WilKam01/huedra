@@ -2,15 +2,12 @@
 
 #include "huedra/core/log.hpp"
 
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <unistd.h>
-
 namespace huedra {
 
-bool WindowWayland::init(std::string_view title, const WindowInput& input, bool graphicsManagersInitialized,
-                         wl_display* wlDisplay, wl_shm* wlSharedMemory, wl_compositor* wlCompositor,
-                         xdg_wm_base* xdgBase, zxdg_decoration_manager_v1* zxdgDecorationManager)
+bool WindowWayland::init(std::string_view title, const WindowInput& input, wl_display* wlDisplay,
+                         bool graphicsManagerInitialized, wl_buffer* backgroundBuffer, wl_compositor* wlCompositor,
+                         xdg_wm_base* xdgBase, zxdg_decoration_manager_v1* zxdgDecorationManager,
+                         wp_viewporter* wpViewporter)
 {
     WindowRect rect{};
     rect.width = input.width;
@@ -31,9 +28,9 @@ bool WindowWayland::init(std::string_view title, const WindowInput& input, bool 
 
     Window::init(title, rect);
 
-    m_isGraphicsManagerInitialized = graphicsManagersInitialized;
     m_display = wlDisplay;
-    m_wlSharedMemory = wlSharedMemory;
+    m_backgroundBuffer = backgroundBuffer;
+    m_graphicsManagerInitialized = graphicsManagerInitialized;
 
     m_mainSurface = wl_compositor_create_surface(wlCompositor);
     if (!m_mainSurface)
@@ -63,6 +60,12 @@ bool WindowWayland::init(std::string_view title, const WindowInput& input, bool 
     }
     xdg_toplevel_add_listener(m_xdgToplevel, &xdgToplevelListener, this);
 
+    m_viewport = wp_viewporter_get_viewport(wpViewporter, m_mainSurface);
+    if (!m_viewport)
+    {
+        log::func::fatal("Could not get wayland viewport!");
+    }
+
     xdg_toplevel_set_title(m_xdgToplevel, title.data());
     xdg_toplevel_set_app_id(m_xdgToplevel, title.data());
 
@@ -77,6 +80,7 @@ bool WindowWayland::init(std::string_view title, const WindowInput& input, bool 
 
 void WindowWayland::cleanup()
 {
+    wp_viewport_destroy(m_viewport);
     xdg_toplevel_destroy(m_xdgToplevel);
     xdg_surface_destroy(m_xdgSurface);
     wl_surface_destroy(m_cursorSurface);
@@ -145,7 +149,6 @@ void WindowWayland::handleToplevelConfigure(void* data, xdg_toplevel* toplevel, 
     if (width != 0 && height != 0)
     {
         window->updateResolution(width, height, width, height);
-        window->resize();
 
         // TODO: This is not the optimal solution due to it not being active when not in focus, find better solution
         // Assume minimized until proven wrong
@@ -170,44 +173,24 @@ void WindowWayland::handleToplevelClose(void* data, xdg_toplevel* toplevel)
 
 void WindowWayland::resize()
 {
+    if (m_lastScreenSize == getScreenSize())
+    {
+        return;
+    }
+    m_lastScreenSize = getScreenSize();
+
+    // Let graphicsManager take care of resizing window
+    // Will throw error otherwise, in the case of Vulkan
+    if (m_graphicsManagerInitialized)
+    {
+        return;
+    }
+
     WindowRect rect = getRect();
-    i32 stride = rect.screenWidth * 4; // RGBA components for each scanline
-    i32 size = stride * rect.screenHeight;
-
-    i32 fileDesc = memfd_create("wayland-shm-buffer", MFD_CLOEXEC);
-    if (fileDesc < 0)
-    {
-        log::func::fatal("Could not create wayland-shm-buffer in RAM!");
-    }
-
-    if (ftruncate(fileDesc, size) < 0)
-    {
-        close(fileDesc);
-        log::func::fatal("Could not trunctate wayland-shm-buffer file to desired size ({})", size);
-    }
-
-    u32* pixelData = std::bit_cast<u32*>(mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fileDesc, 0));
-    for (u32 i = 0; i < rect.screenWidth * rect.screenHeight; ++i)
-    {
-        pixelData[i] = 0xff222222;
-    }
-
-    wl_shm_pool* pool = wl_shm_create_pool(m_wlSharedMemory, fileDesc, size);
-    wl_buffer* buffer =
-        wl_shm_pool_create_buffer(pool, 0, rect.screenWidth, rect.screenHeight, stride, WL_SHM_FORMAT_XRGB8888);
-
-    wl_surface_attach(m_mainSurface, buffer, 0, 0);
-    wl_surface_damage_buffer(m_mainSurface, 0, 0, rect.screenWidth, rect.screenHeight);
-
-    // When graphics manager is initalized, let it handle surface rendering
-    if (!m_isGraphicsManagerInitialized)
-    {
-        wl_surface_commit(m_mainSurface);
-    }
-
-    munmap(pixelData, size);
-    close(fileDesc);
-    wl_shm_pool_destroy(pool);
+    wl_surface_attach(m_mainSurface, m_backgroundBuffer, 0, 0);
+    wp_viewport_set_destination(m_viewport, rect.screenWidth, rect.screenHeight);
+    wl_surface_damage_buffer(m_mainSurface, 0, 0, 1, 1);
+    wl_surface_commit(m_mainSurface);
 }
 
 } // namespace huedra

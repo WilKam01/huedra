@@ -2,7 +2,6 @@
 
 #include "huedra/core/types.hpp"
 #include "huedra/graphics/shader_module.hpp"
-#include "huedra/platform/slang/config.hpp"
 
 namespace huedra {
 
