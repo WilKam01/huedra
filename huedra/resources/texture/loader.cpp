@@ -542,8 +542,8 @@ HdrTextureData loadRadianceHdr(std::string_view path, TexelChannelFormat desired
         return {};
     }
 
-    bool positiveX = resSplit[2][1] == '+';
-    bool positiveY = resSplit[0][1] == '+';
+    bool positiveX = resSplit[2][0] == '+';
+    bool positiveY = resSplit[0][0] == '+';
     textureData.width = std::stoul(resSplit[3]);
     textureData.height = std::stoul(resSplit[1]);
 
@@ -555,8 +555,8 @@ HdrTextureData loadRadianceHdr(std::string_view path, TexelChannelFormat desired
     }
 
     auto numChannels = static_cast<u32>(desiredFormat);
-    textureData.texelSize = numChannels;
-    textureData.texels.resize(textureData.width * textureData.height * textureData.texelSize, 0.0f);
+    textureData.texelSize = numChannels * sizeof(f32);
+    textureData.texels.resize(textureData.width * textureData.height * numChannels, 0.0f);
     switch (desiredFormat)
     {
     case TexelChannelFormat::G:
@@ -618,7 +618,7 @@ HdrTextureData loadRadianceHdr(std::string_view path, TexelChannelFormat desired
                         }
                         x += count;
                     }
-                    // Copy next code - 128 raw bytes directly
+                    // Copy next code raw bytes directly
                     else
                     {
                         u32 count = code;
@@ -670,7 +670,7 @@ HdrTextureData loadRadianceHdr(std::string_view path, TexelChannelFormat desired
             // TODO: Figure out orientation based on +/- of resolution
             uvec2 coord(i, y);
 
-            u32 startIndex = (coord.y * textureData.width + coord.x) * textureData.texelSize;
+            u32 startIndex = (coord.y * textureData.width + coord.x) * numChannels;
             switch (desiredFormat)
             {
             case TexelChannelFormat::G:
